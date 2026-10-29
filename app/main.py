@@ -41,6 +41,7 @@ from .db import (
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("uvicorn.access").addFilter(lambda r: "/healthz" not in r.getMessage())
 log = logging.getLogger("oubliez-moi")
 BASE = Path(__file__).parent
 SEED = BASE / "seed" / "brokers.json"

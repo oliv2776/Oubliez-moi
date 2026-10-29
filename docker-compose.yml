@@ -7,8 +7,9 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      # Exposé uniquement en local : passez par un reverse proxy HTTPS (voir README).
-      - "127.0.0.1:27480:27480"
+      # Par défaut, accessible uniquement depuis le serveur (127.0.0.1).
+      # Pour y accéder depuis votre réseau local, mettez BIND_ADDRESS=0.0.0.0 dans .env.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-27480}:27480"
     volumes:
       - oubliez-moi-data:/data
 

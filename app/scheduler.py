@@ -11,6 +11,7 @@ from .config import settings
 from .db import SessionLocal, kv_get, utcnow
 
 log = logging.getLogger(__name__)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)  # pas de log à chaque exécution
 scheduler = BackgroundScheduler(timezone=settings.timezone, job_defaults={"coalesce": True, "max_instances": 1, "misfire_grace_time": 300})
 
 

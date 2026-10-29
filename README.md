@@ -33,7 +33,11 @@ docker compose up -d --build
 docker compose logs -f
 ```
 
-L'interface écoute sur `http://127.0.0.1:27480`, accessible uniquement depuis le serveur lui-même. Pour y accéder depuis l'extérieur, utilisez un reverse proxy HTTPS (voir plus bas) ou un tunnel SSH :
+Par défaut, l'interface écoute sur `http://127.0.0.1:27480`, accessible uniquement depuis le serveur lui-même.
+
+**Accès depuis le réseau local** : mettez `BIND_ADDRESS=0.0.0.0` (ou l'IP du serveur) dans `.env`, puis `docker compose up -d`. L'interface est alors joignable sur `http://IP-DU-SERVEUR:27480`. Si le pare-feu UFW est actif, sachez que Docker publie ses ports sans passer par lui : n'exposez pas ce port sur une IP publique, et limitez l'accès au réseau local ou au VPN.
+
+**Accès distant** : utilisez un reverse proxy HTTPS (voir plus bas) ou un tunnel SSH :
 
 ```bash
 ssh -L 27480:127.0.0.1:27480 utilisateur@mon-serveur   # puis ouvrez http://localhost:27480
