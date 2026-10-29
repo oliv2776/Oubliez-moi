@@ -33,10 +33,10 @@ docker compose up -d --build
 docker compose logs -f
 ```
 
-L'interface écoute sur `http://127.0.0.1:8080`, accessible uniquement depuis le serveur lui-même. Pour y accéder depuis l'extérieur, utilisez un reverse proxy HTTPS (voir plus bas) ou un tunnel SSH :
+L'interface écoute sur `http://127.0.0.1:27480`, accessible uniquement depuis le serveur lui-même. Pour y accéder depuis l'extérieur, utilisez un reverse proxy HTTPS (voir plus bas) ou un tunnel SSH :
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 utilisateur@mon-serveur   # puis ouvrez http://localhost:8080
+ssh -L 27480:127.0.0.1:27480 utilisateur@mon-serveur   # puis ouvrez http://localhost:27480
 ```
 
 ### Image prête à l'emploi
@@ -73,7 +73,7 @@ Ensuite, passez de temps en temps sur **À traiter**. Tout le reste est automati
 
 ```
 oubliez-moi.mondomaine.fr {
-    reverse_proxy 127.0.0.1:8080
+    reverse_proxy 127.0.0.1:27480
 }
 ```
 
@@ -83,7 +83,7 @@ oubliez-moi.mondomaine.fr {
 server {
     server_name oubliez-moi.mondomaine.fr;
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:27480;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -139,7 +139,7 @@ pip install -r requirements-dev.txt
 pytest -q
 
 # Lancer en local (simulation, données dans ./data)
-DATA_DIR=./data ADMIN_PASSWORD=dev uvicorn app.main:app --reload --port 8080
+DATA_DIR=./data ADMIN_PASSWORD=dev uvicorn app.main:app --reload --port 27480
 ```
 
 Structure :
