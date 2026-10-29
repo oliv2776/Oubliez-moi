@@ -144,3 +144,21 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
   .brand span.t { display: none; }
   .hide-sm { display: none; }
 }
+
+/* Onglets */
+.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--line); margin-bottom: 1.25rem; overflow-x: auto; }
+.tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: .65rem 1rem; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: .45rem; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.tabs .dot.ok { background: var(--ok); }
+.tabs .dot.warn { background: var(--warn); }
+.tabs .dot.bad { background: var(--bad); }
+.js-tabs [role="tabpanel"][hidden] { display: none; }
+.panel-narrow { max-width: 760px; }
+.savebar { position: sticky; bottom: 0; z-index: 3; background: var(--bg); box-shadow: 0 -8px 16px -12px rgba(0,0,0,.25); padding: .75rem 0; margin-top: .5rem; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.check { display: flex; gap: .45rem; align-items: center; font-weight: 400; font-size: .9rem; margin-top: .8rem; }
+.check input { width: auto; }
+.row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
+@media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+.status-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }

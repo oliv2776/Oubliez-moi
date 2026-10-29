@@ -59,6 +59,9 @@ def save_from_form(form: dict) -> list[str]:
             continue
         if key not in form:
             continue
+        if key in SECRET_KEYS and form.get(f"clear_{key}"):
+            values[key] = ""
+            continue
         if key in SECRET_KEYS and not str(form[key]).strip():
             continue  # champ mot de passe laissé vide : on conserve l'actuel
         try:
@@ -89,14 +92,6 @@ def save_from_form(form: dict) -> list[str]:
             setattr(settings, key, value)
         db.commit()
     return []
-
-
-def clear_secret(key: str) -> None:
-    if key in SECRET_KEYS:
-        with SessionLocal() as db:
-            kv_set(db, PREFIX + key, json.dumps(""))
-            db.commit()
-        setattr(settings, key, "")
 
 
 def reset_to_env() -> None:

@@ -6,6 +6,7 @@ from app.db import QUEUED, SENT, Broker, Profile, Request, SessionLocal
 
 
 FORM = {
+    "_settings_form": "1", "tab": "compte",
     "dry_run": "true", "send_per_hour": "20",
     "smtp_from": "rgpd@exemple.org", "smtp_user": "rgpd@exemple.org", "smtp_password": "secret1",
     "smtp_host": "smtp.exemple.org", "smtp_port": "465", "smtp_security": "ssl",

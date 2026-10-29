@@ -61,7 +61,7 @@ def send_message(msg: EmailMessage, force: bool = False) -> None:
             if settings.smtp_security == "starttls":
                 server.starttls(context=ctx)
                 server.ehlo()
-            if settings.smtp_user:
+            if settings.smtp_user and settings.smtp_password:
                 server.login(settings.smtp_user, settings.smtp_password)
             server.send_message(msg, to_addrs=recipients)
     except smtplib.SMTPRecipientsRefused as e:

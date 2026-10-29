@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from . import phones
 from .db import Broker, Profile, Request
 
 
@@ -27,7 +28,7 @@ def _identity_block(profile: Profile, lang: str) -> str:
 
     add(labels[1], profile.other_names)
     add(labels[2], profile.emails)
-    add(labels[3], profile.phones)
+    add(labels[3], [phones.parse(t).for_letter for t in (profile.phones or [])])
     add(labels[4], profile.addresses)
     if profile.birth_date:
         lines.append(f"- {labels[5]}{sep}{profile.birth_date}")

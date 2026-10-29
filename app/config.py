@@ -67,6 +67,7 @@ class Settings:
     auto_classify: bool = field(default_factory=lambda: _bool("AUTO_CLASSIFY", True))
     broker_countries: list[str] = field(default_factory=lambda: _list("BROKER_COUNTRIES", "fr,all"))
     broker_auto_update_days: int = field(default_factory=lambda: _int("BROKER_AUTO_UPDATE_DAYS", 30))
+    phone_region: str = field(default_factory=lambda: _str("PHONE_REGION", "FR").upper())
     reference_prefix: str = field(default_factory=lambda: _str("REFERENCE_PREFIX", "OUBLI").upper())
     disable_scheduler: bool = field(default_factory=lambda: _bool("DISABLE_SCHEDULER", False))
 

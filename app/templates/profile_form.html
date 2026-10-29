@@ -11,7 +11,7 @@
   <textarea name="other_names" rows="2">{{ profile.other_names|lines if profile else '' }}</textarea>
   <label>Adresses e-mail * <span class="hint">— une par ligne ; la première sert de contact dans la signature</span></label>
   <textarea name="emails" rows="3" required>{{ profile.emails|lines if profile else '' }}</textarea>
-  <label>Téléphones <span class="hint">— un par ligne</span></label>
+  <label>Téléphones <span class="hint">— un par ligne, au format de votre choix (06…, +33 6…, 0033 6…) ; ils seront écrits au format national et international dans les courriers</span></label>
   <textarea name="phones" rows="2">{{ profile.phones|lines if profile else '' }}</textarea>
   <label>Adresses postales <span class="hint">— actuelle et anciennes ; séparez-les par une ligne vide</span></label>
   <textarea name="addresses" rows="5">{{ profile.addresses|join('\n\n') if profile else '' }}</textarea>

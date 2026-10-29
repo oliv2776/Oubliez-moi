@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, brokers as broker_catalog, letters, mailer, scheduler, service, settings_store
+from . import __version__, brokers as broker_catalog, letters, mailer, phones, scheduler, service, settings_store
 from .config import settings
 from .db import (
     FAILED,
@@ -216,16 +216,24 @@ def profile_new(request: HttpRequest, db: Session = Depends(get_db)):
     return render(request, "profile_form.html", db, profile=None)
 
 
-def _fill_profile(p: Profile, full_name, other_names, emails, phones, addresses, birth_date, language, notes):
+def _fill_profile(p: Profile, full_name, other_names, emails, phone_list, addresses, birth_date, language, notes) -> list[str]:
+    """Remplit le profil et renvoie les numéros de téléphone non reconnus."""
     p.full_name = full_name.strip()
     p.other_names = _split(other_names)
     p.emails = [e.lower() for e in _split(emails)]
-    p.phones = _split(phones)
+    p.phones, invalid = phones.normalize_list(_split(phone_list))
     # Adresses postales : séparées par une ligne vide
     p.addresses = [" ".join(_split(block)) for block in re.split(r"\n\s*\n", (addresses or "").replace("\r", "")) if block.strip()]
     p.birth_date = birth_date.strip() or None
     p.language = language if language in ("auto", "fr", "en") else "auto"
     p.notes = notes.strip() or None
+    return invalid
+
+
+def _warn_phones(request: HttpRequest, invalid: list[str]) -> None:
+    if invalid:
+        flash(request, "Numéro(s) non reconnu(s), conservé(s) tel(s) quel(s) : " + ", ".join(invalid)
+              + ". Pour un numéro étranger, commencez par l'indicatif (+32, +41…).", "info")
 
 
 @app.post("/profiles")
@@ -235,12 +243,13 @@ def profile_create(
     addresses: str = Form(""), birth_date: str = Form(""), language: str = Form("auto"), notes: str = Form(""),
 ):
     p = Profile()
-    _fill_profile(p, full_name, other_names, emails, phones, addresses, birth_date, language, notes)
+    invalid = _fill_profile(p, full_name, other_names, emails, phones, addresses, birth_date, language, notes)
     if not p.emails:
         flash(request, "Au moins une adresse e-mail est nécessaire pour que les courtiers vous identifient.", "error")
         return back("/profiles/new")
     db.add(p)
     db.commit()
+    _warn_phones(request, invalid)
     flash(request, f"Profil « {p.full_name} » créé. Vérifiez l'aperçu du courrier, puis lancez les demandes.")
     return back(f"/profiles/{p.id}")
 
@@ -270,8 +279,9 @@ def profile_update(
     addresses: str = Form(""), birth_date: str = Form(""), language: str = Form("auto"), notes: str = Form(""),
 ):
     p = _get(db, Profile, pid)
-    _fill_profile(p, full_name, other_names, emails, phones, addresses, birth_date, language, notes)
+    invalid = _fill_profile(p, full_name, other_names, emails, phones, addresses, birth_date, language, notes)
     db.commit()
+    _warn_phones(request, invalid)
     flash(request, "Profil mis à jour. Les prochains courriers utiliseront ces informations.")
     return back(f"/profiles/{pid}")
 
@@ -533,30 +543,38 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
     )
 
 
+TABS = ("general", "compte", "releve", "auto")
+
+
+def _tab_url(form) -> str:
+    tab = form.get("tab", "")
+    return f"/settings#{tab}" if tab in TABS else "/settings"
+
+
+def _save_settings(request: HttpRequest, form: dict) -> bool:
+    """Enregistre les réglages si la requête vient du formulaire Réglages. Renvoie False en cas d'erreur."""
+    if "_settings_form" not in form:
+        return True  # bouton utilisé ailleurs (ex. tableau de bord) : rien à enregistrer
+    was_dry = settings.dry_run
+    errors = settings_store.save_from_form(form)
+    for e in errors:
+        flash(request, e, "error")
+    if errors:
+        return False
+    scheduler.reschedule()
+    if was_dry and not settings.dry_run:
+        n = service.requeue_simulated()
+        msg = "Envoi réel activé : les demandes en file vont maintenant partir"
+        flash(request, msg + (f" (dont {n} demande(s) simulée(s) remise(s) en file)." if n else "."))
+    return True
+
+
 @app.post("/settings")
 async def settings_save(request: HttpRequest):
     form = dict(await request.form())
-    was_dry = settings.dry_run
-    errors = settings_store.save_from_form(form)
-    if errors:
-        for e in errors:
-            flash(request, e, "error")
-        return back("/settings")
-    scheduler.reschedule()
-    msg = "Réglages enregistrés."
-    if was_dry and not settings.dry_run:
-        n = service.requeue_simulated()
-        msg += " Envoi réel activé : les demandes en file vont maintenant partir"
-        msg += f" (dont {n} demande(s) simulée(s) remise(s) en file)." if n else "."
-    flash(request, msg)
-    return back("/settings")
-
-
-@app.post("/settings/clear-secret")
-def settings_clear_secret(request: HttpRequest, key: str = Form(...)):
-    settings_store.clear_secret(key)
-    flash(request, "Mot de passe effacé.")
-    return back("/settings")
+    if _save_settings(request, form):
+        flash(request, "Réglages enregistrés.")
+    return back(_tab_url(form))
 
 
 @app.post("/settings/reset")
@@ -568,39 +586,48 @@ def settings_reset(request: HttpRequest):
 
 
 @app.post("/settings/test-smtp")
-def test_smtp(request: HttpRequest):
+async def test_smtp(request: HttpRequest):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
     if not settings.smtp_configured:
-        flash(request, "Renseignez d'abord le serveur SMTP et l'adresse d'expédition, puis enregistrez.", "error")
-        return back("/settings")
+        flash(request, "Renseignez le serveur d'envoi et l'adresse e-mail.", "error")
+        return back(_tab_url(form))
     msg = mailer.build_message(settings.smtp_from, "Oubliez-moi – e-mail de test", "Si vous lisez ceci, l'envoi SMTP fonctionne.", "Oubliez-moi")
     try:
         mailer.send_message(msg, force=True)  # le test part réellement, même en mode simulation
-        flash(request, f"E-mail de test envoyé à {settings.smtp_from} : vérifiez votre boîte.")
+        flash(request, f"Réglages enregistrés. E-mail de test envoyé à {settings.smtp_from} : vérifiez votre boîte.")
     except mailer.SendError as e:
         flash(request, str(e), "error")
-    return back("/settings")
+    return back(_tab_url(form))
 
 
 @app.post("/settings/test-imap")
-def test_imap(request: HttpRequest):
+async def test_imap(request: HttpRequest):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
     if not settings.imap_configured:
-        flash(request, "IMAP non configuré.", "error")
+        flash(request, "Renseignez le serveur de relève (et les identifiants s'ils diffèrent de ceux de l'envoi).", "error")
     else:
         try:
-            flash(request, mailer.test_imap())
+            flash(request, "Réglages enregistrés. " + mailer.test_imap())
         except Exception as e:  # noqa: BLE001
             flash(request, f"Erreur IMAP : {e}", "error")
-    return back("/settings")
+    return back(_tab_url(form))
 
 
 @app.post("/settings/poll")
-def poll_now(request: HttpRequest):
+async def poll_now(request: HttpRequest):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
     try:
         n = service.poll_imap()
         flash(request, f"Relève terminée : {n} réponse(s) rattachée(s).")
     except Exception as e:  # noqa: BLE001
         flash(request, f"Erreur IMAP : {e}", "error")
-    return back(request.headers.get("referer") or "/settings")
+    return back(_tab_url(form) if "_settings_form" in form else request.headers.get("referer") or "/settings")
 
 
 @app.post("/settings/send-now")
