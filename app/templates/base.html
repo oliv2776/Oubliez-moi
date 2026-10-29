@@ -26,7 +26,10 @@
 {% endif %}
 <main>
   {% if request.session.get('user') and settings.dry_run %}
-  <div class="banner warn"><strong>Mode simulation.</strong> Aucun e-mail n'est réellement envoyé (<code>DRY_RUN=true</code>). Vérifiez les courriers, puis passez <code>DRY_RUN=false</code> dans <code>.env</code> et redémarrez le conteneur.</div>
+  <div class="banner warn"><strong>Mode simulation.</strong> Aucun e-mail n'est réellement envoyé. Une fois la messagerie testée et le courrier relu, passez en envoi réel dans <a href="/settings">Réglages</a>.</div>
+  {% endif %}
+  {% if request.session.get('user') and not settings.smtp_configured and not path.startswith('/settings') %}
+  <div class="banner info"><strong>Messagerie non configurée.</strong> Indiquez l'adresse e-mail qui enverra les demandes dans <a href="/settings">Réglages</a>.</div>
   {% endif %}
   {% for kind, msg in flashes %}<div class="banner {{ kind }}">{{ msg }}</div>{% endfor %}
   {% block content %}{% endblock %}

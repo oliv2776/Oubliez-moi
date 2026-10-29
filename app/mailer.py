@@ -40,16 +40,16 @@ def build_message(to: str, subject: str, body: str, from_name: str, reply_to: st
     return msg
 
 
-def send_message(msg: EmailMessage) -> None:
-    """Envoie le message. En mode DRY_RUN, se contente de le journaliser."""
+def send_message(msg: EmailMessage, force: bool = False) -> None:
+    """Envoie le message. En mode simulation (sauf force=True), se contente de le journaliser."""
     recipients = [a for _, a in getaddresses([msg["To"]])]
     if settings.smtp_bcc_self:
         recipients.append(settings.smtp_from)
-    if settings.dry_run:
+    if settings.dry_run and not force:
         log.info("[DRY_RUN] E-mail non envoyé à %s : %s", msg["To"], msg["Subject"])
         return
     if not settings.smtp_configured:
-        raise SendError("SMTP non configuré (SMTP_HOST / SMTP_FROM)")
+        raise SendError("Messagerie non configurée : renseignez le serveur SMTP et l'adresse d'expédition dans Réglages")
     ctx = ssl.create_default_context()
     try:
         if settings.smtp_security == "ssl":
@@ -232,7 +232,7 @@ def _imap_connect() -> imaplib.IMAP4:
         conn = imaplib.IMAP4(settings.imap_host, settings.imap_port, timeout=60)
         if settings.imap_security == "starttls":
             conn.starttls(ssl_context=ssl.create_default_context())
-    conn.login(settings.imap_user, settings.imap_password)
+    conn.login(*settings.imap_login)
     return conn
 
 

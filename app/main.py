@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, brokers as broker_catalog, letters, mailer, scheduler, service
+from . import __version__, brokers as broker_catalog, letters, mailer, scheduler, service, settings_store
 from .config import settings
 from .db import (
     FAILED,
@@ -59,6 +59,7 @@ def get_db():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    settings_store.apply_overrides()
     with SessionLocal() as db:
         if not db.scalar(select(func.count(Broker.id))):
             res = service.sync_brokers(db, broker_catalog.load_seed(SEED))
@@ -525,16 +526,56 @@ def brokers_update(request: HttpRequest):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
-    return render(request, "settings.html", db, imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"))
+    return render(
+        request, "settings.html", db,
+        imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"),
+        overridden=settings_store.overridden_keys(),
+    )
+
+
+@app.post("/settings")
+async def settings_save(request: HttpRequest):
+    form = dict(await request.form())
+    was_dry = settings.dry_run
+    errors = settings_store.save_from_form(form)
+    if errors:
+        for e in errors:
+            flash(request, e, "error")
+        return back("/settings")
+    scheduler.reschedule()
+    msg = "Réglages enregistrés."
+    if was_dry and not settings.dry_run:
+        n = service.requeue_simulated()
+        msg += " Envoi réel activé : les demandes en file vont maintenant partir"
+        msg += f" (dont {n} demande(s) simulée(s) remise(s) en file)." if n else "."
+    flash(request, msg)
+    return back("/settings")
+
+
+@app.post("/settings/clear-secret")
+def settings_clear_secret(request: HttpRequest, key: str = Form(...)):
+    settings_store.clear_secret(key)
+    flash(request, "Mot de passe effacé.")
+    return back("/settings")
+
+
+@app.post("/settings/reset")
+def settings_reset(request: HttpRequest):
+    settings_store.reset_to_env()
+    scheduler.reschedule()
+    flash(request, "Réglages de l'interface effacés : les valeurs du fichier .env s'appliquent de nouveau.")
+    return back("/settings")
 
 
 @app.post("/settings/test-smtp")
 def test_smtp(request: HttpRequest):
+    if not settings.smtp_configured:
+        flash(request, "Renseignez d'abord le serveur SMTP et l'adresse d'expédition, puis enregistrez.", "error")
+        return back("/settings")
     msg = mailer.build_message(settings.smtp_from, "Oubliez-moi – e-mail de test", "Si vous lisez ceci, l'envoi SMTP fonctionne.", "Oubliez-moi")
     try:
-        mailer.send_message(msg)
-        flash(request, "Mode simulation : l'e-mail n'a pas été envoyé (DRY_RUN=true)." if settings.dry_run else f"E-mail de test envoyé à {settings.smtp_from}.",
-              "info" if settings.dry_run else "ok")
+        mailer.send_message(msg, force=True)  # le test part réellement, même en mode simulation
+        flash(request, f"E-mail de test envoyé à {settings.smtp_from} : vérifiez votre boîte.")
     except mailer.SendError as e:
         flash(request, str(e), "error")
     return back("/settings")

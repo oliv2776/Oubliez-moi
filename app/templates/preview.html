@@ -10,7 +10,7 @@
   </div>
 </div>
 <div class="card">
-  <dl class="kv"><dt>De</dt><dd>{{ p.full_name }} &lt;{{ settings.smtp_from or 'SMTP_FROM non défini' }}&gt;</dd>
+  <dl class="kv"><dt>De</dt><dd>{{ p.full_name }} &lt;{{ settings.smtp_from or 'adresse non configurée' }}&gt;</dd>
   <dt>À</dt><dd>{{ b.email }}</dd><dt>Objet</dt><dd><strong>{{ subject }}</strong></dd></dl>
   <pre style="max-height:none;background:var(--panel)">{{ body }}</pre>
   <p class="small muted">La référence <code>{{ settings.reference_prefix }}-XXXXXX</code> est remplacée par un identifiant unique par courtier ; il sert à rattacher automatiquement les réponses.</p>

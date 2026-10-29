@@ -235,6 +235,8 @@ def _next_reminder(db: Session) -> Request | None:
 
 def send_tick() -> str | None:
     """Envoie au plus un e-mail (appelé à intervalle régulier pour lisser le débit)."""
+    if not settings.dry_run and not settings.smtp_configured:
+        return None  # rien à faire tant que la messagerie n'est pas configurée
     if not _send_lock.acquire(blocking=False):
         return None
     try:
@@ -250,6 +252,23 @@ def send_tick() -> str | None:
         return None
     finally:
         _send_lock.release()
+
+
+def requeue_simulated() -> int:
+    """Au passage en envoi réel, remet en file les demandes « envoyées » en simulation."""
+    n = 0
+    with SessionLocal() as db:
+        for req in db.scalars(select(Request).where(Request.status.in_([SENT, OVERDUE]))):
+            sends = [e for e in req.events if e.kind in ("sent", "reminder")]
+            if sends and all(e.summary.startswith("[SIMULATION]") for e in sends):
+                req.status = QUEUED
+                req.sent_at = req.due_at = req.last_reminder_at = None
+                req.reminder_count = req.attempts = 0
+                req.message_ids = []
+                add_event(db, req, "info", "Fin de la simulation : demande remise en file pour un envoi réel")
+                n += 1
+        db.commit()
+    return n
 
 
 def check_deadlines() -> int:
@@ -343,7 +362,13 @@ def poll_imap() -> int:
                 key = f"imap:{folder}"
                 state = (kv_get(db, key) or ":0").split(":")
                 validity, last_uid = state[0] or None, int(state[1] or 0)
-                new_validity, msgs = mailer.fetch_new_messages(folder, validity, last_uid, since)
+                try:
+                    new_validity, msgs = mailer.fetch_new_messages(folder, validity, last_uid, since)
+                except Exception as e:  # noqa: BLE001 - un dossier introuvable ne bloque pas les autres
+                    log.warning("Relève IMAP du dossier %s impossible : %s", folder, e)
+                    if len(settings.imap_folders) == 1:
+                        raise
+                    continue
                 max_uid = last_uid if validity == new_validity else 0
                 for uid, raw in msgs:
                     try:

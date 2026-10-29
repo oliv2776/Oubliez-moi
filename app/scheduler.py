@@ -58,6 +58,14 @@ def start() -> None:
     log.info("Planificateur démarré : 1 e-mail toutes les %ss, relève IMAP toutes les %s min", interval, settings.imap_poll_minutes)
 
 
+def reschedule() -> None:
+    """Applique un nouveau débit / une nouvelle fréquence de relève sans redémarrer."""
+    if not scheduler.running:
+        return
+    scheduler.reschedule_job("send", trigger="interval", seconds=max(10, 3600 // settings.send_per_hour))
+    scheduler.reschedule_job("imap", trigger="interval", minutes=max(1, settings.imap_poll_minutes))
+
+
 def utcnow_local():
     from zoneinfo import ZoneInfo
     return datetime.now(ZoneInfo(settings.timezone)) + timedelta(seconds=15)

@@ -1,51 +1,162 @@
 {% extends "base.html" %}
 {% block title %}Réglages{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Réglages</h1><p class="muted">Les réglages se modifient dans le fichier <code>.env</code>, puis <code>docker compose up -d</code>.</p></div></div>
+<div class="page-head">
+  <div><h1>Réglages</h1><p class="muted">La messagerie se configure ici. Les autres réglages restent dans le fichier <code>.env</code>.</p></div>
+</div>
+
+<form method="post" action="/settings" autocomplete="off">
+<div class="grid c2">
+  <div>
+    <div class="card">
+      <h2>Mode d'envoi</h2>
+      <label for="dry_run">Envoi des demandes</label>
+      <select id="dry_run" name="dry_run">
+        <option value="true" {{ 'selected' if settings.dry_run }}>Simulation : rien n'est envoyé (pour vérifier)</option>
+        <option value="false" {{ 'selected' if not settings.dry_run }}>Réel : les e-mails partent vers les courtiers</option>
+      </select>
+      <label for="send_per_hour">Débit maximum <span class="hint">— e-mails par heure ; restez raisonnable pour ne pas être pris pour du spam (Gmail : ~500/jour)</span></label>
+      <input id="send_per_hour" type="text" inputmode="numeric" name="send_per_hour" value="{{ settings.send_per_hour }}">
+    </div>
+
+    <div class="card">
+      <h2>Adresse e-mail</h2>
+      <p class="small muted">Les demandes partent de cette adresse et les courtiers y répondent. Une adresse dédiée (ex. <code>rgpd.prenom@…</code>) évite d'encombrer votre boîte principale.</p>
+      <label for="preset">Fournisseur</label>
+      <select id="preset" onchange="applyPreset(this.value)">
+        <option value="">— Choisir pour pré-remplir les serveurs —</option>
+        <option value="gmail">Gmail</option>
+        <option value="icloud">iCloud</option>
+        <option value="ovh">OVH (MX Plan / Email Pro)</option>
+        <option value="orange">Orange</option>
+        <option value="free">Free</option>
+        <option value="laposte">La Poste</option>
+        <option value="other">Autre</option>
+      </select>
+      <div id="preset-note" class="banner info small" style="display:none;margin-top:.6rem"></div>
+
+      <label for="smtp_from">Adresse e-mail *</label>
+      <input id="smtp_from" type="email" name="smtp_from" value="{{ settings.smtp_from }}" placeholder="rgpd.camille@gmail.com" oninput="syncUser()">
+      <label for="smtp_user">Identifiant de connexion <span class="hint">— en général l'adresse e-mail elle-même</span></label>
+      <input id="smtp_user" type="text" name="smtp_user" value="{{ settings.smtp_user }}" autocomplete="off">
+      <label for="smtp_password">Mot de passe {% if settings.smtp_password %}<span class="hint">— enregistré ; laissez vide pour le conserver</span>{% endif %}</label>
+      <input id="smtp_password" type="password" name="smtp_password" value="" autocomplete="new-password" placeholder="{{ '••••••••••••' if settings.smtp_password else '' }}">
+      <label class="small" style="font-weight:400;display:flex;gap:.4rem;align-items:center">
+        <input type="checkbox" name="smtp_bcc_self" value="true" {{ 'checked' if settings.smtp_bcc_self }} style="width:auto"> M'envoyer une copie (Cci) de chaque demande
+      </label>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Serveur d'envoi (SMTP)</h2>
+      <label for="smtp_host">Serveur *</label>
+      <input id="smtp_host" type="text" name="smtp_host" value="{{ settings.smtp_host }}" placeholder="smtp.exemple.fr">
+      <div class="grid" style="grid-template-columns:1fr 1.4fr">
+        <div><label for="smtp_port">Port</label><input id="smtp_port" type="text" inputmode="numeric" name="smtp_port" value="{{ settings.smtp_port }}"></div>
+        <div><label for="smtp_security">Sécurité</label>
+          <select id="smtp_security" name="smtp_security">
+            {% for v, l in [('starttls', 'STARTTLS (port 587)'), ('ssl', 'SSL/TLS (port 465)'), ('none', 'Aucune (déconseillé)')] %}
+            <option value="{{ v }}" {{ 'selected' if settings.smtp_security == v }}>{{ l }}</option>{% endfor %}
+          </select></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Relève des réponses (IMAP)</h2>
+      <p class="small muted">Facultatif mais recommandé : les réponses des courtiers sont rattachées et classées automatiquement. La boîte est ouverte en lecture seule ; rien n'est marqué comme lu ni déplacé.</p>
+      <label for="imap_host">Serveur</label>
+      <input id="imap_host" type="text" name="imap_host" value="{{ settings.imap_host }}" placeholder="imap.exemple.fr (vide = pas de relève)">
+      <div class="grid" style="grid-template-columns:1fr 1.4fr">
+        <div><label for="imap_port">Port</label><input id="imap_port" type="text" inputmode="numeric" name="imap_port" value="{{ settings.imap_port }}"></div>
+        <div><label for="imap_security">Sécurité</label>
+          <select id="imap_security" name="imap_security">
+            {% for v, l in [('ssl', 'SSL/TLS (port 993)'), ('starttls', 'STARTTLS (port 143)'), ('none', 'Aucune (déconseillé)')] %}
+            <option value="{{ v }}" {{ 'selected' if settings.imap_security == v }}>{{ l }}</option>{% endfor %}
+          </select></div>
+      </div>
+      <label for="imap_folders">Dossiers à surveiller <span class="hint">— séparés par des virgules ; ajoutez le dossier spam</span></label>
+      <input id="imap_folders" type="text" name="imap_folders" value="{{ settings.imap_folders|join(', ') }}">
+      <label for="imap_poll_minutes">Fréquence de relève <span class="hint">— en minutes</span></label>
+      <input id="imap_poll_minutes" type="text" inputmode="numeric" name="imap_poll_minutes" value="{{ settings.imap_poll_minutes }}">
+      <details style="margin-top:.8rem" {{ 'open' if settings.imap_user or settings.imap_password }}>
+        <summary>Identifiants IMAP différents de ceux de l'envoi</summary>
+        <label for="imap_user">Identifiant IMAP <span class="hint">— vide = le même que pour l'envoi</span></label>
+        <input id="imap_user" type="text" name="imap_user" value="{{ settings.imap_user }}" autocomplete="off">
+        <label for="imap_password">Mot de passe IMAP {% if settings.imap_password %}<span class="hint">— enregistré ; laissez vide pour le conserver</span>{% endif %}</label>
+        <input id="imap_password" type="password" name="imap_password" value="" autocomplete="new-password" placeholder="{{ '••••••••••••' if settings.imap_password else '' }}">
+      </details>
+    </div>
+  </div>
+</div>
+<div class="card actions" style="justify-content:space-between">
+  <span class="small muted">Les mots de passe sont stockés dans la base de données du serveur (volume Docker) et ne sont jamais réaffichés.</span>
+  <button class="btn primary">Enregistrer</button>
+</div>
+</form>
+
 <div class="grid c2">
   <div class="card">
-    <h2>Envoi (SMTP)</h2>
-    <dl class="kv small">
-      <dt>Mode</dt><dd>{% if settings.dry_run %}<span class="badge s-needs_action">Simulation</span>{% else %}<span class="badge s-completed">Envoi réel</span>{% endif %}</dd>
-      <dt>Serveur</dt><dd>{{ settings.smtp_host or '—' }}:{{ settings.smtp_port }} ({{ settings.smtp_security }})</dd>
-      <dt>Expéditeur</dt><dd>{{ settings.smtp_from or '—' }}</dd>
-      <dt>Utilisateur</dt><dd>{{ settings.smtp_user or '—' }}</dd>
-      <dt>Copie à soi</dt><dd>{{ 'oui' if settings.smtp_bcc_self else 'non' }}</dd>
-      <dt>Débit</dt><dd>{{ settings.send_per_hour }} e-mails / heure</dd>
-    </dl>
-    <form method="post" action="/settings/test-smtp" style="margin-top:1rem"><button class="btn sm">Envoyer un e-mail de test à {{ settings.smtp_from or '…' }}</button></form>
-  </div>
-  <div class="card">
-    <h2>Réception (IMAP)</h2>
-    <dl class="kv small">
-      <dt>Serveur</dt><dd>{{ settings.imap_host or 'non configuré' }}{% if settings.imap_host %}:{{ settings.imap_port }} ({{ settings.imap_security }}){% endif %}</dd>
-      <dt>Utilisateur</dt><dd>{{ settings.imap_user or '—' }}</dd>
-      <dt>Dossiers</dt><dd>{{ settings.imap_folders|join(', ') }}</dd>
-      <dt>Fréquence</dt><dd>toutes les {{ settings.imap_poll_minutes }} min</dd>
-      <dt>Dernière relève</dt><dd>{{ imap_polled_at|isodt }}</dd>
-      <dt>Classement auto</dt><dd>{{ 'activé' if settings.auto_classify else 'désactivé' }}</dd>
-    </dl>
-    <div class="actions" style="margin-top:1rem">
-      <form method="post" action="/settings/test-imap" class="inline"><button class="btn sm">Tester la connexion</button></form>
+    <h2>Vérifier</h2>
+    <p class="small muted">Enregistrez d'abord, puis testez. Le test SMTP envoie réellement un e-mail à votre propre adresse, même en mode simulation.</p>
+    <div class="actions">
+      <form method="post" action="/settings/test-smtp" class="inline"><button class="btn sm">Envoyer un e-mail de test</button></form>
+      <form method="post" action="/settings/test-imap" class="inline"><button class="btn sm">Tester la connexion IMAP</button></form>
       <form method="post" action="/settings/poll" class="inline"><button class="btn sm">Relever maintenant</button></form>
     </div>
-    <p class="small muted" style="margin-top:.6rem">La boîte est ouverte en lecture seule : les messages ne sont ni marqués comme lus, ni déplacés.</p>
+    <dl class="kv small" style="margin-top:1rem">
+      <dt>État de l'envoi</dt><dd>{% if settings.smtp_configured %}<span class="badge s-completed">configuré</span>{% else %}<span class="badge s-failed">à configurer</span>{% endif %}
+        {% if settings.dry_run %}<span class="badge s-needs_action">simulation</span>{% else %}<span class="badge s-sent">envoi réel</span>{% endif %}</dd>
+      <dt>État de la relève</dt><dd>{% if settings.imap_configured %}<span class="badge s-completed">configurée</span>{% else %}<span class="badge s-queued">désactivée</span>{% endif %}</dd>
+      <dt>Dernière relève</dt><dd>{{ imap_polled_at|isodt }}</dd>
+    </dl>
+    {% if overridden %}
+    <form method="post" action="/settings/reset" style="margin-top:.8rem" onsubmit="return confirm('Effacer les réglages saisis ici et revenir aux valeurs du fichier .env ?')">
+      <button class="btn sm link">Revenir aux valeurs du fichier .env</button>
+    </form>
+    {% endif %}
   </div>
+
   <div class="card">
-    <h2>Délais et automatisations</h2>
+    <h2>Délais et automatisations <span class="tag">.env</span></h2>
     <dl class="kv small">
       <dt>Délai de réponse</dt><dd>{{ settings.response_days }} jours (RGPD art. 12.3 : un mois)</dd>
       <dt>Relance auto</dt><dd>{{ 'oui, puis ' ~ settings.reminder_wait_days ~ ' jours d\'attente' if settings.auto_reminder else 'non' }}</dd>
       <dt>Renvoi périodique</dt><dd>{{ 'tous les ' ~ settings.resend_interval_days ~ ' jours après confirmation' if settings.resend_interval_days > 0 else 'désactivé' }}</dd>
       <dt>Nouveaux courtiers</dt><dd>{{ 'ajoutés automatiquement aux campagnes' if settings.auto_enroll_new_brokers else 'à ajouter à la main' }}</dd>
+      <dt>Classement auto</dt><dd>{{ 'activé' if settings.auto_classify else 'désactivé' }}</dd>
       <dt>Catalogue</dt><dd>{{ 'mis à jour tous les ' ~ settings.broker_auto_update_days ~ ' jours' if settings.broker_auto_update_days > 0 else 'mise à jour manuelle' }} (dernière : {{ synced_at|isodt }})</dd>
       <dt>Fuseau</dt><dd>{{ settings.timezone }}</dd>
     </dl>
-  </div>
-  <div class="card">
-    <h2>Données</h2>
-    <p class="small">Toutes les données (profils, historique, réponses) sont dans <code>{{ settings.data_dir }}/oubliez-moi.db</code>, dans le volume Docker. Sauvegardez ce dossier et chiffrez le disque du serveur si possible.</p>
-    <p><a class="btn sm" href="/export.csv">Exporter l'historique (CSV)</a></p>
+    <p class="small" style="margin-top:1rem">Données : <code>{{ settings.data_dir }}/oubliez-moi.db</code> (volume Docker). <a href="/export.csv">Exporter l'historique (CSV)</a></p>
   </div>
 </div>
+
+<script>
+const PRESETS = {
+  gmail:   {smtp: ["smtp.gmail.com", 587, "starttls"], imap: ["imap.gmail.com", 993, "ssl"], folders: "INBOX, [Gmail]/Spam",
+            note: "Gmail exige un <strong>mot de passe d'application</strong> (validation en deux étapes activée) : <a href='https://myaccount.google.com/apppasswords' target='_blank' rel='noopener'>myaccount.google.com/apppasswords</a>. Votre mot de passe habituel ne fonctionnera pas."},
+  icloud:  {smtp: ["smtp.mail.me.com", 587, "starttls"], imap: ["imap.mail.me.com", 993, "ssl"], folders: "INBOX, Junk",
+            note: "iCloud exige un <strong>mot de passe pour app</strong>, à créer sur <a href='https://account.apple.com' target='_blank' rel='noopener'>account.apple.com</a> (Connexion et sécurité). L'identifiant est votre adresse @icloud.com."},
+  ovh:     {smtp: ["ssl0.ovh.net", 465, "ssl"], imap: ["ssl0.ovh.net", 993, "ssl"], folders: "INBOX"},
+  orange:  {smtp: ["smtp.orange.fr", 465, "ssl"], imap: ["imap.orange.fr", 993, "ssl"], folders: "INBOX"},
+  free:    {smtp: ["smtp.free.fr", 465, "ssl"], imap: ["imap.free.fr", 993, "ssl"], folders: "INBOX"},
+  laposte: {smtp: ["smtp.laposte.net", 465, "ssl"], imap: ["imap.laposte.net", 993, "ssl"], folders: "INBOX"},
+  other:   {note: "Les paramètres SMTP et IMAP figurent dans l'aide de votre fournisseur (rubrique « configurer un logiciel de messagerie »)."},
+};
+function $(id) { return document.getElementById(id); }
+function applyPreset(k) {
+  const p = PRESETS[k], note = $("preset-note");
+  note.style.display = p && p.note ? "block" : "none";
+  note.innerHTML = p && p.note ? p.note : "";
+  if (!p || !p.smtp) return;
+  [$("smtp_host").value, $("smtp_port").value, $("smtp_security").value] = p.smtp;
+  [$("imap_host").value, $("imap_port").value, $("imap_security").value] = p.imap;
+  $("imap_folders").value = p.folders;
+  syncUser(true);
+}
+let userTouched = $("smtp_user").value && $("smtp_user").value !== $("smtp_from").value;
+$("smtp_user").addEventListener("input", () => userTouched = true);
+function syncUser(force) { if (!userTouched || force && !$("smtp_user").value) $("smtp_user").value = $("smtp_from").value; }
+</script>
 {% endblock %}

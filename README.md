@@ -28,7 +28,7 @@ Prérequis : un serveur avec [Docker Engine et le plugin Compose](https://docs.d
 git clone https://github.com/oliv2776/Oubliez-moi.git
 cd Oubliez-moi
 cp .env.example .env
-nano .env            # ADMIN_PASSWORD, SMTP_*, IMAP_* (voir plus bas)
+nano .env            # au minimum : ADMIN_PASSWORD
 docker compose up -d --build
 docker compose logs -f
 ```
@@ -49,25 +49,27 @@ Le workflow GitHub Actions construit et publie l'image (amd64 et arm64) sur `ghc
 
 ## Configuration de la messagerie
 
+Tout se fait dans l'interface, page **Réglages** : adresse e-mail, mot de passe, serveurs d'envoi (SMTP) et de relève (IMAP). Des préréglages remplissent les serveurs pour Gmail, iCloud, OVH, Orange, Free et La Poste. Le bouton **Envoyer un e-mail de test** vérifie la configuration.
+
 Utilisez de préférence **une adresse dédiée** (par exemple `rgpd.prenom@…`). Les courtiers y répondront, et votre boîte principale ne sera pas noyée.
 
-| Fournisseur | SMTP | IMAP | Remarque |
-|---|---|---|---|
-| Gmail | `smtp.gmail.com` / 587 / `starttls` | `imap.gmail.com` / 993 / `ssl` | [Mot de passe d'application](https://myaccount.google.com/apppasswords) obligatoire (2FA activée) |
-| Outlook / Hotmail | `smtp-mail.outlook.com` / 587 / `starttls` | `outlook.office365.com` / 993 / `ssl` | |
-| OVH | `ssl0.ovh.net` / 465 / `ssl` | `ssl0.ovh.net` / 993 / `ssl` | |
-| Proton Mail | via Proton Mail Bridge | via Bridge | |
+- **Gmail** : il faut un [mot de passe d'application](https://myaccount.google.com/apppasswords) (validation en deux étapes activée). Le mot de passe habituel est refusé.
+- **iCloud** : il faut un mot de passe pour app, à créer sur account.apple.com.
+- **Outlook.com / Hotmail** : Microsoft impose désormais une connexion OAuth aux logiciels tiers, que l'outil ne gère pas. Préférez une autre adresse.
+- Ajoutez le dossier spam aux dossiers surveillés (Gmail : `INBOX, [Gmail]/Spam`). Les réponses de courtiers y finissent souvent.
 
-Pensez à ajouter le dossier spam dans `IMAP_FOLDERS` (Gmail : `INBOX,[Gmail]/Spam`). Les réponses de courtiers y finissent souvent.
+Les réglages saisis dans l'interface sont enregistrés dans la base (volume Docker) et prennent le pas sur le fichier `.env`.
 
 ## Premier lancement
 
-1. Laissez `DRY_RUN=true` (mode simulation).
-2. Connectez-vous, créez votre profil (nom, toutes vos adresses e-mail, téléphones, adresses postales actuelles et anciennes).
-3. Cliquez sur **Aperçu du courrier** pour relire la lettre.
-4. Dans **Réglages**, testez SMTP et IMAP.
-5. Passez `DRY_RUN=false` dans `.env`, puis lancez `docker compose up -d`.
+1. Connectez-vous avec `ADMIN_USER` / `ADMIN_PASSWORD`.
+2. Dans **Réglages**, configurez votre adresse e-mail, enregistrez, puis envoyez un e-mail de test.
+3. Créez votre profil (nom, toutes vos adresses e-mail, téléphones, adresses postales actuelles et anciennes).
+4. Cliquez sur **Aperçu du courrier** pour relire la lettre.
+5. Dans **Réglages**, passez le mode d'envoi de « Simulation » à « Réel ».
 6. Sur la page du profil, cliquez sur **Lancer les demandes**.
+
+Vous pouvez aussi lancer les demandes en simulation pour voir le déroulé : rien ne part. Au passage en envoi réel, les demandes simulées sont automatiquement remises en file et envoyées pour de bon.
 
 Ensuite, passez de temps en temps sur **À traiter**. Tout le reste est automatique.
 
@@ -100,12 +102,12 @@ Mettez ensuite `COOKIE_SECURE=true` dans `.env`. L'application contient des donn
 
 ## Toutes les options
 
-Voir [`.env.example`](.env.example), qui documente chaque variable. Les plus utiles :
+Voir [`.env.example`](.env.example), qui documente chaque variable. La messagerie se règle dans l'interface ; dans le `.env`, les plus utiles sont :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `DRY_RUN` | `true` | Simulation : rien n'est envoyé |
-| `SEND_PER_HOUR` | `30` | Débit d'envoi |
+| `ADMIN_USER` / `ADMIN_PASSWORD` | `admin` / — | Accès à l'interface |
+| `BIND_ADDRESS` | `127.0.0.1` | `0.0.0.0` pour un accès depuis le réseau local |
 | `BROKER_COUNTRIES` | `fr,all` | Pays dont les courtiers sont activés par défaut (`all` = internationaux) |
 | `RESPONSE_DAYS` | `30` | Délai avant relance |
 | `REMINDER_WAIT_DAYS` | `15` | Délai après relance avant « sans réponse » |

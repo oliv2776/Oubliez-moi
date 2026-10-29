@@ -91,8 +91,36 @@ class Settings:
         return bool(self.smtp_host and self.smtp_from)
 
     @property
+    def imap_login(self) -> tuple[str, str]:
+        """Identifiants IMAP ; à défaut, ceux du SMTP (cas le plus courant : même compte)."""
+        return (self.imap_user or self.smtp_user, self.imap_password or self.smtp_password)
+
+    @property
     def imap_configured(self) -> bool:
-        return bool(self.imap_host and self.imap_user and self.imap_password)
+        user, password = self.imap_login
+        return bool(self.imap_host and user and password)
+
+
+# Réglages modifiables depuis l'interface web (stockés en base, prioritaires sur le .env).
+EDITABLE: dict[str, type] = {
+    "dry_run": bool,
+    "send_per_hour": int,
+    "smtp_host": str,
+    "smtp_port": int,
+    "smtp_security": str,
+    "smtp_user": str,
+    "smtp_password": str,
+    "smtp_from": str,
+    "smtp_bcc_self": bool,
+    "imap_host": str,
+    "imap_port": int,
+    "imap_security": str,
+    "imap_user": str,
+    "imap_password": str,
+    "imap_folders": list,
+    "imap_poll_minutes": int,
+}
+SECRET_KEYS = {"smtp_password", "imap_password"}
 
 
 settings = Settings()
