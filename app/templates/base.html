@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Oubliez-moi{% endblock %} · Oubliez-moi</title>
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='%2323524a' stroke-width='2.5'/></svg>">
+</head>
+<body>
+{% set path = request.url.path %}
+{% if request.session.get('user') %}
+<header class="top"><div class="inner">
+  <a class="brand" href="/"><span class="dot"></span><span class="t">Oubliez-moi</span></a>
+  <nav class="main">
+    <a href="/" class="{{ 'active' if path == '/' }}">Tableau de bord</a>
+    <a href="/profiles" class="{{ 'active' if path.startswith('/profiles') }}">Profils</a>
+    <a href="/requests" class="{{ 'active' if path.startswith('/requests') }}">Demandes</a>
+    <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}">À traiter{% if nav_todo %}<span class="pill">{{ nav_todo }}</span>{% endif %}</a>
+    <a href="/brokers" class="{{ 'active' if path.startswith('/brokers') }}">Courtiers</a>
+    <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Réglages</a>
+  </nav>
+  <form method="post" action="/logout" class="inline"><button class="btn sm">Déconnexion</button></form>
+</div></header>
+{% endif %}
+<main>
+  {% if request.session.get('user') and settings.dry_run %}
+  <div class="banner warn"><strong>Mode simulation.</strong> Aucun e-mail n'est réellement envoyé (<code>DRY_RUN=true</code>). Vérifiez les courriers, puis passez <code>DRY_RUN=false</code> dans <code>.env</code> et redémarrez le conteneur.</div>
+  {% endif %}
+  {% for kind, msg in flashes %}<div class="banner {{ kind }}">{{ msg }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer><a href="https://github.com/oliv2776/Oubliez-moi">Oubliez-moi</a> {{ version }} · auto-hébergé · catalogue de courtiers : <a href="https://github.com/datenanfragen/data">Datenanfragen.de</a> (CC0)</footer>
+</body>
+</html>

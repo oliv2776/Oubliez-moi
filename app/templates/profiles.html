@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stack with context %}
+{% block title %}Profils{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Profils</h1><p class="muted">Une personne par profil (vous, votre conjoint·e, vos parents…).</p></div>
+  <a class="btn primary" href="/profiles/new">+ Nouveau profil</a>
+</div>
+{% if profiles %}
+<div class="card table-wrap"><table>
+  <tr><th>Nom</th><th>E-mails</th><th class="num">Demandes</th><th style="width:30%">Avancement</th><th></th></tr>
+  {% for p, st in profiles %}
+  <tr>
+    <td><a href="/profiles/{{ p.id }}"><strong>{{ p.full_name }}</strong></a>{% if not p.active %} <span class="tag">en pause</span>{% endif %}</td>
+    <td class="small">{{ p.emails|join(', ') }}</td>
+    <td class="num">{{ st.total }}</td>
+    <td>{% if st.total %}{{ stack(st) }}<div class="small muted">{{ st.progress }} % terminé</div>{% else %}<span class="muted small">pas lancé</span>{% endif %}</td>
+    <td class="num"><a class="btn sm" href="/profiles/{{ p.id }}/edit">Modifier</a></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<div class="card empty"><p>Aucun profil.</p><a class="btn primary" href="/profiles/new">Créer un profil</a></div>
+{% endif %}
+{% endblock %}

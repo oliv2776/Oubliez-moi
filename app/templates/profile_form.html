@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if profile else 'Nouveau profil' }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ 'Modifier « ' ~ profile.full_name ~ ' »' if profile else 'Nouveau profil' }}</h1></div>
+<div class="grid c2">
+<form method="post" action="{{ '/profiles/%d'|format(profile.id) if profile else '/profiles' }}" class="card">
+  <p class="muted small">Ces informations sont reprises dans chaque courrier pour que le courtier puisse vous retrouver dans ses fichiers. Plus vous en donnez (anciennes adresses, ancien nom…), plus l'effacement sera complet.</p>
+  <label>Nom complet *</label>
+  <input type="text" name="full_name" required value="{{ profile.full_name if profile else '' }}" placeholder="Prénom Nom">
+  <label>Autres noms <span class="hint">— nom de naissance, surnom… un par ligne</span></label>
+  <textarea name="other_names" rows="2">{{ profile.other_names|lines if profile else '' }}</textarea>
+  <label>Adresses e-mail * <span class="hint">— une par ligne ; la première sert de contact dans la signature</span></label>
+  <textarea name="emails" rows="3" required>{{ profile.emails|lines if profile else '' }}</textarea>
+  <label>Téléphones <span class="hint">— un par ligne</span></label>
+  <textarea name="phones" rows="2">{{ profile.phones|lines if profile else '' }}</textarea>
+  <label>Adresses postales <span class="hint">— actuelle et anciennes ; séparez-les par une ligne vide</span></label>
+  <textarea name="addresses" rows="5">{{ profile.addresses|join('\n\n') if profile else '' }}</textarea>
+  <label>Date de naissance <span class="hint">— facultatif, utile pour distinguer les homonymes</span></label>
+  <input type="text" name="birth_date" value="{{ (profile.birth_date or '') if profile else '' }}" placeholder="JJ/MM/AAAA">
+  <label>Langue des courriers</label>
+  <select name="language">
+    {% set lang = profile.language if profile else 'auto' %}
+    <option value="auto" {{ 'selected' if lang=='auto' }}>Automatique (français pour les courtiers français, anglais sinon)</option>
+    <option value="fr" {{ 'selected' if lang=='fr' }}>Toujours en français</option>
+    <option value="en" {{ 'selected' if lang=='en' }}>Toujours en anglais</option>
+  </select>
+  <label>Notes <span class="hint">— privées, jamais envoyées</span></label>
+  <textarea name="notes" rows="2">{{ (profile.notes or '') if profile else '' }}</textarea>
+  <p style="margin-top:1rem" class="actions"><button class="btn primary">Enregistrer</button> <a class="btn" href="{{ '/profiles/%d'|format(profile.id) if profile else '/profiles' }}">Annuler</a></p>
+</form>
+<div>
+  <div class="card">
+    <h3>Bon à savoir</h3>
+    <ul class="small">
+      <li>Les courriers sont envoyés depuis l'adresse configurée dans <code>SMTP_FROM</code>. Les réponses y arrivent et sont relevées automatiquement si IMAP est configuré.</li>
+      <li>Pour un proche, vous devez avoir son accord : la demande est faite en son nom.</li>
+      <li>Aucune pièce d'identité n'est envoyée. Si un courtier en exige une, la demande passe en « Action requise ».</li>
+    </ul>
+  </div>
+  {% if profile %}
+  <form method="post" action="/profiles/{{ profile.id }}/delete" class="card">
+    <h3 style="color:var(--bad)">Supprimer ce profil</h3>
+    <p class="small muted">Supprime le profil et tout l'historique des demandes (les courriers déjà envoyés ne sont pas annulés). Tapez <strong>{{ profile.full_name }}</strong> pour confirmer.</p>
+    <input type="text" name="confirm" autocomplete="off">
+    <p style="margin-top:.6rem"><button class="btn danger">Supprimer définitivement</button></p>
+  </form>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+services:
+  oubliez-moi:
+    build: .
+    # Ou, pour utiliser l'image publiée par GitHub Actions au lieu de la construire :
+    # image: ghcr.io/oliv2776/oubliez-moi:latest
+    container_name: oubliez-moi
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Exposé uniquement en local : passez par un reverse proxy HTTPS (voir README).
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - oubliez-moi-data:/data
+
+volumes:
+  oubliez-moi-data:

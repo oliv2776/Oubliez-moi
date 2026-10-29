@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}Demandes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Demandes</h1><p class="muted">{{ reqs|length }} résultat(s){% if reqs|length == 1000 %} (limité à 1000){% endif %}</p></div>
+  <div class="actions">
+    {% if status == 'failed' and reqs %}<form method="post" action="/requests/requeue-failed" class="inline"><button class="btn">Réessayer les échecs</button></form>{% endif %}
+    <a class="btn" href="/export.csv">Exporter (CSV)</a>
+  </div>
+</div>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Courtier, e-mail ou référence">
+  <select name="status"><option value="">Tous les statuts</option>{% for k, v in STATUS.items() %}<option value="{{ k }}" {{ 'selected' if status==k }}>{{ v }}</option>{% endfor %}</select>
+  {% if profiles|length > 1 %}<select name="profile"><option value="">Tous les profils</option>{% for p in profiles %}<option value="{{ p.id }}" {{ 'selected' if profile==p.id }}>{{ p.full_name }}</option>{% endfor %}</select>{% endif %}
+  <button class="btn">Filtrer</button>
+</form>
+<div class="card table-wrap">
+{% if reqs %}
+<table>
+  <tr><th>Réf.</th><th>Courtier</th>{% if profiles|length > 1 %}<th>Profil</th>{% endif %}<th>Statut</th><th class="hide-sm">Envoyée</th><th class="hide-sm">Échéance</th><th class="hide-sm">Réponse</th></tr>
+  {% for r in reqs %}
+  <tr>
+    <td class="mono small"><a href="/requests/{{ r.id }}">{{ r.reference }}</a></td>
+    <td>{{ r.broker.name }}<div class="small muted">{{ r.broker.email or 'formulaire' }}</div></td>
+    {% if profiles|length > 1 %}<td class="small">{{ r.profile.full_name }}</td>{% endif %}
+    <td>{{ badge(r.status) }}{% if r.reminder_count %} <span class="tag">relancée</span>{% endif %}</td>
+    <td class="hide-sm small">{{ r.sent_at|d }}</td>
+    <td class="hide-sm small">{{ r.due_at|d if r.status == 'sent' else '' }}</td>
+    <td class="hide-sm small">{{ r.last_reply_at|d if r.last_reply_at else '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="empty">Aucune demande.</p>{% endif %}
+</div>
+{% endblock %}

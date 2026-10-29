@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, stack with context %}
+{% block title %}Tableau de bord{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Tableau de bord</h1>
+    <p class="muted">{{ brokers_enabled }} courtiers ciblés · envoi de {{ settings.send_per_hour }} e-mails/heure max.
+      {% if queued %}· <strong>{{ queued }}</strong> en file (≈ {{ eta_hours }} h){% endif %}</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="/settings/send-now" class="inline"><button class="btn">Envoyer le suivant</button></form>
+    {% if settings.imap_configured %}<form method="post" action="/settings/poll" class="inline"><button class="btn">Relever la boîte</button></form>{% endif %}
+  </div>
+</div>
+
+{% if not per_profile %}
+<div class="card empty">
+  <h2>Bienvenue 👋</h2>
+  <p>Commencez par créer un profil : votre nom, vos adresses e-mail, téléphones et adresses postales.<br>Ces informations servent uniquement à vous identifier auprès des courtiers.</p>
+  <p><a class="btn primary" href="/profiles/new">Créer mon profil</a></p>
+</div>
+{% else %}
+
+<div class="grid k4" style="margin-bottom:1rem">
+  <div class="kpi accent"><div class="v">{{ total.completed }}</div><div class="l">Suppressions confirmées</div></div>
+  <div class="kpi"><div class="v">{{ total.sent }}</div><div class="l">En attente de réponse</div></div>
+  <div class="kpi warn"><div class="v">{{ total.todo }}</div><div class="l"><a href="/tasks">À traiter</a></div></div>
+  <div class="kpi bad"><div class="v">{{ total.refused_or_overdue }}</div><div class="l">Refus / sans réponse</div></div>
+</div>
+
+<div class="grid c2">
+  <div>
+    {% for p, st in per_profile %}
+    <div class="card">
+      <div class="page-head" style="margin:0 0 .6rem">
+        <h2 style="margin:0"><a href="/profiles/{{ p.id }}">{{ p.full_name }}</a>{% if not p.active %} <span class="tag">en pause</span>{% endif %}</h2>
+        <span class="muted small">{{ st.progress }} % terminé</span>
+      </div>
+      {% if st.total %}
+        {{ stack(st) }}
+        <p class="small muted" style="margin-top:.6rem">
+          <span style="color:var(--ok)">■</span> {{ st.completed }} terminées ·
+          <span style="color:var(--info)">■</span> {{ st.sent }} en attente ·
+          <span style="color:var(--warn)">■</span> {{ st.replied + st.needs_action }} à traiter ·
+          <span style="color:var(--bad)">■</span> {{ st.overdue + st.refused + st.failed }} en échec ·
+          {{ st.queued }} en file
+        </p>
+      {% else %}
+        <p class="muted">Aucune demande encore. <a href="/profiles/{{ p.id }}">Lancer les demandes →</a></p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="card">
+      <h2>Prochaines échéances</h2>
+      {% if upcoming %}
+      <table>
+        {% for r in upcoming %}
+        <tr><td><a href="/requests/{{ r.id }}">{{ r.broker.name }}</a><div class="small muted">{{ r.profile.full_name }}</div></td>
+            <td class="num small">{{ r.due_at|d }}{% if r.reminder_count %}<div class="muted">après relance</div>{% endif %}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p class="muted">Aucune demande en attente.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Activité récente</h2>
+    {% if events %}
+    <ul class="timeline">
+      {% for e in events %}
+      <li class="k-{{ e.kind }}">
+        <div class="small muted">{{ e.at|dt }} · <a href="/requests/{{ e.request.id }}">{{ e.request.broker.name }}</a></div>
+        <div>{{ e.summary }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Rien pour l'instant.</p>{% endif %}
+    {% if settings.imap_configured %}<p class="small muted">Dernière relève IMAP : {{ imap_polled_at|isodt }}</p>
+    {% else %}<p class="small muted">IMAP non configuré : les réponses doivent être reportées à la main.</p>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

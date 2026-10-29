@@ -1,0 +1,6432 @@
+[
+ {
+  "slug": "numberly",
+  "name": "1000mercis Group",
+  "email": "dpo@numberly.com",
+  "webform": null,
+  "web": "https://numberly.com/",
+  "postal_address": "28 rue de Châteaudun\n75009 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "1plusx",
+  "name": "1plusX GmbH",
+  "email": "privacy@1plusx.com",
+  "webform": null,
+  "web": "https://www.1plusx.com/",
+  "postal_address": "Eichenstrasse 2\n8808 Pfäffikon\nSwitzerland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ipromote",
+  "name": "2KDirect, Inc.",
+  "email": "privacy@ipromote.com",
+  "webform": null,
+  "web": "https://www.ipromote.com/",
+  "postal_address": "3000 Broad Street\nSuite 115\nSan Luis Obispo\nCA 93401\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "33across",
+  "name": "33Across, Inc.",
+  "email": "privacy@33across.com",
+  "webform": null,
+  "web": "https://33across.co.uk/",
+  "postal_address": "229 West 28th Street\n12th Floor\nNew York\nNY 10001\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "7sections",
+  "name": "7sections GmbH",
+  "email": "datenschutz@7sections.de",
+  "webform": null,
+  "web": "https://www.7sections.de/",
+  "postal_address": "Mainzer Straße 75\n65189 Wiesbaden\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "abis",
+  "name": "ABIS GmbH",
+  "email": "datenschutz@abis-online.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Lyoner Str. 20\n60528 Frankfurt am Main\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "accordantmedia",
+  "name": "Accordant Media, LLC",
+  "email": "privacy@accordantmedia.com",
+  "webform": null,
+  "web": "https://accordantmedia.com/",
+  "postal_address": "150 E 42nd St.\n12th Floor\nNew York\nNY 10017\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "activeleads-se",
+  "name": "Active Leads AB",
+  "email": "privacy@activeleads.se",
+  "webform": null,
+  "web": "https://www.activeleads.se/",
+  "postal_address": "Västmannagatan 66\n113 25 Stockholm\nSweden",
+  "countries": [
+   "se"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "acuityads",
+  "name": "AcuityAds Inc.",
+  "email": "privacy@acuityads.com",
+  "webform": null,
+  "web": "https://www.acuityads.com/",
+  "postal_address": "181 Bay Street, Suite 320\nBrookfield Place, Bay Wellington Tower\nToronto\nON M5J 2T3\nCanada",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "acxiom",
+  "name": "Acxiom Deutschland GmbH",
+  "email": "datenschutz@acxiom.com",
+  "webform": "https://www.acxiom.de/datenschutzanfragen/",
+  "web": "http://www.acxiom.de/",
+  "postal_address": "Speicherstraße 57-59\n60327 Frankfurt am Main\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "acxiom-gb",
+  "name": "Acxiom Ltd.",
+  "email": "dataprotection@acxiom.com",
+  "webform": null,
+  "web": "https://www.acxiom.co.uk/",
+  "postal_address": "17 Hatfields\nLondon\nSE1 8DJ\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adara",
+  "name": "ADARA, Inc.",
+  "email": "dpo@adara.com",
+  "webform": null,
+  "web": "https://adara.com/",
+  "postal_address": "1070 E. Meadow Circle\nPalo Alto\nCA 94303\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "addconti",
+  "name": "Add Conti GmbH",
+  "email": "datenschutz@addconti.ch",
+  "webform": null,
+  "web": "https://addconti.ch/",
+  "postal_address": "Wiggenweg 3\n9404 Rorschacherberg\nSchweiz",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adelphic",
+  "name": "Adelphic LLC",
+  "email": "dpo@adelphic.com",
+  "webform": null,
+  "web": "https://www.adelphic.com/",
+  "postal_address": "880 Main Street\nFloor 3\nWaltham\nMA 02451\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adform",
+  "name": "Adform A/S",
+  "email": "dpo@adform.com",
+  "webform": "https://site.adform.com/privacy-center/platform-privacy/rights-to-insights/",
+  "web": "https://site.adform.com/",
+  "postal_address": "Silkegade 3B\n1113 Copenhagen\nDenmark",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adgear",
+  "name": "AdGear Technologies, Inc.",
+  "email": "privacy@adgear.com",
+  "webform": null,
+  "web": "https://adgear.com/en/",
+  "postal_address": "460 McGill Street, Suite 200\nMontreal, QC\nH2Y 2H2\nCanada",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adhese",
+  "name": "Adhese",
+  "email": "info@adhese.com",
+  "webform": null,
+  "web": "https://www.adhese.eu",
+  "postal_address": "Dulle-grietlaan 1/0001\n9050 Gentbrugge\nBelgium",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adikteev",
+  "name": "Adikteev SA",
+  "email": "dpo@adikteev.com",
+  "webform": null,
+  "web": "https://www.adikteev.com",
+  "postal_address": "29 rue des Pyramides\n75001 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adition",
+  "name": "ADITION technologies AG",
+  "email": "info@adition.com",
+  "webform": null,
+  "web": "https://www.adition.com/",
+  "postal_address": "Oststraße 55\n40211 Düsseldorf\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adjoe",
+  "name": "Adjoe GmbH",
+  "email": "privacy@adjoe.io",
+  "webform": null,
+  "web": null,
+  "postal_address": "An der Alster 42\n20099 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adjust-com",
+  "name": "Adjust GmbH",
+  "email": "privacy@adjust.com",
+  "webform": null,
+  "web": "https://www.adjust.com/",
+  "postal_address": "Saarbrücker Str. 37a\n10405 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adkernel",
+  "name": "Adkernel",
+  "email": "contact@adkernel.com",
+  "webform": null,
+  "web": "https://adkernel.com",
+  "postal_address": "30 Montgomery St\nSuite 440\nJersey City, NJ 07302\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adludio-limited",
+  "name": "Adludio Ltd.",
+  "email": "privacy@adludio.com",
+  "webform": null,
+  "web": "https://www.adludio.com/",
+  "postal_address": "10c Warner Street\nLondon\nEC1R 5HA\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "admedo",
+  "name": "Admedo Ltd.",
+  "email": "privacy-request@admedo.com",
+  "webform": null,
+  "web": "https://www.admedo.com/",
+  "postal_address": "High Holborn House\n52–54 High Holborn\n1st Floor\nWC1V 6RQ\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adpublisher",
+  "name": "adpublisher AG",
+  "email": "datenschutz@adpublisher.com",
+  "webform": null,
+  "web": "https://www.adpublisher.com",
+  "postal_address": "Industriering 3\n9491 Ruggell\nLiechtenstein",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adressdruck",
+  "name": "adressdruck.de",
+  "email": "datenschutz@kreativrecht.de",
+  "webform": null,
+  "web": "https://www.adressdruck.de",
+  "postal_address": "c/o Dirk Otto Rechtsanwalt\nOsnabrücker Straße 7\n10589 Berlin\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "firmenliste",
+  "name": "Adresskontor GmbH",
+  "email": "email@iitr.de",
+  "webform": null,
+  "web": "https://www.firmenliste.net",
+  "postal_address": "c/o IITR Datenschutz GmbH\nMarienplatz 2\n80331 München\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adsquare",
+  "name": "adsquare GmbH",
+  "email": "privacy@adsquare.com",
+  "webform": "https://adsquare.com/privacy/#goto-contact-us",
+  "web": "https://adsquare.com/",
+  "postal_address": "Saarbrücker Str. 36\n10405 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adtargeting-de",
+  "name": "Adtargeting GmbH",
+  "email": "datenschutz@adtargeting.de",
+  "webform": null,
+  "web": "https://www.adtargeting.de/",
+  "postal_address": "Hauptstrasse 223\n65760 Eschborn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adux",
+  "name": "AdUX",
+  "email": "privacy@adux.com",
+  "webform": null,
+  "web": "http://www.adux.com",
+  "postal_address": "27 rue de Mogador\n75009 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "advanced-store-com",
+  "name": "advanced store GmbH",
+  "email": "privacy@advanced-store.com",
+  "webform": null,
+  "web": "https://www.advanced-store.com/en/",
+  "postal_address": "Stefan-Heym-Platz 1\n10367 Berlin\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "urban-airship",
+  "name": "Airship Group, Inc.",
+  "email": "privacy@airship.com",
+  "webform": null,
+  "web": "https://www.airship.com",
+  "postal_address": "1225 West Burnside\nSuite 401\nPortland, OR 97209\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "aklamio",
+  "name": "aklamio GmbH",
+  "email": "datenschutzbeauftragter@datenschutzexperte.de",
+  "webform": null,
+  "web": "https://www.aklamio.com",
+  "postal_address": "Hauptstraße 27-29\nHaus 9 (Neubau) Aufgang N\n10827 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "alikeaudience",
+  "name": "AlikeAudience, Inc.",
+  "email": "privacy@alikeaudience.com",
+  "webform": null,
+  "web": "https://alikeaudience.com/",
+  "postal_address": "440 N. Wolfe Road\nSunnyvale\nCA 94085\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "all-travel-marketing",
+  "name": "All Travel Marketing GmbH",
+  "email": "datenschutz@all-travel-marketing.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Am Telegraph 26\n53773 Hennef\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "travel"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "alphonso-tv",
+  "name": "Alphonso Inc.",
+  "email": "infoEU@alphonso.tv",
+  "webform": null,
+  "web": "https://alphonso.tv/",
+  "postal_address": "2440 W El Camino Real\nMountain View\nCA 94040\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "amazinghiring",
+  "name": "AmazingHiring",
+  "email": "dpo@amazinghiring.com",
+  "webform": null,
+  "web": "https://amazinghiring.com/",
+  "postal_address": "541 Jefferson Avenue\nSuite 100\nRedwood City\nCA 94063\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "amobee",
+  "name": "Amobee, Inc.",
+  "email": "amobeeprivacy@amobee.com",
+  "webform": "https://www.amobee.com/gdpr/",
+  "web": "https://www.amobee.com/",
+  "postal_address": "1st Floor, Hogarth House\n135 High Holborn\nLondon\nWC1V 6PX\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "apollo-optik",
+  "name": "Apollo-Optik Holding GmbH & Co. KG",
+  "email": "datenschutz@apollo-optik.com",
+  "webform": null,
+  "web": "https://www.apollo.de/",
+  "postal_address": "Wallenrodstraße 3\n91126 Schwabach\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "apollo-io",
+  "name": "Apollo.io",
+  "email": "privacy@apollo.io",
+  "webform": "https://www.apollo.io/company/privacy-center",
+  "web": "https://apollo.io",
+  "postal_address": "440 N Barranca Ave #4750\nCovina\nCA 91723-1722\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "applovin",
+  "name": "AppLovin Corporation",
+  "email": "dataprotection@applovin.com",
+  "webform": null,
+  "web": "https://www.applovin.com/",
+  "postal_address": "1100 Page Mill Road\nPalo Alto CA 94304\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "appsflyer",
+  "name": "AppsFlyer Germany GmbH",
+  "email": "privacy@appsflyer.com",
+  "webform": null,
+  "web": "https://www.appsflyer.com/",
+  "postal_address": "Kurfürstendamm 11\nc/o WeWork\n10719 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "calldorado",
+  "name": "Appvestor ApS",
+  "email": "info@appvestor.com",
+  "webform": null,
+  "web": "https://calldorado.com/",
+  "postal_address": "Gladsaxevej 342\n2860 Søborg\nDenmark",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "arena-direkt",
+  "name": "ARENA Direkt GmbH",
+  "email": "datenschutz@arena-direkt.de",
+  "webform": null,
+  "web": "https://www.arena-direkt.de/",
+  "postal_address": "Gustav-Hertz-Straße 9\n91074 Herzogenaurach\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "arnold-demmerer",
+  "name": "Arnold, Demmerer & Partner GmbH",
+  "email": "datenschutz@arnold-demmerer.de",
+  "webform": null,
+  "web": "http://www.arnold-demmerer.de",
+  "postal_address": "Motorstr. 25\n70499 Stuttgart\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": true,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "aspirantic",
+  "name": "Aspirantic",
+  "email": "privacy@aspirantic.com",
+  "webform": null,
+  "web": "https://aspirantic.com",
+  "postal_address": "Zeppelinstraße 4\n58313 Herdecke\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mydealz",
+  "name": "Atolls Germany GmbH",
+  "email": "privacy@mydealz.de",
+  "webform": null,
+  "web": "https://www.mydealz.de",
+  "postal_address": "Radlkoferstr. 2\n81373 München\nDeutschland",
+  "countries": [
+   "de",
+   "at"
+  ],
+  "categories": [
+   "ads",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "audiencerate",
+  "name": "Audiencerate Ltd",
+  "email": "privacy@audiencerate.com",
+  "webform": null,
+  "web": "http://www.audiencerate.com/",
+  "postal_address": "7 Bell Yard\nLondon\nWC2A 2JR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "aventura",
+  "name": "Aventura Post GmbH",
+  "email": "privacy@aventurapost.com",
+  "webform": null,
+  "web": "https://www.aventurapost.com/",
+  "postal_address": "Am Unisys-Park 1\n65843 Sulzbach/Ts.\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "awin",
+  "name": "AWIN AG",
+  "email": "global-privacy@awin.com",
+  "webform": null,
+  "web": "https://www.awin.com",
+  "postal_address": "Eichhornstraße 3\n10785 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "az-direct",
+  "name": "AZ Direct GmbH",
+  "email": "datenschutz@az-direct.com",
+  "webform": null,
+  "web": "https://www.az-direct.com",
+  "postal_address": "Carl-Bertelsmann-Straße 161S\n33311 Gütersloh\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "az-direct-at",
+  "name": "AZ Direct Österreich GmbH",
+  "email": "office@bertelsmann.at",
+  "webform": null,
+  "web": null,
+  "postal_address": "Donau-City-Straße 6\nAndromeda Tower\n1220 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adressmonster",
+  "name": "B2B Monster UG haftungsbeschränkt",
+  "email": "support@adressmonster.de",
+  "webform": null,
+  "web": "https://adressmonster.de",
+  "postal_address": "Am Mantel 4\n76646 Bruchsal\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "b2b-datenbank-de",
+  "name": "b2b-datenbank.de",
+  "email": "datenschutz@b2b-datenbank.de",
+  "webform": null,
+  "web": "https://www.b2b-datenbank.de",
+  "postal_address": "Hamburger Str. 180\n22083 Hamburg\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "base-plus",
+  "name": "Base Plus SAS",
+  "email": "dpo@base-plus.fr",
+  "webform": null,
+  "web": "https://www.base-plus.fr",
+  "postal_address": "13 Rue Jacobi Netter\n67200 Strasbourg\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bazaarvoice",
+  "name": "Bazaarvoice, Inc.",
+  "email": "privacy@bazaarvoice.com",
+  "webform": null,
+  "web": "https://www.bazaarvoice.com/",
+  "postal_address": "10901 Stonelake Blvd\nAustin\nTX 78759\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kaeuferportal-de",
+  "name": "be Around GmbH",
+  "email": "datenschutz@aroundhome.de",
+  "webform": null,
+  "web": "https://www.aroundhome.de/",
+  "postal_address": "Potsdamer Platz 11\n10785 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bedirect",
+  "name": "beDirect GmbH & Co. KG",
+  "email": "datenschutz@bedirect.de",
+  "webform": null,
+  "web": "https://www.bedirect-online.de",
+  "postal_address": "c/o Bertelsmann SE & Co. KGaA\nCarl-Bertelsmann-Straße 270\n33311 Gütersloh\nDeutschland",
+  "countries": [
+   "de",
+   "at"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "beeswax",
+  "name": "Beeswax",
+  "email": "privacy@beeswax.com",
+  "webform": null,
+  "web": "https://www.beeswax.com/",
+  "postal_address": "275 7th Ave\n21st Floor\nNew York\nNY 10001\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "talkingdata",
+  "name": "Beijing Tendcloud Tianxia Technology Co., Ltd",
+  "email": "td_legal@tendcloud.com",
+  "webform": null,
+  "web": "https://www.talkingdata.com/",
+  "postal_address": "Room302, Aviation Services Plaza, Building #2\nNo.39 DongZhiMenWai Street\nDongcheng District\nBeijing\nChina",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "berlinfive",
+  "name": "BerlinFive GmbH",
+  "email": "office@berlinfive.com",
+  "webform": null,
+  "web": "https://berlinfive.com",
+  "postal_address": "Friedrichstr. 171\n10117 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "best-relations-digital",
+  "name": "Best Relations Digital GmbH",
+  "email": "datenschutz@best-relations-digital.de",
+  "webform": null,
+  "web": "https://www.best-relations-digital.de/",
+  "postal_address": "Im Heidewinkel 71\n21271 Asendorf\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "better-mail-media",
+  "name": "Better Mail Media GmbH",
+  "email": "info@better-mail-media.de",
+  "webform": null,
+  "web": "https://better-mail-media.de",
+  "postal_address": "c/o Smart Factory\nHeinrich-Hertz-Straße 26\n25336 Elmshorn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bisnode-ab",
+  "name": "Bisnode AB",
+  "email": "dpo@bisnode.com",
+  "webform": null,
+  "web": "https://www.bisnode.com",
+  "postal_address": "169 93 Solna\nSweden",
+  "countries": [
+   "se"
+  ],
+  "categories": [],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bisnode-de",
+  "name": "Bisnode Deutschland GmbH",
+  "email": "datenschutz.de@bisnode.com",
+  "webform": null,
+  "web": "https://www.bisnode.de/",
+  "postal_address": "Robert-Bosch-Straße 11\n64293 Darmstadt\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bitmaster-online",
+  "name": "Bitmaster Online B.V.",
+  "email": "support@bitmaster-online.com",
+  "webform": null,
+  "web": null,
+  "postal_address": "Langeweg 1-D\n3233LM Oostvoorne\nThe Netherlands",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bisnode-be",
+  "name": "Black Tiger Belgium SA/NV",
+  "email": "dpo@blacktigerbelgium.tech",
+  "webform": null,
+  "web": "https://www.blacktigerbelgium.tech/",
+  "postal_address": "Researchdreef 65\n1070 Anderlecht\nBelgium",
+  "countries": [
+   "be"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "4wave",
+  "name": "blueleads GmbH",
+  "email": "datenschutz@blueleads.online",
+  "webform": null,
+  "web": "http://www.blueleads.online/",
+  "postal_address": "Unterländer Straße 74\n70435 Stuttgart\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "boesche-de",
+  "name": "Boesche KG",
+  "email": "service@boesche.de",
+  "webform": null,
+  "web": "https://www.boesche.de",
+  "postal_address": "c/o HABEWI GmbH & Co. KG\nPalmaille 96\n22767 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bombora",
+  "name": "Bombora, Inc.",
+  "email": "privacy@bombora.com",
+  "webform": null,
+  "web": "https://bombora.com/",
+  "postal_address": "257 Park Avenue South\nFloor 6\nNew York\nNY 10010\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "branch-io",
+  "name": "Branch Metrics, Inc.",
+  "email": "privacy@branch.io",
+  "webform": null,
+  "web": "https://branch.io/",
+  "postal_address": "1400 Seaport Blvd\nBuilding B\n2nd Floor\nRedwood City\nCA 94063\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "brandmaker",
+  "name": "BrandMaker GmbH",
+  "email": "info@brandmaker.com",
+  "webform": null,
+  "web": "https://www.brandmaker.com/",
+  "postal_address": "Rüppurrer Straße 1\n76137 Karlsruhe\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "burda-direct-services",
+  "name": "Burda Direkt Services GmbH",
+  "email": "burdadirektservices@datenschutzanfrage.de",
+  "webform": null,
+  "web": "https://www.burdadirect.com/",
+  "postal_address": "Postfach 1223\n77602 Offenburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "callcredit-gb",
+  "name": "Callcredit Information Group",
+  "email": "dpo@callcreditgroup.com",
+  "webform": null,
+  "web": "https://www.callcredit.co.uk/",
+  "postal_address": "One Park Lane\nLeeds\nWest Yorkshire\nLS3 1EP\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "schober",
+  "name": "Capaneo GmbH",
+  "email": "datenschutz@capaneo.de",
+  "webform": null,
+  "web": "https://capaneo.de",
+  "postal_address": "Meisenweg 37\n70771 Leinfelden-Echterdingen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "captify",
+  "name": "Captify Technologies Ltd.",
+  "email": "privacy@captify.co.uk",
+  "webform": null,
+  "web": "https://www.captify.co.uk/",
+  "postal_address": "5 Langley Street\nLondon\nWC2H 9JA\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "catalina",
+  "name": "Catalina Marketing Corporation",
+  "email": "privacyteam@catalina.com",
+  "webform": "https://privacyportal.onetrust.com/webform/7665c53e-aae8-4a03-9dd3-66fb6bce8f55/6c428920-a20e-4932-a5c9-a16f4a7abea2",
+  "web": "https://www.catalina.com",
+  "postal_address": "200 Carillon Parkway\nSt. Petersburg\nFL 33716\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "chartboost",
+  "name": "Chartboost, Inc.",
+  "email": "privacy@chartboost.com",
+  "webform": null,
+  "web": "https://www.chartboost.com/",
+  "postal_address": "185 Clara Street\nRoom 101B\nSan Francisco CA 94107\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "check24",
+  "name": "CHECK24 Vergleichsportal GmbH",
+  "email": "kundenmanagement_datenschutz@check24.de",
+  "webform": null,
+  "web": "https://www.check24.de/",
+  "postal_address": "Erika-Mann-Str. 62 – 66\n80636 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "finance",
+   "insurance",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "chooseleads",
+  "name": "ChooseLeads Ltd.",
+  "email": "hello@chooseleads.co.uk",
+  "webform": null,
+  "web": "https://chooseleads.co.uk/",
+  "postal_address": "7 Bell Yard\nLondon\nWC2A 2JR\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "choozle",
+  "name": "Choozle, Inc.",
+  "email": "privacy@choozle.com",
+  "webform": null,
+  "web": "https://choozle.com/",
+  "postal_address": "2245 Curtis St. Suite 200\nDenver\nColorado 80205\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "clearview-ai",
+  "name": "Clearview AI, Inc.",
+  "email": "legal-requests@clearview.ai",
+  "webform": null,
+  "web": "https://clearview.ai/",
+  "postal_address": "418 Broadway STE N\nAlbany\nNY 12207\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "clickagy",
+  "name": "Clickagy, LLC",
+  "email": "privacy@clickagy.com",
+  "webform": "https://www.clickagy.com/privacy-center/",
+  "web": "https://www.clickagy.com/",
+  "postal_address": "c/o VeraSafe Ireland Ltd.\nUnit 3D North Point House\nNorth Point Business Park\nNew Mallow Road\nCork T23AT2P\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "cogora",
+  "name": "Cogora Group Ltd.",
+  "email": "data@cogora.com",
+  "webform": null,
+  "web": "https://www.cogora.com",
+  "postal_address": "140 London Wall\nLondon, EC2Y 5DN\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "health"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "complead",
+  "name": "complead GmbH",
+  "email": "datenschutz@complead.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Sieglitzhofer Straße 9\n91054 Erlangen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "scorecardresearch",
+  "name": "Comscore, Inc.",
+  "email": "DSR@comscore.com",
+  "webform": "https://www.comscore.com/About/Privacy/Data-Subject-Rights",
+  "web": "https://www.comscore.com",
+  "postal_address": "11950 Democracy Drive\nReston, VA 20190\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "connatix",
+  "name": "Connatix Holdings Inc.",
+  "email": "privacy@connatix.com",
+  "webform": null,
+  "web": "https://www.connatix.com/",
+  "postal_address": "666 Broadway\n10th Floor\nNew York\nNY 10012\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "connexity",
+  "name": "Connexity, Inc.",
+  "email": "dataprotection@connexity.com",
+  "webform": null,
+  "web": "https://connexity.com",
+  "postal_address": "2120 Colorado Ave.\nSuite 400\nSanta Monica\nCA 90404\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "contactout",
+  "name": "Contactout Limited",
+  "email": "support@contactout.com",
+  "webform": null,
+  "web": "https://contactout.com/",
+  "postal_address": "23 Pokefield Road\nUnit B, 31F Tower 1\nUniversity Heights\nKennedy Town\nHong Kong 00000\nHong Kong",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "cpx-onlineactive",
+  "name": "cpx online active AG",
+  "email": "datenschutz@cpx-onlineactive.com",
+  "webform": null,
+  "web": "http://cpx-onlineactive.com",
+  "postal_address": "Ortsgemeindstrasse 5\n9444 Diepoldsau\nSwitzerland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "crif-at",
+  "name": "CRIF GmbH",
+  "email": "auskunft@crif.com",
+  "webform": null,
+  "web": "https://www.crif.at/",
+  "postal_address": "Rothschildplatz 3/Top 3.06.B\n1020 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads",
+   "credit agency",
+   "finance"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "crifbuergel",
+  "name": "CRIF GmbH",
+  "email": "datenschutz.de@crif.com",
+  "webform": "https://selbstauskunft.crif.de/onlineForm",
+  "web": "https://www.crif.de",
+  "postal_address": "Leopoldstraße 244\n80807 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "crif-it",
+  "name": "CRIF SpA",
+  "email": "dirprivacy@crif.com",
+  "webform": null,
+  "web": "https://www.crif.it",
+  "postal_address": "Via Mario Fantin, 1-3\n40131 Bologna\nItaly",
+  "countries": [
+   "it"
+  ],
+  "categories": [
+   "credit agency",
+   "finance"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "criteo",
+  "name": "Criteo",
+  "email": "dpo@criteo.com",
+  "webform": null,
+  "web": "https://www.criteo.com/",
+  "postal_address": "32 Rue Blanche\n75009 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "cuebiq",
+  "name": "Cuebiq Inc.",
+  "email": "privacy@cuebiq.com",
+  "webform": "https://www.cuebiq.com/privacy-request/",
+  "web": "https://www.cuebiq.com/",
+  "postal_address": "1460 Broadway\nNew York, NY 10036\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dataplusmath",
+  "name": "Data Plus Math Corporation",
+  "email": "privacy@dataplusmath.com",
+  "webform": null,
+  "web": "https://www.dataplusmath.com/",
+  "postal_address": "51 Melcher St.\nBoston\nMA 02210\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "data-broker-gb",
+  "name": "Databroker Ltd.",
+  "email": "info@data-broker.co.uk",
+  "webform": null,
+  "web": "https://www.data-broker.co.uk/",
+  "postal_address": "8 Ambassador Place\nStockport Road\nAltrincham\nWA15 8DB\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dataxtrade",
+  "name": "dataXtrade GmbH",
+  "email": "privacy@dataxtrade.com",
+  "webform": null,
+  "web": "https://dataxtrade.com/",
+  "postal_address": "Dachauer Str. 15c\n80335 München\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dealfront-group-gmbh",
+  "name": "Dealfront Group GmbH",
+  "email": "privacy@dealfront.com",
+  "webform": null,
+  "web": "https://www.dealfront.com",
+  "postal_address": "Durlacher Allee 73\n76131 Karlsruhe\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "deltaprojects",
+  "name": "Delta Projects AB",
+  "email": "privacy@deltaprojects.com",
+  "webform": null,
+  "web": "https://www.deltaprojects.com/",
+  "postal_address": "Linnégatan 89E\n115 23 Stockholm\nSweden",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "demandbase",
+  "name": "Demandbase, Inc.",
+  "email": "privacy@demandbase.com",
+  "webform": null,
+  "web": "https://www.demandbase.com/",
+  "postal_address": "680 Folsom Street #400\nSan Francisco\nCA 94107\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "spiegel-de",
+  "name": "DER SPIEGEL GmbH & Co. KG",
+  "email": "datenschutz@spiegelgruppe.de",
+  "webform": null,
+  "web": "https://www.spiegel.de",
+  "postal_address": "Ericusspitze 1\n20459 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "fernsehlotterie",
+  "name": "Deutsche Fernsehlotterie gemeinnützige GmbH",
+  "email": "datenschutz@fernsehlotterie.de",
+  "webform": null,
+  "web": "https://www.fernsehlotterie.de",
+  "postal_address": "Axel-Springer-Platz 3\n20355 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "deutsche-post-adress",
+  "name": "Deutsche Post Adress GmbH & Co. KG",
+  "email": "datenschutz@postadress.de",
+  "webform": null,
+  "web": "https://www.deutschepost.de/de/p/postadress.html",
+  "postal_address": "Am Anger 33\n33332 Gütersloh\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "deutsche-post-direkt",
+  "name": "Deutsche Post Direkt GmbH",
+  "email": "datenschutz@postdirekt.de",
+  "webform": "https://www.deutschepost.de/de/d/deutsche-post-direkt/kontakt.html?thema=Datenschutz%20%28z.B.%20Widerspruch%20zur%20Datenverwendung%29",
+  "web": "https://service.postdirekt.de/portal/",
+  "postal_address": "Junkersring 57\n53844 Troisdorf\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "deutschlandcard",
+  "name": "DeutschlandCard GmbH",
+  "email": "datenschutz@deutschlandcard.de",
+  "webform": null,
+  "web": "https://www.deutschlandcard.de/",
+  "postal_address": "Neumarkter Straße 28\n81673 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "digital-dialog-lab",
+  "name": "Digital Dialog Lab GmbH",
+  "email": "info@digital-dialog-lab.de",
+  "webform": null,
+  "web": "https://www.digital-dialog-lab.de",
+  "postal_address": "Rothenbaumchaussee 40\n20148 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "digitalmedialine",
+  "name": "Digital Media Line",
+  "email": "info@digitalmedialine.com",
+  "webform": null,
+  "web": "https://digitalmedialine.com/",
+  "postal_address": "622b Stockport Road\nManchester\nM13 0SH\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adcolony",
+  "name": "Digital Turbine, Inc.",
+  "email": "privacy@digitalturbine.com",
+  "webform": null,
+  "web": "https://www.digitalturbine.com",
+  "postal_address": "110 San Antonio St., Ste 160\nAustin, TX 78701\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "digitize-ie",
+  "name": "Digitize New Media Ltd.",
+  "email": "privacy@digitize.ie",
+  "webform": null,
+  "web": "https://www.digitize.ie/",
+  "postal_address": "1st Floor\n61 Thomas St\nD08 W250\nDublin 8\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "directscouts",
+  "name": "Direct Scouts GmbH",
+  "email": "datenschutz@directscouts.de",
+  "webform": null,
+  "web": "https://directscouts.de/",
+  "postal_address": "Schneiderstraße 6\n40764 Langenfeld\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "campaign-services-de",
+  "name": "direct services Gütersloh GmbH",
+  "email": "datenschutz@bertelsmann.de",
+  "webform": null,
+  "web": "https://www.campaign-services.de/",
+  "postal_address": "Business Unit Campaign\nReinhard-Mohn-Str. 300\n33333 Gütersloh\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "leiki",
+  "name": "DoubleVerify, Inc.",
+  "email": "privacy-policy@doubleverify.com",
+  "webform": "https://doubleverify.com/opt-out/",
+  "web": "https://doubleverify.com",
+  "postal_address": "462 Broadway\nNew York, NY 10013\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "profileaddress",
+  "name": "DPIT GmbH",
+  "email": "auskunft@dp-it.at",
+  "webform": "https://dp-it.at/auskunft/",
+  "web": "https://dp-it.at/",
+  "postal_address": "Mariahilfer Straße 117 Top 19\n1060 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dstillery",
+  "name": "Dstillery, Inc.",
+  "email": "privacy@dstillery.com",
+  "webform": null,
+  "web": "https://dstillery.com/",
+  "postal_address": "470 Park Ave S.\nFloor 5S\nNew York\nNY 10016\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dastelefonbuch",
+  "name": "DTM Deutsche Tele Medien GmbH",
+  "email": "datenschutz@dtme.de",
+  "webform": null,
+  "web": "https://www.dastelefonbuch.de/",
+  "postal_address": "Wiesenhüttenstr. 18\n60329 Frankfurt\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "dud-de",
+  "name": "Dun & Bradstreet Deutschland GmbH",
+  "email": "datenschutz.de@dnb.com",
+  "webform": "https://www-prod.dnb.com/de-de/datenschutz/ihre-rechte-als-betroffener/selbstauskunft-widerspruch/",
+  "web": "https://www.dnb.com/de-de/",
+  "postal_address": "Brüsseler Straße 1-3\n60327 Frankfurt am Main\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sociomantic",
+  "name": "dunnhumby Limited",
+  "email": "individualrights@dunnhumby.com",
+  "webform": null,
+  "web": "https://www.dunnhumby.com",
+  "postal_address": "Gresham House\nMarine Road\nDun Laoghaire Co\nDublin\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "e2ma-de",
+  "name": "E2Ma GmbH",
+  "email": "datenschutz@e2ma.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Große Theaterstraße 7\n20354 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rtbmarkt",
+  "name": "EASYmedia GmbH",
+  "email": "info@easymedia-gmbh.de",
+  "webform": null,
+  "web": "https://www.rtbmarkt.de",
+  "postal_address": "Löhner Str. 12d\n44652 Herne\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "egentic",
+  "name": "eGENTIC GmbH",
+  "email": "info@egentic.com",
+  "webform": null,
+  "web": "https://www.egentic.com",
+  "postal_address": "Am Unisys-Park 1\n65843 Sulzbach/Ts\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "einsaperformance",
+  "name": "einsaperformance GmbH",
+  "email": "datenschutz@einsaperformance.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Therese-Huber-Straße 24\n37085 Göttingen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "emerse",
+  "name": "Emerse Sverige AB",
+  "email": "dataprotectionofficer@emerse.com",
+  "webform": null,
+  "web": "https://www.emerse.com/",
+  "postal_address": "Lilla Fiskaregatan 1A\n222 22 Lund\nSweden",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "emetriq",
+  "name": "emetriq GmbH",
+  "email": "datenschutz@telekom.de",
+  "webform": null,
+  "web": "https://www.emetriq.com/",
+  "postal_address": "Vorsetzen 35\n20459 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "entertainment-at",
+  "name": "Entertainment Media GmbH",
+  "email": "datenschutz@entertainment.at",
+  "webform": null,
+  "web": "https://entertainment.at/",
+  "postal_address": "Twin Towers\nWienerbergstraße 11/12A\n1100 Vienna\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "pulpo",
+  "name": "Entravision Communications Corporation",
+  "email": "privacy@entravision.com",
+  "webform": null,
+  "web": "https://entravision.com",
+  "postal_address": "2425 Olympic Boulevard\nSuite 6000 West\nSanta Monica, CA 90404\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "epsilon-com",
+  "name": "Epsilon International UK Ltd",
+  "email": "privacy@epsilon.com",
+  "webform": null,
+  "web": "https://www.epsilon.com/emea",
+  "postal_address": "2 Television Centre\n101 Wood Lane\nLondon\nW12 7FR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "equifax-gb",
+  "name": "Equifax Ltd.",
+  "email": "UKDPO@equifax.com",
+  "webform": null,
+  "web": "https://www.equifax.co.uk/",
+  "postal_address": "PO Box 10036\nLeicester\nLE3 4FS\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "europro",
+  "name": "EURO-PRO Ges. für Data Processing mbH",
+  "email": "datenschutz@europro.de",
+  "webform": null,
+  "web": "https://www.europro.de/",
+  "postal_address": "Lindenhof 1 – 3\n61279 Grävenwiesbach\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "evocate-inkasso",
+  "name": "Evocate Inkasso GmbH",
+  "email": "info@evocate.de",
+  "webform": null,
+  "web": "https://www.evocate-inkasso.de",
+  "postal_address": "Kirschenweg 32\n76756 Bellheim\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "collection agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ewealth-cc",
+  "name": "Ewealth.cc",
+  "email": "support@ewealth.cc",
+  "webform": null,
+  "web": "https://ewealth.cc/",
+  "postal_address": "c/o Advertising.R\nObzor street\nTown of Ruse 7000\nRegion Ruse\nMunicipality of Ruse 10\nBulgaria",
+  "countries": [
+   "gb",
+   "de",
+   "it",
+   "es"
+  ],
+  "categories": [
+   "ads",
+   "finance"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "experian-at",
+  "name": "Experian Austria GmbH",
+  "email": "Dach-Datenschutz-at@experian.com",
+  "webform": null,
+  "web": "https://www.experian.at/",
+  "postal_address": "Strozzigasse 10/14\n10180 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "experian-de",
+  "name": "Experian GmbH",
+  "email": "businessdach@experian.com",
+  "webform": null,
+  "web": "https://www.experian.de",
+  "postal_address": "Rheinstraße 99\n76532 Baden-Baden\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "experian-gb",
+  "name": "Experian Ltd.",
+  "email": "UK.DPOBusinessEnquiries@Experian.com",
+  "webform": null,
+  "web": "https://www.experian.co.uk/",
+  "postal_address": "The Sir John Peace Building\nExperian Way\nNG2 Business Park\nNottingham\nNG80 1ZZ\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "experian-ch",
+  "name": "Experian Switzerland AG",
+  "email": "DACH-BDN-data-information@experian.com",
+  "webform": null,
+  "web": "https://www.experian.ch/",
+  "postal_address": "Thurgauerstraße 101a\n8152 Glattpark (Opfikon)\nSchweiz",
+  "countries": [
+   "ch"
+  ],
+  "categories": [],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "exponential-com",
+  "name": "Exponential Interactive, Inc.",
+  "email": "privacy@exponential.com",
+  "webform": null,
+  "web": "http://exponential.com/",
+  "postal_address": "30 Stamford Street\nLondon\nSE19LQ\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "eyeota",
+  "name": "Eyeota Pte Ltd",
+  "email": "privacy@eyeota.com",
+  "webform": "https://www.eyeota.com/subject-access-request",
+  "web": "https://www.eyeota.com/",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ezoic",
+  "name": "Ezoic, Inc.",
+  "email": "legal@ezoic.com",
+  "webform": null,
+  "web": "https://www.ezoic.com/",
+  "postal_address": "5870 El Camino Real\nCarlsbad\nCA 92008\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adressbar",
+  "name": "Fabian Wolf – Data Services",
+  "email": "datenschutz@adressbar.de",
+  "webform": null,
+  "web": "https://adressbar.de",
+  "postal_address": "Brehmstraße 3\n40239 Düsseldorf\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "fcrmedia",
+  "name": "FCR Media Belgium NV",
+  "email": "info@fcrmedia.be",
+  "webform": null,
+  "web": "https://fcrmedia.be/",
+  "postal_address": "Uitbreidingstraat 82\n2600 Antwerpen\nBelgium",
+  "countries": [
+   "be"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "fonecta-fi",
+  "name": "Fonecta Oy",
+  "email": "tietosuoja@fonecta.com",
+  "webform": null,
+  "web": "https://www.fonecta.fi/",
+  "postal_address": "PL 202\n00241 Helsinki\nFinland",
+  "countries": [
+   "fi"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "samba-tv",
+  "name": "Free Stream Media Corp.",
+  "email": "privacy@samba.tv",
+  "webform": null,
+  "web": "https://samba.tv/",
+  "postal_address": "123 Townsend St\n5th floor\nSan Francisco\nCA 94107\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "freewheel",
+  "name": "FreeWheel Media, Inc.",
+  "email": "legalnotices@freewheel.tv",
+  "webform": null,
+  "web": "https://www.freewheel.com/",
+  "postal_address": "12th Floor\n1407 Broadway\nNew York\nNY 10018\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gabriele-altpeter-internet-marketing-services",
+  "name": "Gabriele Altpeter, Internet Marketing-Services",
+  "email": "datenschutz@gabriele-altpeter.info",
+  "webform": null,
+  "web": "https://gabriele-altpeter.info",
+  "postal_address": "Schreinerweg 6\n38126 Braunschweig\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gamned",
+  "name": "Gamned SAS",
+  "email": "privacy@gamned.com",
+  "webform": null,
+  "web": "https://www.gamned.com/",
+  "postal_address": "9 quai Rive Neuve\n13001 Marseille\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ganzeinfach",
+  "name": "Ganz Einfach GmbH",
+  "email": "info@ganzeinfach.de",
+  "webform": null,
+  "web": "https://www.ganzeinfach.de",
+  "postal_address": "Wohlenbergstr. 16\n30179 Hannover\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gb-group",
+  "name": "GB Group Plc",
+  "email": "DPO@gbgplc.com",
+  "webform": "https://www.gbgplc.com/en/contact/general-enquiry/individual-data-enquiry/",
+  "web": "https://www.gbgplc.com",
+  "postal_address": "The Foundation\nHerons Way\nChester Business Park\nChester\nCH4 9GB\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "geminidirect",
+  "name": "GEMINI DIRECT marketing solutions GmbH",
+  "email": "datenschutz@geminidirect.de",
+  "webform": null,
+  "web": "https://geminidirect.de",
+  "postal_address": "Black-u.-Decker-Straße 17c\n65510 Idstein\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "geno-media-circle",
+  "name": "Geno Media Circle GmbH",
+  "email": "datenschutz@geno-media-circle.de",
+  "webform": null,
+  "web": "https://www.geno-media-circle.de",
+  "postal_address": "Weidestraße 122b\n22083 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gfk",
+  "name": "GfK SE",
+  "email": "dpo@gfk.com",
+  "webform": null,
+  "web": "https://www.gfk.com",
+  "postal_address": "Sophie-Germain-Strasse 3-5\n90443 Nuremberg\nGermany",
+  "countries": [
+   "be",
+   "bg",
+   "dk",
+   "de",
+   "ee",
+   "fi",
+   "fr",
+   "gr",
+   "ie",
+   "is",
+   "it",
+   "hr",
+   "lv",
+   "li",
+   "lt",
+   "lu",
+   "mt",
+   "nl",
+   "no",
+   "at",
+   "pl",
+   "pt",
+   "ro",
+   "se",
+   "sk",
+   "si",
+   "es",
+   "cz",
+   "hu",
+   "cy"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gfk-ch",
+  "name": "GfK Switzerland AG",
+  "email": "dpo.ch@gfk.com",
+  "webform": null,
+  "web": "https://www.gfk.com",
+  "postal_address": "Suurstoffi 18\nRotkreuz 6343\nSwitzerland",
+  "countries": [
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gfk-gb",
+  "name": "GfK UK Limited",
+  "email": "DataProtectionOfficerGfKUK.LON@gfk.com",
+  "webform": null,
+  "web": "https://www.gfk.com",
+  "postal_address": "7th Floor\nBlue Fin Building\n110 Southwark Street\nLondon SE1 0SU\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "global-group-de",
+  "name": "Global Group TDA Germany GmbH",
+  "email": "datenschutz@global-group.de",
+  "webform": "https://global-group.de/de/weitere-betroffenenrechte",
+  "web": "https://www.global-group.de",
+  "postal_address": "Serviceware-Kreisel 1\n65510 Idstein\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "goldbach-at",
+  "name": "Goldbach Austria GmbH",
+  "email": "oba@at.goldbach.com",
+  "webform": null,
+  "web": "https://goldbach.com/at/de",
+  "postal_address": "Laimgrubengasse 14\n1060 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "goldbach-de",
+  "name": "Goldbach Germany GmbH",
+  "email": "oba@de.goldbach.com",
+  "webform": null,
+  "web": "https://goldbach.com/de/de",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "goldbach-ch",
+  "name": "Goldbach Group AG",
+  "email": "oba@ch.goldbach.com",
+  "webform": null,
+  "web": "https://goldbach.com/ch/de",
+  "postal_address": "Seestrasse 39\nCH-8700 Küsnacht ZH\nSchweiz",
+  "countries": [
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gravyanalytics",
+  "name": "Gravy Analytics Inc.",
+  "email": "privacy@gravyanalytics.com",
+  "webform": null,
+  "web": "https://gravyanalytics.com",
+  "postal_address": "45610 Woodland Rd\nSuite 100\nSterling, VA 20166\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "greenheads-onlineperformance",
+  "name": "Green Heads Online-Performance GmbH",
+  "email": "info@greenheads-onlineperformance.de",
+  "webform": null,
+  "web": "https://greenheads-onlineperformance.de/",
+  "postal_address": "Dülkenstraße 9\n51143 Köln\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "growbots",
+  "name": "Growbots Inc.",
+  "email": "privacy@growbots.com",
+  "webform": null,
+  "web": "https://www.growbots.com/",
+  "postal_address": "1015 Fillmore St\nPMB 18339\nSan Francisco, CA 94115\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "gumgum",
+  "name": "GumGum UK Ltd.",
+  "email": "dataprivacy@gumgum.com",
+  "webform": null,
+  "web": "https://gumgum.com/",
+  "postal_address": "WeWork Building\n138 Holborn\nLondon\nEC1N2SW\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "clicksco",
+  "name": "Havas SA",
+  "email": "data.protectionuk@havas.com",
+  "webform": null,
+  "web": "https://www.clicksco.com/",
+  "postal_address": "Sutton Yard\n65 Goswell Road\nLondon EC1V 7EN\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "hcc-gmbh",
+  "name": "HCC GmbH",
+  "email": "info-hcc@email.de",
+  "webform": null,
+  "web": "https://www.hcc-gmbh.net",
+  "postal_address": "Airport Center (Haus C)\nFlughafenstraße 52a\n22335 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "heinekingmedia",
+  "name": "heinekingmedia GmbH",
+  "email": "datenschutz@heinekingmedia.de",
+  "webform": null,
+  "web": "https://heinekingmedia.de/",
+  "postal_address": "Hamburger Allee 2 – 4\n30161 Hannover\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "entertainment",
+   "social media",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "herold",
+  "name": "HEROLD Business Data GmbH",
+  "email": "office@herold.at",
+  "webform": null,
+  "web": "https://www.herold.at",
+  "postal_address": "Guntramsdorfer Straße 105\n2340 Mödling\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "houseofkaizen",
+  "name": "House of Kaizen Ltd.",
+  "email": "justask@houseofkaizen.com",
+  "webform": null,
+  "web": "https://www.houseofkaizen.com/",
+  "postal_address": "50 Buttesland Street\nHoffman Square\nLondon\nN1 6BY\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "narrativ",
+  "name": "Howl Technologies, Inc.",
+  "email": "privacy@howl.link",
+  "webform": null,
+  "web": "https://www.howl.link",
+  "postal_address": "335 Madison Ave Fl 4\nNY 10017\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "affectv",
+  "name": "Hybrid Theory Global Ltd.",
+  "email": "privacy@hybridtheory.com",
+  "webform": null,
+  "web": "https://hybridtheory.com",
+  "postal_address": "Epworth House\n25 City Road\nLondon\nEC1Y 1AA\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "id5",
+  "name": "ID5 Technology Ltd.",
+  "email": "privacy@id5.io",
+  "webform": null,
+  "web": "https://id5.io/",
+  "postal_address": "15 Bishopsgate\nLondon\nEC2N 3AR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "idaia-group",
+  "name": "IDAIA",
+  "email": "dpo@cartegie.com",
+  "webform": null,
+  "web": "https://www.idaia.group/",
+  "postal_address": "3 Rue Christian Franceries\nParc Chavailles 2\n33520 Bruges\nBelgium",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "idealo",
+  "name": "idealo internet GmbH",
+  "email": "privacy@idealo.de",
+  "webform": null,
+  "web": "https://www.idealo.de/",
+  "postal_address": "Ritterstraße 11\n10969 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "travel"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "weareilluma",
+  "name": "Illuma technology Ltd.",
+  "email": "privacy@weareilluma.com",
+  "webform": null,
+  "web": "https://www.weareilluma.com/",
+  "postal_address": "6–8 Long Lane\nLondon\nEC1A 9HF\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "indexexchange",
+  "name": "Index Exchange, Inc.",
+  "email": "gdpr@legalarmy.net",
+  "webform": null,
+  "web": "https://www.indexexchange.com/",
+  "postal_address": "c/o Legal Army, S.L.\nB88103700\nMaría de Molina, 60 4th\n28006 Madrid\nSpain",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "infonline-de",
+  "name": "INFOnline GmbH",
+  "email": "datenschutz@infonline.de",
+  "webform": null,
+  "web": "https://www.infonline.de/",
+  "postal_address": "c/o Sicoda GmbH\nRochusstraße 198\n53123 Bonn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "infoscore-ch",
+  "name": "infoscore AG",
+  "email": "dataprotection@infoscore.ch",
+  "webform": null,
+  "web": "https://www.infoscoreag.ch/",
+  "postal_address": "Ifangstrasse 8\n8952 Schlieren\nSchweiz",
+  "countries": [
+   "ch"
+  ],
+  "categories": [
+   "collection agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "infoscore",
+  "name": "infoscore Consumer Data GmbH",
+  "email": "ICD-Datenschutz@experian.com",
+  "webform": null,
+  "web": "https://www.experian.de/",
+  "postal_address": "Rheinstraße 99\n76532 Baden-Baden\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ninthdecimal",
+  "name": "InMarket Media, LLC",
+  "email": "privacy@inmarket.com",
+  "webform": null,
+  "web": "https://inmarket.com",
+  "postal_address": "1530 P B Ln #P5446\nWichita Falls, TX 76302-2612\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "inmobi",
+  "name": "InMobi Pte Ltd",
+  "email": "dsr@inmobi.com",
+  "webform": null,
+  "web": "https://www.inmobi.com/",
+  "postal_address": "1 Ebenezer St\nHoxton\nLondon\nEC1V 1NR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "innity",
+  "name": "Innity",
+  "email": "privacy@innity.com",
+  "webform": null,
+  "web": "https://www.innity.com/",
+  "postal_address": "C501&502\nKelana Square 17\nJalan SS7/26\nKelana Jaya\nPetaling Jaya\nSelangor\nMalaysia",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "innovid",
+  "name": "Innovid, Inc.",
+  "email": "privacy@innovid.com",
+  "webform": null,
+  "web": "https://www.innovid.com/",
+  "postal_address": "30 Irving Place\n12th Floor\nNew York\nNY 10003\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "inside-lead",
+  "name": "Inside Lead GmbH",
+  "email": "service@inside-lead.com",
+  "webform": null,
+  "web": "https://www.inside-lead.com",
+  "postal_address": "Hanauer Landstrasse 291 B\n60314 Frankfurt\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "internet-marketing-mallorca",
+  "name": "Internet Marketing Mallorca S.L.",
+  "email": "support@bewertungen-kaufen24.com",
+  "webform": null,
+  "web": null,
+  "postal_address": "Archiepiskopou Makariou III, 61\n6017 Larnaca\nCyprus",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "iqm",
+  "name": "IQM Corporation",
+  "email": "privacy@iqm.com",
+  "webform": null,
+  "web": "https://iqm.com/",
+  "postal_address": "315 W 36th street\n6th floor\nNew York\nNY 10018\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "italiaonline",
+  "name": "Italiaonline S.p.A.",
+  "email": "info@italiaonline.it",
+  "webform": "https://privacy.italiaonline.it/dpo/form-contatto-dpo",
+  "web": "https://www.italiaonline.it/",
+  "postal_address": "Corso Mortara 22\n10149 Torino TO\nItalia",
+  "countries": [
+   "it"
+  ],
+  "categories": [
+   "addresses",
+   "entertainment",
+   "finance",
+   "social media",
+   "telecommunication",
+   "travel"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "jaduda",
+  "name": "Jaduda GmbH",
+  "email": "oba@goldbach.jaduda.com",
+  "webform": null,
+  "web": "https://www.jaduda.com/",
+  "postal_address": "Körtestraße 10\n10967 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "jaksch-partner",
+  "name": "JAKSCH & PARTNER - Jaksch Research GmbH",
+  "email": "datenschutzbeauftragter@jaksch-partner.at",
+  "webform": null,
+  "web": "https://www.jaksch-partner.at/",
+  "postal_address": "Schillerstraße 8\n4020 Linz\nAustria",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kantar-de",
+  "name": "Kantar GmbH",
+  "email": "datenschutz@kantar.com",
+  "webform": null,
+  "web": "https://www.kantar.com/de",
+  "postal_address": "Landsberger Straße 284\n80687 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "karma-response",
+  "name": "KARMA RESPONSE, S.L.",
+  "email": "dpo@karmaresponse.com",
+  "webform": null,
+  "web": "http://karmaresponse.com/",
+  "postal_address": "Carrer Breton de los Herreros 9\n08012 Barcelona\nSpain",
+  "countries": [
+   "it",
+   "es"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kaspr",
+  "name": "KASPR SAS",
+  "email": "privacy@kaspr.io",
+  "webform": null,
+  "web": "https://www.kaspr.io/",
+  "postal_address": "38 Rue Dunois\n75013 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kesselhaus",
+  "name": "kesselhaus GmbH",
+  "email": "Datenschutzbeauftragter@kesselhaus.com",
+  "webform": null,
+  "web": "https://www.kesselhaus.com",
+  "postal_address": "Beim Alten Ausbesserungswerk 4\n77654 Offenburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kidoz",
+  "name": "KIDOZ Ltd.",
+  "email": "dpo@kidoz.net",
+  "webform": null,
+  "web": "https://kidoz.net/",
+  "postal_address": "12 Haomanut Street\nPoleg Industrial Park\nPO BOX 8517\nNetanya\nIsrael",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "knorex",
+  "name": "Knorex",
+  "email": "privacy@knorex.com",
+  "webform": null,
+  "web": "https://www.knorex.com/",
+  "postal_address": "1159 Sonora Court\nSuite 122\nSunnyvale\nCA 94086\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "kupona",
+  "name": "KUPONA GmbH",
+  "email": "datenschutz@kupona.de",
+  "webform": null,
+  "web": "https://www.kupona.de/",
+  "postal_address": "Frankfurter Straße 8\n36043 Fulda\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "leadspot",
+  "name": "Lead Spot Media GmbH",
+  "email": "datenschutz@leadspot.de",
+  "webform": null,
+  "web": "https://www.leadspot.de/",
+  "postal_address": "Uferstraße 41\n55116 Mainz\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveintent",
+  "name": "LiveIntent, Inc.",
+  "email": "privacy@liveintent.com",
+  "webform": null,
+  "web": "https://www.liveintent.com/",
+  "postal_address": "222 Broadway\nFl. 22\nNew York\nNY\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-de",
+  "name": "LiveRamp France SAS",
+  "email": "privacy.de@liveramp.com",
+  "webform": null,
+  "web": "https://liveramp.de/",
+  "postal_address": "25 rue Anatole France\n92300 Levallois-Perret\nFrance",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-es",
+  "name": "LiveRamp France SAS",
+  "email": "privacy.es@liveramp.com",
+  "webform": null,
+  "web": "https://liveramp.es/",
+  "postal_address": "25 rue Anatole France\n92300 Levallois-Perret\nFrance",
+  "countries": [
+   "es"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-fr",
+  "name": "LiveRamp France SAS",
+  "email": "cil@liveramp.com",
+  "webform": null,
+  "web": "https://liveramp.fr/",
+  "postal_address": "25 rue Anatole France\n92300 Levallois-Perret\nFrance",
+  "countries": [
+   "fr"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-it",
+  "name": "LiveRamp France SAS",
+  "email": "privacy.it@liveramp.com",
+  "webform": null,
+  "web": "https://liveramp.it/",
+  "postal_address": "25 rue Anatole France\n92300 Levallois-Perret\nFrance",
+  "countries": [
+   "it"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-nl",
+  "name": "LiveRamp Netherlands B.V.",
+  "email": "privacy.nl@liveramp.com",
+  "webform": null,
+  "web": "https://liveramp.com/",
+  "postal_address": "Reguliersdwarsstraat 108\n1017 BN Amsterdam\nThe Netherlands",
+  "countries": [
+   "nl"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "liveramp-gb",
+  "name": "LiveRamp UK Limited",
+  "email": "ukprivacy@liveramp.com",
+  "webform": "https://liveramp.uk/privacy/your-rights/",
+  "web": "https://liveramp.uk/",
+  "postal_address": "1st Floor, Imperial House\n8 Kean Street\nLondon\nWC2B 4AS\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "lotame",
+  "name": "Lotame Solutions, Inc.",
+  "email": "privacy@lotame.com",
+  "webform": null,
+  "web": "https://www.lotame.com/",
+  "postal_address": "8850 Stanford Blvd\nSuite 4000\nColumbia\nMD 21045\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "lusha",
+  "name": "Lusha Systems Inc.",
+  "email": "Privacy@Lusha.com",
+  "webform": "https://www.lushaprivacy.com/privacy-form/",
+  "web": "https://www.lusha.co/",
+  "postal_address": "1177 Avenue of the Americas\n5th Floor\nNew York NY 10036\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mp-newmedia-com",
+  "name": "M,P,NEWMEDIA, GmbH",
+  "email": "info@mp-newmedia.com",
+  "webform": null,
+  "web": "https://www.mp-newmedia.com",
+  "postal_address": "Hindenburgstraße 45\n71638 Ludwigsburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mailcommerce",
+  "name": "mailcommerce GmbH",
+  "email": "datenschutz@mailcommerce.de",
+  "webform": null,
+  "web": "https://www.mailcommerce.de/",
+  "postal_address": "Schöneberger Straße 15\n10963 Berlin\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "marcapo",
+  "name": "marcapo GmbH",
+  "email": "kontakt@marcapo.com",
+  "webform": null,
+  "web": "https://www.marcapo.com/",
+  "postal_address": "Bahnhofstraße 4\n96106 Ebern\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "marchex",
+  "name": "Marchex, Inc.",
+  "email": "privacy@marchex.com",
+  "webform": null,
+  "web": "https://www.marchex.com/",
+  "postal_address": "520 Pike Street\nSuite 2000\nSeattle\nWA 98101\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "marketmind",
+  "name": "marketmind GmbH",
+  "email": "datenschutz@marketmind.at",
+  "webform": null,
+  "web": "https://www.marketmind.at",
+  "postal_address": "Porzellangasse 32\n1090 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "marketscan-gb",
+  "name": "Marketscan Ltd.",
+  "email": "info@marketscan.co.uk",
+  "webform": null,
+  "web": "https://www.marketscan.co.uk/terms-privacy/",
+  "postal_address": "8 Duke’s Court\nBognor Road\nChichester\nPO19 8FX\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "marketwing",
+  "name": "marketwing GmbH",
+  "email": "datenschutz@marketwing.de",
+  "webform": null,
+  "web": "https://marketwing.de",
+  "postal_address": "Steinriede 5a\n30827 Garbsen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "meap-de",
+  "name": "meap GmbH",
+  "email": "datenschutz@meap.de",
+  "webform": null,
+  "web": "https://www.meap.de/",
+  "postal_address": "Annenstraße 172\n58453 Witten\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mediainformationsystems",
+  "name": "Media Information Systems Deutschland GmbH",
+  "email": "datenschutz@mismail.de",
+  "webform": null,
+  "web": "https://mediainformationsystems.de",
+  "postal_address": "Fritz-Kneidl-Str. 5a\n82031 Grünwald\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "media-net",
+  "name": "Media.Net Advertising FZ-LLC",
+  "email": "privacy@media.net",
+  "webform": null,
+  "web": "https://www.media.net",
+  "postal_address": "2701 Aurora Tower\nDubai Media City\nDubai 215028\nUnited Arab Emirates",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mediamath",
+  "name": "MediaMath UK Ltd",
+  "email": "privacy@mediamath.com",
+  "webform": null,
+  "web": "https://www.mediamath.com/",
+  "postal_address": "230 Blackfriars Road\nLondon\nSE1 8NW\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mediavine",
+  "name": "Mediavine, Inc.",
+  "email": "privacy@mediavine.com",
+  "webform": null,
+  "web": "https://www.mediavine.com/",
+  "postal_address": "160 W. Camino Real #504\nBoca Raton\nFL 33432\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "meinestadt-de",
+  "name": "meinestadt.de GmbH",
+  "email": "datenschutz@meinestadt.de",
+  "webform": null,
+  "web": "https://www.meinestadt.de",
+  "postal_address": "Waidmarkt 11\n50676 Köln\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "memolife",
+  "name": "memo AG",
+  "email": "datenschutz@memo.de",
+  "webform": null,
+  "web": "https://www.memolife.de",
+  "postal_address": "Am Biotop 6\n97259 Greußenheim\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "merkleinc",
+  "name": "Merkle UK One Ltd",
+  "email": "dpouk@merkleinc.com",
+  "webform": null,
+  "web": "https://www.merkleinc.com",
+  "postal_address": "10 Triton Street\nRegents Place\nLondon\nNW1 3BF\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "myntelligence",
+  "name": "MINT S.p.A",
+  "email": "dpo@mint.ai",
+  "webform": null,
+  "web": "https://www.mint.ai/",
+  "postal_address": "Ripa di Porta Ticinese 113\n20143 Milan\nItaly",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "wearemiq",
+  "name": "MiQ Digital Ltd.",
+  "email": "privacy@miqdigital.com",
+  "webform": null,
+  "web": "https://www.wearemiq.com/",
+  "postal_address": "c/o ePrivacy GmbH\nGrosse Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mmf-ug",
+  "name": "MMF UG",
+  "email": "kontakt@mmf-ug.de",
+  "webform": null,
+  "web": "http://mmf-ug.de",
+  "postal_address": "Hauptstraße 134\n51143 Köln\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "finance"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mobile-de",
+  "name": "mobile.de GmbH",
+  "email": "datenschutz@team.mobile.de",
+  "webform": null,
+  "web": "https://www.mobile.de/",
+  "postal_address": "Albert-Einstein-Ring 2 – 6\n14532 Kleinmachnow\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mintegral",
+  "name": "Mobvista (Guangzhou) Technology Company Limited",
+  "email": "privacy@mintegral.com",
+  "webform": null,
+  "web": "https://www.mintegral.com",
+  "postal_address": "c/o Eurocore B.V.\nHullenbergweg 278\n1101BV Amsterdam\nThe Netherlands",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mygimi",
+  "name": "MyGimi GmbH",
+  "email": "privacy@mygimi.com",
+  "webform": null,
+  "web": "https://www.mygimi.com",
+  "postal_address": "Rödingsmarkt 9\n20459 Hamburg\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "mylife",
+  "name": "MyLife.com, Inc.",
+  "email": "privacy@mylife.com",
+  "webform": null,
+  "web": "https://www.mylife.com/",
+  "postal_address": "907 Westwood Blvd. (#359)\nLos Angeles\nCA 90024-2905\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "meapp",
+  "name": "N.F.O software development Ltd.",
+  "email": "help@me.app",
+  "webform": null,
+  "web": "https://me.app/",
+  "postal_address": "4 Arba Imaot St.\nAshdod 7773504\nIsrael",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nanointeractive",
+  "name": "Nano Interactive GmbH",
+  "email": "privacy@nanointeractive.com",
+  "webform": null,
+  "web": "https://www.nanointeractive.com/",
+  "postal_address": "Lindwurmstr. 27\n80337 München\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nativo",
+  "name": "Nativo, Inc.",
+  "email": "privacy@nativo.com",
+  "webform": "https://submit-irm.trustarc.com/services/validation/e1b081d3-40df-4137-add0-7e34cf4d13b2",
+  "web": "https://www.nativo.com/",
+  "postal_address": "222 Pacific Coast Highway\n10th Floor\nEl Segundo, CA 90245\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ncaudienceexchange",
+  "name": "NC Audience Exchange, LLC",
+  "email": "privacypolicy@newscorp.com",
+  "webform": null,
+  "web": "http://www.ncaudienceexchange.com/about/",
+  "postal_address": "1211 Avenue of the Americas\nNew York\nNY 10036\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "neodatagroup",
+  "name": "Neodata Group S.r.l.",
+  "email": "dpo@neodatagroup.com",
+  "webform": null,
+  "web": "https://www.neodatagroup.com",
+  "postal_address": "Viale XX Settembre, 21\n95128 Catania\nItaly",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "neory",
+  "name": "NEORY GmbH",
+  "email": "privacy@neory.com",
+  "webform": null,
+  "web": "https://www.neory.com/",
+  "postal_address": "Brandschachtstraße 2\n44149 Dortmund\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "netgemacht-event",
+  "name": "NETgemacht EVENT UG (haftungsbeschränkt)",
+  "email": "tiger@os-golfcup.de",
+  "webform": null,
+  "web": null,
+  "postal_address": "Kölner Weg 4\n50670 Köln\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "netzpiloten",
+  "name": "Netzpiloten AG",
+  "email": "datenschutz@netzpiloten.com",
+  "webform": null,
+  "web": "https://www.netzpiloten.com",
+  "postal_address": "Sternstraße 106\n20357 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "neustar",
+  "name": "Neustar, Inc.",
+  "email": "privacy@team.neustar",
+  "webform": null,
+  "web": "https://www.home.neustar/",
+  "postal_address": "c/o Neustar (UK) Ltd./MarketShare Partners EMEA Ltd.\n21 Palmer Street\nLondon\nSW1H 0AD\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "credit agency",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nexiga",
+  "name": "Nexiga GmbH",
+  "email": "datenschutzbeauftragter@nexiga.com",
+  "webform": null,
+  "web": "https://www.nexiga.com",
+  "postal_address": "Mozartstraße 4 – 10\n53115 Bonn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nexstardigital",
+  "name": "Nexstar Media Inc.",
+  "email": "PrivacyAdministrator@nexstar.tv",
+  "webform": null,
+  "web": "https://www.nexstar.tv",
+  "postal_address": "545 E. John Carpenter Freeway\nSuite 700\nIrving\nTX 75062\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "next14",
+  "name": "Next14 S.r.l.",
+  "email": "dpo@next14.com",
+  "webform": null,
+  "web": "https://next14.com",
+  "postal_address": "Via Tortona n. 37\n20144 Milano\nItaly",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adroll",
+  "name": "NextRoll Limited",
+  "email": "support@nextroll.com",
+  "webform": "https://nextroll-privacy.relyance.ai/",
+  "web": "https://www.adroll.com/",
+  "postal_address": "Floor 3, Block 3\nMiesian Plaza\nDublin 2\nD02 Y754\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nextroll",
+  "name": "NextRoll Limited",
+  "email": "dpo@nextroll.com",
+  "webform": null,
+  "web": "https://www.nextroll.com/",
+  "postal_address": "Level 6\n1, Burlington Plaza\nBurlington Road\nDublin 4\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nhi2",
+  "name": "nhi² AG Interviews International",
+  "email": "ds-beauftragter@nhi2.de",
+  "webform": null,
+  "web": "https://www.nhi2.de/",
+  "postal_address": "Am Metternicher Hof 15\n53111 Bonn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "nielsen",
+  "name": "Nielsen",
+  "email": "privacy.department@nielsen.com",
+  "webform": null,
+  "web": "https://www.nielsen.com",
+  "postal_address": "14 Riverwalk, National Digital Park\nCitywest Business Campus\nDublin 24\nD24 XN32\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "omnicommediagroup",
+  "name": "Omnicom Media Group",
+  "email": "privacy@omnicommediagroup.com",
+  "webform": null,
+  "web": "https://www.omnicommediagroup.com/",
+  "postal_address": "10 Regents Wharf\nLondon\nN1 9RL\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "adagio",
+  "name": "Onfocus SAS",
+  "email": "dpo@adagio.io",
+  "webform": null,
+  "web": "https://adagio.io",
+  "postal_address": "450 Rue Baden Powell\n34000 Montpellier\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "spot-im",
+  "name": "Open Web Technologies Ltd.",
+  "email": "privacy@openweb.com",
+  "webform": null,
+  "web": "https://www.openweb.com",
+  "postal_address": "c/o AdYouLike SASU\n145 avenue Charles de Gaulle (Bâtiment DESKEO)\n92200 Neuilly-sur-Seine\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "openx",
+  "name": "OpenX Software Ltd.",
+  "email": "privacy@openx.com",
+  "webform": null,
+  "web": "https://www.openx.com/",
+  "postal_address": "Aleja 29 Listopada 20\n31-401 Krakow\nPoland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "optilyz",
+  "name": "optilyz GmbH",
+  "email": "datenschutz@optilyz.com",
+  "webform": null,
+  "web": "https://optilyz.com/de/",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "oracle",
+  "name": "Oracle Corporation",
+  "email": null,
+  "webform": "https://www.oracle.com/legal/data-privacy-inquiry-form.html",
+  "web": "https://www.oracle.com",
+  "postal_address": "Hauptstraße 4\n85579 Neubiberg / München\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "travel"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "outbrain",
+  "name": "Outbrain UK Limited",
+  "email": "ob-privacy@tead.com",
+  "webform": null,
+  "web": "https://www.outbrain.com/",
+  "postal_address": "First Floor\nCraven House\n121 Kingsway\nLondon\nWC2B 6PA\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "padsquad",
+  "name": "PadSquad, LLC",
+  "email": "privacy@padsquad.com",
+  "webform": null,
+  "web": "https://padsquad.com/",
+  "postal_address": "350 Seventh Avenue\nSuite #406\nNew York, NY 10001\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "panadress",
+  "name": "panadress marketing intelligence GmbH",
+  "email": "datenschutz@panadress.de",
+  "webform": null,
+  "web": "http://www.panadress.de",
+  "postal_address": "Nymphenburger Straße 14\n80335 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "payback",
+  "name": "PAYBACK GmbH",
+  "email": "datenschutz@payback.de",
+  "webform": "https://www.payback.de/info/mein-payback/kontakt",
+  "web": "https://www.payback.de",
+  "postal_address": "Theresienhöhe 12\n80339 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "finance"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "performancelead-de",
+  "name": "Performance Lead GmbH",
+  "email": "datenschutz@performancelead.de",
+  "webform": null,
+  "web": "https://www.performancelead.de/",
+  "postal_address": "Hauptstrasse 223\n65760 Eschborn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "performance-profis-de",
+  "name": "Performance Profis Marketing GmbH",
+  "email": "datenschutz@performance-profis.de",
+  "webform": null,
+  "web": "https://www.performance-profis.de/",
+  "postal_address": "Pfaffenweg 15\n53227 Bonn\nDeutschland",
+  "countries": [
+   "at",
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "undertone",
+  "name": "Perion Network Ltd.",
+  "email": "privacy@perion.com",
+  "webform": null,
+  "web": "https://perion.com/",
+  "postal_address": "c/o Rickert Rechtsanwaltsgesellschaft mbH\nColmantstraße 15\n53115 Bonn\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "permodo",
+  "name": "PERMODO GmbH",
+  "email": "privacy@permodo.com",
+  "webform": null,
+  "web": "https://permodo.com",
+  "postal_address": "Derendorfer Allee 6c\n40476 Düsseldorf\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "pixelprose",
+  "name": "PixelProse SARL",
+  "email": "privacy@pixelprose.fr",
+  "webform": null,
+  "web": null,
+  "postal_address": "466 route de Ferrières\n74350 Cuvat\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "planet49",
+  "name": "Planet49 GmbH",
+  "email": "privacy@planet49.com",
+  "webform": null,
+  "web": "https://www.planet49.com",
+  "postal_address": "c/o Talk2 GmbH\nRheinstrasse 22\n64283 Darmstadt\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "platform161",
+  "name": "Platform161",
+  "email": "privacy@platform161.com",
+  "webform": null,
+  "web": "https://platform161.com/",
+  "postal_address": "Johan Huizingalaan 763a\n4th floor\n1066 VH Amsterdam\nThe Netherlands",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "printpeter",
+  "name": "PlusPeter GmbH",
+  "email": "datenschutz@charly.education",
+  "webform": null,
+  "web": "https://www.charly.education",
+  "postal_address": "Chausseestraße 84\n10115 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "audigent",
+  "name": "Predictive Pop Inc.",
+  "email": "privacy@audigent.com",
+  "webform": "https://privacy-center.audigent.com/",
+  "web": "https://audigent.com/",
+  "postal_address": "200 Varick St.\nSuite 514\nNew York, NY 10014\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "publicismedia",
+  "name": "Publicis Media GmbH",
+  "email": "privacy@publicismedia.de",
+  "webform": null,
+  "web": "https://www.publicismedia.de/",
+  "postal_address": "Toulouser Allee 3\n40211 Düsseldorf\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "pubmatic",
+  "name": "PubMatic GmbH",
+  "email": "privacy@pubmatic.com",
+  "webform": null,
+  "web": "https://pubmatic.com",
+  "postal_address": "Barbara Strozzilaan 101\n1083 HN Amsterdam\nThe Netherlands",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "pulsepoint",
+  "name": "PulsePoint, Inc.",
+  "email": "privacy@pulsepoint.com",
+  "webform": null,
+  "web": "https://www.pulsepoint.com/",
+  "postal_address": "360 Madison Avenue\n14th Floor\nNew York\nNY 10017\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "purovivo",
+  "name": "PuroVivo",
+  "email": "info@purovivo.de",
+  "webform": null,
+  "web": "https://www.purovivo.de/",
+  "postal_address": "Rudolstädter Straße 39\n07745 Jena\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "pxn-digital",
+  "name": "PXN GmbH",
+  "email": "datenschutz@pxn-digital.de",
+  "webform": null,
+  "web": "https://pxn-digital.de/",
+  "postal_address": "Leutragraben 1\n07743 Jena\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "q-division",
+  "name": "Q division GmbH",
+  "email": "datenschutz@q-division.de",
+  "webform": null,
+  "web": "https://q-division.de/",
+  "postal_address": "Walther-von-Cronberg-Platz 13\n60594 Frankfurt am Main\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "quadress",
+  "name": "QUADRESS GmbH",
+  "email": "dsb.quadress@zb-datenschutz.de",
+  "webform": null,
+  "web": "http://www.quadress.de/",
+  "postal_address": "Josef-Haumann-Str. 7a\n44866 Bochum\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "quantcast",
+  "name": "Quantcast International Ltd.",
+  "email": "privacy.qil@quantcast.com",
+  "webform": "https://www.quantcast.com/privacy/data-subject-rights/",
+  "web": "https://www.quantcast.com",
+  "postal_address": "Beaux Lane House\nLower Mercer Street\n1st Floor\nDublin 2\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "quantyoo",
+  "name": "quantyoo",
+  "email": "privacy@quantyoo.de",
+  "webform": null,
+  "web": "https://quantyoo.de",
+  "postal_address": "c/o IITR Datenschutz GmbH\nMarienplatz 2\n80331 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "quentn",
+  "name": "Quentn.com GmbH",
+  "email": "datenschutz@quentn.com",
+  "webform": null,
+  "web": "https://quentn.com/datenschutz",
+  "postal_address": "Friedrich-Ebert-Straße 51\n14469 Potsdam\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rakutenmarketing",
+  "name": "Rakuten Marketing Europe Ltd.",
+  "email": "rm-privacy@mail.rakuten.com",
+  "webform": null,
+  "web": "https://rakutenmarketing.com/",
+  "postal_address": "71 Queen Victoria Street\n7th Floor\nLondon\nEC4V 4AY\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "ranger-marketing-vertriebs-gmbh",
+  "name": "Ranger Marketing & Vertriebs GmbH",
+  "email": "datenschutz@ranger.de",
+  "webform": null,
+  "web": "https://www.ranger.de/",
+  "postal_address": "Parsevalstraße 11\n40468 Düsseldorf\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rb-information-services",
+  "name": "RB Information Services",
+  "email": "contact@rbinformationservices.de",
+  "webform": null,
+  "web": "https://rbinformationservices.de",
+  "postal_address": "Wiener Straße 79\n60599 Frankfurt am Main\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "isic-de",
+  "name": "rds Reisedienst Deutscher Studentenschaften GmbH",
+  "email": "datenschutz@isic.de",
+  "webform": null,
+  "web": "https://www.isic.de/",
+  "postal_address": "Grindelallee 41\n20146 Hamburg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "regis24",
+  "name": "Regis24 GmbH",
+  "email": "datenschutz@regis24.de",
+  "webform": "https://selbstauskunft.regis24.com/",
+  "web": "https://www.regis24.de",
+  "postal_address": "Alte Rhinstr. 16\n12681 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "tested",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "resonate-com",
+  "name": "Resonate Networks, Inc.",
+  "email": "info@resonate.com",
+  "webform": null,
+  "web": "https://www.resonate.com/",
+  "postal_address": "11720 Plaza America Drive\n3rd Floor\nReston\nVA 20190\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "revcontent",
+  "name": "Revcontent, LLC",
+  "email": "dpo@revcontent.com",
+  "webform": null,
+  "web": "https://www.revcontent.com/",
+  "postal_address": "1689 2nd Street\nSarasota FL 34236\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "revealmobile",
+  "name": "Reveal Mobile, Inc.",
+  "email": "optout@revealmobile.com",
+  "webform": null,
+  "web": "https://revealmobile.com/",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rhythmone",
+  "name": "RhythmOne, LLC.",
+  "email": "privacy@tremorinternational.com",
+  "webform": null,
+  "web": "https://www.rhythmone.com/",
+  "postal_address": "1177 Avenue of the Americas\n9th Floor\nNew York, NY 10036\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "arvato-infoscore",
+  "name": "Riverty Group GmbH",
+  "email": "dataprotection@riverty.com",
+  "webform": null,
+  "web": "https://www.riverty.com/de/",
+  "postal_address": "Rheinstraße 99\n76532 Baden-Baden\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "collection agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "infoscore-at",
+  "name": "Riverty Services Austria GmbH",
+  "email": "datenschutz.at@riverty.com",
+  "webform": null,
+  "web": "https://at.flow.riverty.com/",
+  "postal_address": "Karl-Popper-Straße 2/Top 6\n1100 Wien\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "collection agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "infoscore-forderungsmanagement",
+  "name": "Riverty Services GmbH",
+  "email": "datenschutzbeauftragter@riverty.com",
+  "webform": null,
+  "web": "https://de.flow.riverty.com/de-de",
+  "postal_address": "Gütersloher Straße 123\n33415 Verl\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "collection agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "scoota",
+  "name": "Rockabox Media Ltd.",
+  "email": "info@scoota.com",
+  "webform": null,
+  "web": "https://scoota.com",
+  "postal_address": "West Wing\nSeventh Floor\n52 Grosvenor Gardens\nLondon\nSW1W 0AU\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rockerbox",
+  "name": "Rockerbox, Inc.",
+  "email": "privacy@rockerbox.com",
+  "webform": null,
+  "web": "https://www.rockerbox.com/",
+  "postal_address": "138 Mulberry Street\n#6A3\nNew York\nNY 10013 - 0645\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rocketreach",
+  "name": "RocketReach",
+  "email": "article27@verasafe.com",
+  "webform": null,
+  "web": "https://rocketreach.co",
+  "postal_address": "144 N 7th St\nPO #421\nBrooklyn, NY 11211\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "roq-ad",
+  "name": "Roq.ad GmbH",
+  "email": "privacy@roq.ad",
+  "webform": null,
+  "web": "https://www.roq.ad/",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sales-rocks-bv",
+  "name": "Sales.Rocks BV",
+  "email": "datasubjectrequest@sales.rocks",
+  "webform": null,
+  "web": "https://sales.rocks/",
+  "postal_address": "Halfrond 41\n3071 PP Rotterdam, Zuid-Holland\nThe Netherlands",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "saz",
+  "name": "SAZ Services AG",
+  "email": "datenschutz.ch@saz.com",
+  "webform": "https://www.saz.com/de/datenschutz",
+  "web": "https://www.saz.com/de",
+  "postal_address": "Davidstrasse 38\n9000 St. Gallen\nSchweiz",
+  "countries": [
+   "at",
+   "ch",
+   "de"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "schufa",
+  "name": "SCHUFA Holding AG",
+  "email": "datenschutz@schufa.de",
+  "webform": null,
+  "web": "https://www.schufa.de",
+  "postal_address": "Kormoranweg 5\n65201 Wiesbaden\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "scondoo",
+  "name": "scondoo GmbH",
+  "email": "datenschutzbeauftragter@datenschutzexperte.de",
+  "webform": null,
+  "web": "https://scondoo.de/",
+  "postal_address": "Friedrichstraße 153a\n10117 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "semasio",
+  "name": "Semasio GmbH",
+  "email": "privacy@semasio.com",
+  "webform": null,
+  "web": "https://www.semasio.com/",
+  "postal_address": "c/o WeWork\nHermannstraße 13\n20095 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sevenonemedia",
+  "name": "SevenOne Media GmbH",
+  "email": "mysevenone@sevenonemedia.de",
+  "webform": null,
+  "web": "https://www.sevenonemedia.com/",
+  "postal_address": "Medienallee 4\n85774 Unterföhring\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sharethis",
+  "name": "ShareThis, Inc.",
+  "email": "dpo@sharethis.com",
+  "webform": null,
+  "web": "https://www.sharethis.com/",
+  "postal_address": "4005 Miranda Avenue\nSuite 100\nPalo Alto\nCA 94304-1227\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sharethrough",
+  "name": "Sharethrough Inc.",
+  "email": "dpo@sharethrough.com",
+  "webform": null,
+  "web": "https://www.sharethrough.com/",
+  "postal_address": "c/o Legal Army\nC. de la Princesa, 31\nMoncloa – Aravaca\n28008 Madrid\nSpain",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "shoop",
+  "name": "Shoop Germany GmbH",
+  "email": "datenschutz@shoop.de",
+  "webform": null,
+  "web": "https://www.shoop.de/",
+  "postal_address": "Greifswalder Straße 212\n10405 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "similarweb",
+  "name": "SimilarWeb Ltd.",
+  "email": "dpo@similarweb.com",
+  "webform": null,
+  "web": "https://www.similarweb.com/",
+  "postal_address": "Bentima House\nSeventh Floor\n168–172 Old St\nLondon\nEC1V 9BP\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "simplicity-marketing",
+  "name": "Simplicity Marketing Ltd",
+  "email": "privacy@flashtalking.com",
+  "webform": null,
+  "web": "https://www.flashtalking.com/",
+  "postal_address": "20 Rathbone Place\nFloor 5\nLondon\nW1T 1HY\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "flashtalking",
+  "name": "Simplicity Marketing Ltd.",
+  "email": "privacy@flashtalking.com",
+  "webform": null,
+  "web": "http://www.flashtalking.com/",
+  "postal_address": "Suite 1\n3rd Floor\n11–12 St. James's Square\nLondon\nSW1Y 4LB\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "simpli-fi",
+  "name": "Simplifi Europe IVS",
+  "email": "privacy@simpli.fi",
+  "webform": null,
+  "web": "https://simpli.fi/",
+  "postal_address": "Ellingevej 17\n5550 Langeskov\nDenmark",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "skimlinks",
+  "name": "Skimbit Ltd t/a Skimlinks",
+  "email": "dpo@skimlinks.com",
+  "webform": null,
+  "web": "https://skimlinks.com/",
+  "postal_address": "2nd Floor\n52 Bevenden Street\nLondon\nN1 6BL\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "skyhire",
+  "name": "SkyHire GmbH",
+  "email": "datenschutz@skyhire.de",
+  "webform": null,
+  "web": "https://skyhire.de",
+  "postal_address": "Am Brüll 17\n40878 Ratingen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sls-data",
+  "name": "SLS Data",
+  "email": "dpo@sls-data.com",
+  "webform": null,
+  "web": "https://www.sls-data.com",
+  "postal_address": "12 rue Vivienne\n75002 Paris\nFrance",
+  "countries": [
+   "fr"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "smartadserver",
+  "name": "Smart AdServer SAS",
+  "email": "privacy@smartadserver.com",
+  "webform": null,
+  "web": "https://smartadserver.com/",
+  "postal_address": "66 rue de la Chaussée d’Antin\n75009 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "smartclip",
+  "name": "smartclip Europe GmbH",
+  "email": "privacy@smartclip.tv",
+  "webform": null,
+  "web": "http://www.smartclip.com/",
+  "postal_address": "Überseeallee 10\n20457 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "agentur-smash",
+  "name": "Smash Online GmbH",
+  "email": "mail@agentur-smash.de",
+  "webform": null,
+  "web": "https://agentur-smash.de/",
+  "postal_address": "Landsberger Straße 302\n80687 München\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sojern",
+  "name": "Sojern, Inc.",
+  "email": "sojernprivacy@sojern.com",
+  "webform": null,
+  "web": "https://www.sojern.com/",
+  "postal_address": "255 California Street\nSuite 1000\nSan Francisco\nCA 94111\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sovendus-se",
+  "name": "Sovendus AB",
+  "email": "data-protection@sovendus.com",
+  "webform": null,
+  "web": "https://sovendus.com/se/",
+  "postal_address": "Kungsgatan 37\n111 56 Stockholm\nSweden",
+  "countries": [
+   "se"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sovendus",
+  "name": "Sovendus GmbH",
+  "email": "data-protection@sovendus.com",
+  "webform": null,
+  "web": "https://www.sovendus.com",
+  "postal_address": "Hermann-Veit-Str. 6\n76135 Karlsruhe\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sovrn",
+  "name": "Sovrn Holdings, Inc.",
+  "email": "privacy@sovrn.com",
+  "webform": null,
+  "web": "https://www.sovrn.com/",
+  "postal_address": "4th Floor Newland House\n40 Berners Street\nFitzrovia, London\nW1T 3NA\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "spezi-haus-de",
+  "name": "Spezialitäten-Haus G. Schulteis GmbH",
+  "email": "info@spezi-haus.de",
+  "webform": null,
+  "web": "https://www.spezi-haus.de",
+  "postal_address": "Bachstraße 22\n52066 Aachen\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "sport1",
+  "name": "SPORT1 GmbH",
+  "email": "datenschutz@sport1.de",
+  "webform": null,
+  "web": "https://www.sport1.de",
+  "postal_address": "Münchener Straße 101 g\n85737 Ismaning\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads",
+   "entertainment",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "start-io",
+  "name": "Start.io Inc.",
+  "email": "privacy@start.io",
+  "webform": null,
+  "web": "https://www.start.io/",
+  "postal_address": "584 Broadway\nNew York NY 10012\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "stellar-performance",
+  "name": "Stellar Performance Marketing GmbH",
+  "email": "datenschutz@stellar-performance.de",
+  "webform": null,
+  "web": "http://stellar-performance.de",
+  "postal_address": "Kurfürstenstraße 1\n34117 Kassel\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "stroeer-digital-publishing",
+  "name": "Ströer Digital Publishing GmbH",
+  "email": "sdp-datenschutz@stroeer.de",
+  "webform": null,
+  "web": "https://www.t-online.de",
+  "postal_address": "Ströer-Allee 1\n50999 Köln\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "entertainment",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "stroeer-x",
+  "name": "Ströer X GmbH",
+  "email": "datenschutz@stroeer-x.de",
+  "webform": null,
+  "web": "https://www.stroeer-x.de",
+  "postal_address": "Georgiring 3\n04103 Leipzig\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "supersonic-com",
+  "name": "SUPERSONIC STUDIOS Ltd.",
+  "email": "dpo@ironsrc.com",
+  "webform": null,
+  "web": "https://supersonic.com/",
+  "postal_address": "121 Menachem Begin Rd.\nTel Aviv\nIsrael",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "supreme-me",
+  "name": "Supreme Media AG",
+  "email": "datenschutz@supreme.me",
+  "webform": null,
+  "web": "https://supreme.me",
+  "postal_address": "Steigstrasse 16a\n9444 Diepoldsau\nSchweiz",
+  "countries": [
+   "de",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "taboola",
+  "name": "Taboola, Inc.",
+  "email": "privacy@taboola.com",
+  "webform": null,
+  "web": "https://www.taboola.com/",
+  "postal_address": "1115 Broadway\n7th Floor\nNew York\nNY 10010\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "firmenhai",
+  "name": "Talenthai e.U.",
+  "email": "office@firmenhai.at",
+  "webform": null,
+  "web": "https://firmenhai.at",
+  "postal_address": "Softwarepark 21 / 1 / 2.1\nA – 4232 Hagenberg im Mühlkreis\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "tapjoy",
+  "name": "Tapjoy Ltd.",
+  "email": "privacy@tapjoy.com",
+  "webform": "https://www.tapjoy.com/dataprivacyrequests/",
+  "web": "https://www.tapjoy.com/",
+  "postal_address": "International Buildings\n5th floor\n71 Kingsway\nLondon\nWC2B 6ST\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "target-team-europe",
+  "name": "TARGET TEAM EUROPE S.L.",
+  "email": "service@target-team-europe.com",
+  "webform": null,
+  "web": "http://www.target-team-europe.com",
+  "postal_address": "Madrazo 27, 1a Planta\n08006 Barcelona\nSpain",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "taz-de",
+  "name": "taz Verlags u. Vertriebs GmbH",
+  "email": "datenschutz@taz.de",
+  "webform": null,
+  "web": "https://taz.de",
+  "postal_address": "Friedrichstr. 21\n10969 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "teads",
+  "name": "Teads France SA",
+  "email": "dpo@teads.com",
+  "webform": "https://user-privacy.teads.tv",
+  "web": "https://www.teads.com",
+  "postal_address": "97 rue du Cherche midi\n75006 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "telaria",
+  "name": "Telaria, Inc.",
+  "email": "privacy@telaria.com",
+  "webform": null,
+  "web": "https://telaria.com/",
+  "postal_address": "222 Broadway\nNew York\nNY 10038\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "temelio",
+  "name": "Temelio S.A.S",
+  "email": "dpo@temelio.com",
+  "webform": null,
+  "web": "https://www.temelio.com/",
+  "postal_address": "2 rue de Lisbonne\n75008 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "rubiconproject",
+  "name": "The Rubicon Project Ltd.",
+  "email": "privacy@rubiconproject.com",
+  "webform": null,
+  "web": "https://rubiconproject.com/",
+  "postal_address": "Walmar House\n5th Floor\n296 Regent St.\nLondon\nW1B 3HR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "thetradedesk",
+  "name": "The UK Trade Desk Ltd.",
+  "email": "dpo@thetradedesk.com",
+  "webform": "https://privacyportal-eu.onetrust.com/webform/2abc1a63-35c5-4ef7-b11b-1c55714738b5/61b81601-fe65-4dfe-a922-e1c5a68fa8cb",
+  "web": "https://www.thetradedesk.com/",
+  "postal_address": "10th Floor\n1 Bartholomew Close\nLondon\nEC1A 7BL\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "toleadoo",
+  "name": "toleadoo GmbH",
+  "email": "info@de.toleadoo.com",
+  "webform": null,
+  "web": "https://www.toleadoo.com",
+  "postal_address": "Am Unisys-Park 1\n65843 Sulzbach/Ts.\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "tradedoubler",
+  "name": "Tradedoubler AB",
+  "email": "privacy@tradedoubler.com",
+  "webform": null,
+  "web": "https://www.tradedoubler.com",
+  "postal_address": "Birger Jarlsgatan 57A\n113 56 Stockholm\nSweden",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "traffego",
+  "name": "Traffego GmbH",
+  "email": "datenschutz@traffego.de",
+  "webform": null,
+  "web": "https://www.traffego.de",
+  "postal_address": "Carl-Zeiss-Straße 3\n64331 Weiterstadt\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "appreciate-mobi",
+  "name": "Triapodi Ltd.",
+  "email": "privacy@appreciate.mobi",
+  "webform": null,
+  "web": "https://appreciate.mobi/",
+  "postal_address": "3 Hasadnaot Street\n4672830 Herzliya\nIsrael",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "triplelift",
+  "name": "TripleLift UK Limited",
+  "email": "platformprivacy@triplelift.com",
+  "webform": null,
+  "web": "https://triplelift.com/",
+  "postal_address": "48 Charlotte Street\n2nd Floor\nFitzrovia, London\nW1T 2NS\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "trulioo-information-services-inc",
+  "name": "Trulioo (Ireland) Limited",
+  "email": "privacy@trulioo.com",
+  "webform": null,
+  "web": "https://www.trulioo.com/",
+  "postal_address": "Scotch House\n3rd Floor, 6-7 Burgh Quay\nDublin D02 VK44\nIreland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "trusted-traffic",
+  "name": "TT Online Marketing GmbH",
+  "email": "datenschutz@trusted-traffic.de",
+  "webform": null,
+  "web": "http://www.trusted-traffic.de",
+  "postal_address": "Josef-Göres-Platz 2\n56068 Koblenz\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "taeglich-angebote",
+  "name": "Täglich Angebote UG (haftungsbeschränkt)",
+  "email": null,
+  "webform": "https://taeglich-angebote.de/kontakt.html",
+  "web": "https://taeglich-angebote.de/",
+  "postal_address": "Talstraße 27\n41751 Viersen\nDeutschland",
+  "countries": [
+   "de",
+   "at",
+   "ch"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "uniserv",
+  "name": "Uniserv GmbH",
+  "email": "datenschutz@uniserv.com",
+  "webform": null,
+  "web": "https://www.uniserv.com",
+  "postal_address": "Rastatter Straße 13\n75179 Pforzheim\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "united-internet-media",
+  "name": "United Internet Media GmbH",
+  "email": "datenschutz@united-internet-media.de",
+  "webform": null,
+  "web": "https://www.united-internet-media.de",
+  "postal_address": "Elgendorfer Straße 57\n56410 Montabaur\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "joe-club-at",
+  "name": "Unser Ö-Bonus Club GmbH",
+  "email": "datenschutz@joe-club.at",
+  "webform": null,
+  "web": "https://www.joe-club.at/",
+  "postal_address": "IZ NÖ-Süd Straße 3, Objekt 16\n2355 Wiener Neudorf\nÖsterreich",
+  "countries": [
+   "at"
+  ],
+  "categories": [
+   "ads",
+   "commerce"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "useartemis",
+  "name": "useArtemis",
+  "email": "hello@useartemis.co",
+  "webform": null,
+  "web": "https://useartemis.co/",
+  "postal_address": "26 Chem. de Chalin\n69130 Écully\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "utiq",
+  "name": "Utiq SA/NV",
+  "email": "privacy@utiq.com",
+  "webform": null,
+  "web": "https://utiq.com",
+  "postal_address": "Rue aux Laines 70\n1000 Brussels\nBelgium",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "valassisdigital",
+  "name": "Valassis Digital Corp.",
+  "email": "privacyrequests@valassis.com",
+  "webform": null,
+  "web": "https://valassis.com/",
+  "postal_address": "35 East 62nd Street\n6th Floor\nNew York, NY 10065\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "varickmm",
+  "name": "Varick",
+  "email": "info@varickmm.com",
+  "webform": null,
+  "web": "https://varickmm.com/",
+  "postal_address": "711 3rd Ave\n2nd Floor\nNew York\nNY 10017\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "venntel",
+  "name": "Venntel, Inc.",
+  "email": "privacy@venntel.com",
+  "webform": null,
+  "web": "https://www.venntel.com/",
+  "postal_address": "2201 Cooperative Way\nSuite 600\nHerndon, VA 20171\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "verivox",
+  "name": "Verivox GmbH",
+  "email": "datenschutz@verivox.de",
+  "webform": null,
+  "web": "https://www.verivox.de/",
+  "postal_address": "Max-Jarecki-Straße 21\n69115 Heidelberg\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "finance",
+   "insurance",
+   "telecommunication"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "madsack",
+  "name": "Verlagsgesellschaft Madsack GmbH & Co. KG",
+  "email": "datenschutz@madsack.de",
+  "webform": null,
+  "web": "https://www.madsack.de",
+  "postal_address": "August-Madsack-Straße 1\n30559 Hannover\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "vibrantmedia",
+  "name": "Vibrant Media, Inc.",
+  "email": "intellitxtsupport@vibrantmedia.com",
+  "webform": null,
+  "web": "https://www.vibrantmedia.com/",
+  "postal_address": "524 Broadway\n9th Floor\nNew York\nNY 10012\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "theadex",
+  "name": "Virtual Minds GmbH",
+  "email": "legal@theadex.com",
+  "webform": null,
+  "web": "https://www.theadex.com/",
+  "postal_address": "Ellen-Gottlieb-Straße 16\n79106 Freiburg im Breisgau\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "visualdna",
+  "name": "VisualDNA",
+  "email": "nmcdata@nielsen.com",
+  "webform": null,
+  "web": "https://www.visualdna.com/",
+  "postal_address": "Nielsen House\nJohn Smith Drive\nOxford\nOX4 2WB\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "vitalox",
+  "name": "vitalox Informationssysteme GmbH",
+  "email": "datenschutz@vitalox.de",
+  "webform": null,
+  "web": "https://www.vitalox.de",
+  "postal_address": "Pfaffenweg 15\n53227 Bonn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "vmg-mbh",
+  "name": "VMG, Vertriebs-Marketing-Gesellschaft mbH",
+  "email": "info@vmg-mbh.de",
+  "webform": null,
+  "web": "https://vmg-mbh.de/",
+  "postal_address": "Niedesheimer Straße 18\n67547 Worms\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "vungle",
+  "name": "Vungle Limited",
+  "email": "privacy@vungle.com",
+  "webform": null,
+  "web": "https://vungle.com/",
+  "postal_address": "4th Floor\nFarringdon Point\n33 Farringdon Road\nLondon\nEC1M 3JF\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "we-conect",
+  "name": "we.CONECT Global Leaders GmbH",
+  "email": "privacy@we-conect.com",
+  "webform": null,
+  "web": "https://www.we-conect.com/de/",
+  "postal_address": "Reichenberger Str. 124\n10999 Berlin\nDeutschland",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads",
+   "commerce",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "weborama",
+  "name": "Weborama",
+  "email": "privacy@weborama.com",
+  "webform": null,
+  "web": "https://weborama.com/",
+  "postal_address": "37 Bd des Capucines\n75002 Paris\nFrance",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "1plus-agency",
+  "name": "Werbeagentur 1Plus Agency GmbH",
+  "email": "info@1plus-agency.com",
+  "webform": null,
+  "web": "https://www.1plus-agency.com/",
+  "postal_address": "O4 4\n68161 Mannheim\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "social media"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "wilmingtonplc",
+  "name": "Wilmington plc",
+  "email": "dataprotection@wilmingtonplc.com",
+  "webform": null,
+  "web": "https://www.wilmingtonplc.com/",
+  "postal_address": "5th Floor\n10 Whitechapel High Street\nLondon\nE1 8QS\nUnited Kingdom",
+  "countries": [
+   "gb"
+  ],
+  "categories": [
+   "addresses",
+   "credit agency"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "windaten",
+  "name": "WINDATEN",
+  "email": "info@win-daten.de",
+  "webform": null,
+  "web": "https://win-daten.de/",
+  "postal_address": "Nelkenstraße 2\n71723 Großbottwar\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "winfuture",
+  "name": "WinFuture.de",
+  "email": "sk@winfuture.de",
+  "webform": null,
+  "web": "https://www.winfuture.de",
+  "postal_address": "Dudenstr. 10\n10965 Berlin\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "wm-beautysystems",
+  "name": "WM BEAUTYSYSTEMS AG & Co. KG",
+  "email": "Datenschutz@wm-beautysystems.com",
+  "webform": null,
+  "web": "https://www.wm-beautysystems.com/",
+  "postal_address": "c/o Cyberdyne IT GmbH\nAm Wassermann 31\n50829 Köln\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads",
+   "entertainment"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "bouncex",
+  "name": "Wunderkind Corporation",
+  "email": "privacyrequests@wunderkind.co",
+  "webform": null,
+  "web": "https://www.wunderkind.co",
+  "postal_address": "c/o ePrivacy Holding GmbH\nGroße Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "groundtruth",
+  "name": "xAd, Inc.",
+  "email": "privacy@groundtruth.com",
+  "webform": null,
+  "web": "https://www.groundtruth.com/",
+  "postal_address": "One World Trade\n60th Floor\nNew York\nNY 10007\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "xaxis-com",
+  "name": "Xaxis, LLC",
+  "email": "privacy@xaxis.com",
+  "webform": null,
+  "web": "https://www.xaxis.com/",
+  "postal_address": "c/o GroupM UK Digital Ltd.\n26 Red Lion Square\nLondon\nWC1R 4HQ\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "yieldmo",
+  "name": "Yieldmo, Inc.",
+  "email": "privacy@yieldmo.com",
+  "webform": null,
+  "web": "https://www.yieldmo.com/",
+  "postal_address": "218 West 18th St.\n2nd Floor\nNew York\nNY 10011\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "yieldr",
+  "name": "Yieldr UK Ltd.",
+  "email": "privacy@yieldr.com",
+  "webform": null,
+  "web": "https://www.yieldr.com/",
+  "postal_address": "1 Fetter Lane\nLondon\nEC4A 1BR\nUnited Kingdom",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "yoc-ag",
+  "name": "YOC AG",
+  "email": "privacy@yoc.com",
+  "webform": null,
+  "web": "https://yoc.com",
+  "postal_address": "Greifswalder Str. 212\n10405 Berlin\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "yourdata-de",
+  "name": "yourdata GmbH",
+  "email": "datenschutz@yourdata.de",
+  "webform": null,
+  "web": "https://www.yourdata.de/",
+  "postal_address": "Büchsenstraße 28\n70174 Stuttgart\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "addresses"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "zarenga",
+  "name": "Zarenga GmbH",
+  "email": "datenschutz@zarenga.de",
+  "webform": null,
+  "web": "https://www.zarenga.com",
+  "postal_address": "Pfaffenweg 15\n53227 Bonn\nDeutschland",
+  "countries": [
+   "de"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "zemanta",
+  "name": "Zemanta, Inc.",
+  "email": "Privacy@outbrain.com",
+  "webform": null,
+  "web": "http://www.zemanta.com/",
+  "postal_address": "111 West 19th Street\n3rd floor\nNew York\nNY 10011\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "zeotap",
+  "name": "zeotap GmbH",
+  "email": "privacy@zeotap.com",
+  "webform": "https://privacyportal-de.onetrust.com/webform/bdcc4a2f-2458-4e17-96c3-cf88f7115dfc/2c5e70e5-643a-4c1e-b9c2-1e71584d04ad",
+  "web": "https://zeotap.com/",
+  "postal_address": "c/o ePrivacy GmbH\nGroße Bleichen 21\n20354 Hamburg\nGermany",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "zetaglobal-com",
+  "name": "Zeta Global Corp.",
+  "email": "privacy@zetaglobal.com",
+  "webform": null,
+  "web": "https://zetaglobal.com",
+  "postal_address": "3 Park Avenue\nNew York\nNY 10016\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ },
+ {
+  "slug": "zoominfo",
+  "name": "Zoom Information, Inc.",
+  "email": "privacy@zoominfo.com",
+  "webform": null,
+  "web": "https://zoominfo.com",
+  "postal_address": "330 W Columbia Way\nFloor 8, Vancouver\nWA 98660\nUnited States of America",
+  "countries": [
+   "all"
+  ],
+  "categories": [
+   "addresses",
+   "ads"
+  ],
+  "needs_id": false,
+  "quality": "verified",
+  "source": "datenanfragen"
+ }
+]

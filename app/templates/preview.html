@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Aperçu{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Aperçu du courrier</h1><p class="muted">Pour {{ p.full_name }} → {{ b.name }} ({{ b.email or b.webform }})</p></div>
+  <div class="actions">
+    <a class="btn {{ 'primary' if language=='fr' }}" href="?broker_id={{ b.id }}&lang=fr">Français</a>
+    <a class="btn {{ 'primary' if language=='en' }}" href="?broker_id={{ b.id }}&lang=en">English</a>
+    <a class="btn" href="/profiles/{{ p.id }}">← Retour</a>
+  </div>
+</div>
+<div class="card">
+  <dl class="kv"><dt>De</dt><dd>{{ p.full_name }} &lt;{{ settings.smtp_from or 'SMTP_FROM non défini' }}&gt;</dd>
+  <dt>À</dt><dd>{{ b.email }}</dd><dt>Objet</dt><dd><strong>{{ subject }}</strong></dd></dl>
+  <pre style="max-height:none;background:var(--panel)">{{ body }}</pre>
+  <p class="small muted">La référence <code>{{ settings.reference_prefix }}-XXXXXX</code> est remplacée par un identifiant unique par courtier ; il sert à rattacher automatiquement les réponses.</p>
+</div>
+{% endblock %}

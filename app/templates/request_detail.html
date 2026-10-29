@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}{{ r.reference }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/profiles/{{ r.profile.id }}">{{ r.profile.full_name }}</a> · <span class="mono">{{ r.reference }}</span> · cycle {{ r.cycle }}</p>
+    <h1>{{ r.broker.name }} {{ badge(r.status) }}</h1>
+  </div>
+</div>
+
+<div class="grid c2">
+  <div>
+    {% if r.status == 'needs_action' %}
+    <div class="banner warn">
+      {% if r.channel == 'webform' and not r.sent_at %}
+        Ce courtier n'accepte les demandes que via son formulaire : <a href="{{ r.broker.webform|url }}" target="_blank" rel="noopener noreferrer">{{ r.broker.webform }}</a>.
+        Une fois rempli, passez la demande en « Envoyée – en attente » pour démarrer le délai d'un mois.
+      {% else %}
+        Le courtier attend une action de votre part (confirmation, formulaire, justificatif…). Lisez sa réponse ci-dessous.
+        Évitez d'envoyer une copie complète de pièce d'identité : si c'est indispensable, masquez photo, numéro et données inutiles.
+      {% endif %}
+    </div>
+    {% elif r.status == 'replied' %}
+    <div class="banner info">Le courtier a répondu. Lisez sa réponse puis indiquez le résultat : terminée, refusée ou action requise.</div>
+    {% elif r.status == 'failed' %}
+    <div class="banner error">{{ r.last_error or "L'envoi a échoué." }}</div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Historique</h2>
+      <ul class="timeline">
+        {% for e in r.events %}
+        <li class="k-{{ e.kind }}">
+          <div class="small muted">{{ e.at|dt }}</div>
+          <div>{{ e.summary }}</div>
+          {% if e.body %}<details {{ 'open' if e.kind == 'reply' and loop.last }}><summary>Afficher le contenu</summary><pre>{{ e.body }}</pre></details>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <form method="post" action="/requests/{{ r.id }}/note" style="margin-top:1rem">
+        <label>Ajouter une note <span class="hint">— ex. réponse reçue par courrier, appel…</span></label>
+        <textarea name="note" rows="2"></textarea>
+        <p style="margin-top:.5rem"><button class="btn sm">Ajouter</button></p>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Mettre à jour</h2>
+      <div class="actions" style="margin-bottom:.75rem">
+        {% for s, lbl in [('completed', '✓ Terminée'), ('needs_action', 'Action requise'), ('refused', 'Refusée'), ('sent', 'En attente')] %}
+          {% if r.status != s %}
+          <form method="post" action="/requests/{{ r.id }}/status" class="inline"><input type="hidden" name="status" value="{{ s }}"><button class="btn sm {{ 'primary' if s == 'completed' }}">{{ lbl }}</button></form>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <form method="post" action="/requests/{{ r.id }}/status">
+        <div class="actions">
+          <select name="status" style="flex:1">{% for k, v in STATUS.items() %}<option value="{{ k }}" {{ 'selected' if k == r.status }}>{{ v }}</option>{% endfor %}</select>
+        </div>
+        <input type="text" name="note" placeholder="Commentaire (facultatif)" style="margin-top:.5rem">
+        <p style="margin-top:.5rem"><button class="btn sm">Appliquer</button></p>
+      </form>
+      {% if r.broker.email and r.sent_at and r.status not in ('completed', 'cancelled') %}
+      <form method="post" action="/requests/{{ r.id }}/send-reminder" style="margin-top:.5rem"><button class="btn sm">Envoyer une relance maintenant</button></form>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Détails</h2>
+      <dl class="kv small">
+        <dt>Contact</dt><dd>{{ r.broker.email or '—' }}</dd>
+        {% if r.broker.webform %}<dt>Formulaire</dt><dd><a href="{{ r.broker.webform|url }}" target="_blank" rel="noopener noreferrer">ouvrir</a></dd>{% endif %}
+        {% if r.broker.web %}<dt>Site</dt><dd><a href="{{ r.broker.web|url }}" target="_blank" rel="noopener noreferrer">{{ r.broker.web }}</a></dd>{% endif %}
+        <dt>Langue</dt><dd>{{ 'français' if r.language == 'fr' else 'anglais' }}</dd>
+        <dt>Envoyée</dt><dd>{{ r.sent_at|dt }}</dd>
+        <dt>Échéance</dt><dd>{{ r.due_at|d }}</dd>
+        <dt>Relances</dt><dd>{{ r.reminder_count }}</dd>
+        <dt>Dernière réponse</dt><dd>{{ r.last_reply_at|dt }}</dd>
+        {% if r.broker.needs_id %}<dt>Note</dt><dd>Ce courtier demande souvent un justificatif d'identité.</dd>{% endif %}
+      </dl>
+    </div>
+
+    {% if complaint %}
+    <div class="card">
+      <h2>Saisir la CNIL</h2>
+      <p class="small muted">Le courtier n'a pas répondu ou a refusé. Vous pouvez déposer une plainte en ligne sur <a href="https://www.cnil.fr/fr/adresser-une-plainte" target="_blank" rel="noopener noreferrer">cnil.fr/fr/adresser-une-plainte</a>. Texte prêt à coller (joignez l'historique ci-contre) :</p>
+      <pre>{{ complaint }}</pre>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

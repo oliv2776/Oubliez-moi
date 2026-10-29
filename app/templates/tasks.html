@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}À traiter{% endblock %}
+{% macro section(title, help, items) %}
+<div class="card">
+  <h2>{{ title }} <span class="muted">({{ items|length }})</span></h2>
+  <p class="small muted">{{ help }}</p>
+  {% if items %}
+  <div class="table-wrap"><table>
+    {% for r in items %}
+    <tr>
+      <td><a href="/requests/{{ r.id }}"><strong>{{ r.broker.name }}</strong></a><div class="small muted">{{ r.profile.full_name }} · <span class="mono">{{ r.reference }}</span></div></td>
+      <td>{{ badge(r.status) }}</td>
+      <td class="small">{% if r.channel == 'webform' and not r.sent_at and r.broker.webform %}<a href="{{ r.broker.webform|url }}" target="_blank" rel="noopener noreferrer">Ouvrir le formulaire ↗</a>{% elif r.last_error %}{{ r.last_error[:120] }}{% else %}{{ r.last_reply_at|d if r.last_reply_at else '' }}{% endif %}</td>
+      <td class="num">
+        <div class="actions" style="justify-content:flex-end">
+        {% if r.channel == 'webform' and not r.sent_at %}
+          <form method="post" action="/requests/{{ r.id }}/status" class="inline"><input type="hidden" name="status" value="sent"><input type="hidden" name="note" value="Formulaire rempli"><button class="btn sm">Formulaire envoyé</button></form>
+        {% endif %}
+        {% if r.status in ('replied', 'needs_action') %}
+          <form method="post" action="/requests/{{ r.id }}/status" class="inline"><input type="hidden" name="status" value="completed"><button class="btn sm primary">Terminée</button></form>
+        {% endif %}
+        <a class="btn sm" href="/requests/{{ r.id }}">Ouvrir</a>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="muted">Rien à faire ici.</p>{% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="page-head"><div><h1>À traiter</h1><p class="muted">Ce que l'automatisation ne peut pas faire seule.</p></div></div>
+{{ section("Réponses à examiner", "Le courtier a répondu mais le message n'a pas pu être classé automatiquement.", replied) }}
+{{ section("Actions requises", "Formulaires en ligne à remplir, confirmations par lien, demandes de justificatif.", needs) }}
+{{ section("Sans réponse ou refusées", "Délai légal dépassé malgré la relance, ou refus : vous pouvez saisir la CNIL (texte prêt dans chaque demande).", overdue) }}
+{{ section("Échecs d'envoi", "Adresse invalide ou erreur SMTP.", failed) }}
+{% endblock %}

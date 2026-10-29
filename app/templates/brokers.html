@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Courtiers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Courtiers en données</h1>
+    <p class="muted">{{ enabled_count }} activés sur {{ total }} · catalogue mis à jour le {{ synced_at|isodt }} · pays ciblés par défaut : {{ settings.broker_countries|join(', ') }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/brokers/new">+ Ajouter</a>
+    <form method="post" action="/brokers/update" class="inline"><button class="btn">Mettre à jour le catalogue</button></form>
+  </div>
+</div>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nom, e-mail, site…">
+  <select name="state">
+    <option value="">Tous</option>
+    <option value="on" {{ 'selected' if state=='on' }}>Activés</option>
+    <option value="off" {{ 'selected' if state=='off' }}>Désactivés</option>
+    <option value="webform" {{ 'selected' if state=='webform' }}>Formulaire uniquement</option>
+    <option value="custom" {{ 'selected' if state=='custom' }}>Ajoutés à la main</option>
+  </select>
+  <select name="country"><option value="">Tous les pays</option>{% for c in countries %}<option value="{{ c }}" {{ 'selected' if country==c }}>{{ 'international' if c=='all' else c|upper }}</option>{% endfor %}</select>
+  <button class="btn">Filtrer</button>
+</form>
+{% if country %}
+<div class="card actions">
+  <span>Pour tous les courtiers « {{ 'international' if country=='all' else country|upper }} » :</span>
+  <form method="post" action="/brokers/bulk" class="inline"><input type="hidden" name="country" value="{{ country }}"><input type="hidden" name="action" value="enable"><button class="btn sm">Tout activer</button></form>
+  <form method="post" action="/brokers/bulk" class="inline"><input type="hidden" name="country" value="{{ country }}"><input type="hidden" name="action" value="disable"><button class="btn sm">Tout désactiver</button></form>
+  <form method="post" action="/brokers/reset-defaults" class="inline"><button class="btn sm link">Rétablir la sélection par défaut</button></form>
+</div>
+{% endif %}
+<div class="card table-wrap">
+<table>
+  <tr><th style="width:52px"></th><th>Courtier</th><th>Contact</th><th class="hide-sm">Pays</th><th class="hide-sm">Type</th><th></th></tr>
+  {% for b in brokers %}
+  <tr>
+    <td><form method="post" action="/brokers/{{ b.id }}/toggle" class="inline"><button class="toggle {{ 'on' if b.enabled }}" title="{{ 'Désactiver' if b.enabled else 'Activer' }}" aria-label="{{ 'Désactiver' if b.enabled else 'Activer' }} {{ b.name }}"></button></form></td>
+    <td><strong>{{ b.name }}</strong>{% if b.web %}<div class="small"><a href="{{ b.web|url }}" target="_blank" rel="noopener noreferrer">{{ b.web.replace('https://','').replace('http://','').rstrip('/') }}</a></div>{% endif %}</td>
+    <td class="small">{% if b.email %}{{ b.email }}{% else %}<a href="{{ b.webform|url }}" target="_blank" rel="noopener noreferrer">formulaire ↗</a>{% endif %}</td>
+    <td class="hide-sm small">{% for c in b.countries %}<span class="tag">{{ 'intl' if c=='all' else c|upper }}</span>{% endfor %}</td>
+    <td class="hide-sm small">{% for c in b.categories %}<span class="tag">{{ {'addresses':'adresses','ads':'publicité','custom':'perso'}.get(c, c) }}</span>{% endfor %}{% if b.needs_id %}<span class="tag" title="Demande souvent un justificatif">ID</span>{% endif %}</td>
+    <td class="num">{% if b.source == 'custom' %}<form method="post" action="/brokers/{{ b.id }}/delete" class="inline"><button class="btn sm link" onclick="return confirm('Supprimer ce courtier et ses demandes ?')">Supprimer</button></form>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="empty">Aucun courtier.</td></tr>
+  {% endfor %}
+</table>
+</div>
+{% endblock %}

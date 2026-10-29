@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, stack with context %}
+{% block title %}{{ p.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ p.full_name }}{% if not p.active %} <span class="tag">en pause</span>{% endif %}</h1>
+    <p class="muted">{{ p.emails|join(' · ') }}{% if p.campaign_started_at %} · demandes lancées le {{ p.campaign_started_at|d }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/profiles/{{ p.id }}/preview">Aperçu du courrier</a>
+    <a class="btn" href="/profiles/{{ p.id }}/edit">Modifier</a>
+    <form method="post" action="/profiles/{{ p.id }}/toggle" class="inline"><button class="btn">{{ 'Mettre en pause' if p.active else 'Reprendre' }}</button></form>
+  </div>
+</div>
+
+{% if pending_new %}
+<div class="card" style="border-color:var(--accent)">
+  <div class="page-head" style="margin:0">
+    <div>
+      <h2 style="margin:0">{% if st.total %}{{ pending_new }} nouveau(x) courtier(s) à contacter{% else %}Prêt à lancer : {{ pending_new }} courtiers{% endif %}</h2>
+      <p class="muted small" style="margin:.25rem 0 0">Une demande d'effacement (art. 17 RGPD) + opposition à la prospection (art. 21) sera envoyée à chacun, à raison de {{ settings.send_per_hour }} par heure.
+      {% if sample_broker %}<a href="/profiles/{{ p.id }}/preview">Relire le courrier</a> avant de lancer.{% endif %}</p>
+    </div>
+    <form method="post" action="/profiles/{{ p.id }}/campaign" class="inline"><button class="btn primary">{{ 'Lancer les demandes' if not st.total else 'Ajouter ces courtiers' }}</button></form>
+  </div>
+</div>
+{% endif %}
+
+{% if st.total %}
+<div class="grid k4" style="margin-bottom:1rem">
+  <div class="kpi accent"><div class="v">{{ st.progress }} %</div><div class="l">terminé ({{ st.completed }}/{{ st.total }})</div></div>
+  <div class="kpi"><div class="v">{{ st.sent }}</div><div class="l">en attente de réponse</div></div>
+  <div class="kpi"><div class="v">{{ st.queued }}</div><div class="l">en file d'attente</div></div>
+  <div class="kpi warn"><div class="v">{{ st.replied + st.needs_action }}</div><div class="l"><a href="/tasks">à traiter</a></div></div>
+</div>
+<div class="card">
+  {{ stack(st) }}
+  <div class="filters" style="margin:1rem 0 .5rem">
+    <input type="search" id="flt" placeholder="Filtrer les courtiers…" oninput="filt()">
+    <select id="fst" onchange="filt()"><option value="">Tous les statuts</option>{% for k, v in STATUS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+  </div>
+  <div class="table-wrap"><table id="tbl">
+    <tr><th>Courtier</th><th>Statut</th><th class="hide-sm">Envoyée</th><th class="hide-sm">Échéance</th><th class="num">Cycle</th></tr>
+    {% for r in reqs %}
+    <tr data-s="{{ r.status }}" data-n="{{ (r.broker.name ~ ' ' ~ (r.broker.email or ''))|lower }}">
+      <td><a href="/requests/{{ r.id }}">{{ r.broker.name }}</a><div class="small muted">{{ r.broker.email or 'formulaire en ligne' }}</div></td>
+      <td>{{ badge(r.status) }}</td>
+      <td class="hide-sm small">{{ r.sent_at|d }}</td>
+      <td class="hide-sm small">{{ r.due_at|d if r.status == 'sent' else '' }}</td>
+      <td class="num small">{{ r.cycle }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+</div>
+<script>
+function filt(){const q=document.getElementById('flt').value.toLowerCase(),s=document.getElementById('fst').value;
+document.querySelectorAll('#tbl tr[data-s]').forEach(tr=>{tr.style.display=(!s||tr.dataset.s===s)&&tr.dataset.n.includes(q)?'':'none'})}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% macro badge(status) -%}
+<span class="badge s-{{ status }}">{{ STATUS.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro status_form(r, label="Changer", compact=False) -%}
+<form method="post" action="/requests/{{ r.id }}/status" class="inline actions">
+  <select name="status" {% if compact %}style="width:auto;min-width:0;padding:.2rem .4rem;font-size:.8rem"{% endif %}>
+    {% for k, v in STATUS.items() %}<option value="{{ k }}" {% if k == r.status %}selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <button class="btn sm">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{% macro stack(st) -%}
+{% set t = st.total or 1 %}
+<div class="stack" title="Terminées {{ st.completed }} · En attente {{ st.sent }} · À traiter {{ st.todo }} · File {{ st.queued }}">
+  <span style="width:{{ 100*st.completed/t }}%;background:var(--ok)"></span>
+  <span style="width:{{ 100*st.sent/t }}%;background:var(--info)"></span>
+  <span style="width:{{ 100*(st.replied+st.needs_action)/t }}%;background:var(--warn)"></span>
+  <span style="width:{{ 100*(st.overdue+st.refused+st.failed)/t }}%;background:var(--bad)"></span>
+</div>
+{%- endmacro %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<div class="login card">
+  <h1 style="display:flex;gap:.5rem;align-items:center"><span class="brand"><span class="dot"></span></span> Oubliez-moi !</h1>
+  <p class="muted">Faites effacer vos données personnelles des fichiers des courtiers en données.</p>
+  <form method="post" action="/login">
+    <label for="u">Utilisateur</label>
+    <input id="u" type="text" name="username" autocomplete="username" required autofocus>
+    <label for="p">Mot de passe</label>
+    <input id="p" type="password" name="password" autocomplete="current-password" required>
+    <p style="margin-top:1rem"><button class="btn primary" style="width:100%;justify-content:center">Se connecter</button></p>
+  </form>
+</div>
+{% endblock %}

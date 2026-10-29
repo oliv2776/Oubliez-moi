@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Ajouter un courtier{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Ajouter un courtier</h1></div>
+<form method="post" action="/brokers/new" class="card" style="max-width:640px">
+  <p class="muted small">Cherchez l'adresse du délégué à la protection des données (DPO) dans la politique de confidentialité de l'organisme (« dpo@ », « privacy@ », « rgpd@ »…).</p>
+  <label>Nom de l'organisme *</label><input type="text" name="name" required>
+  <label>E-mail du DPO / contact RGPD</label><input type="email" name="email" placeholder="dpo@exemple.fr">
+  <label>Formulaire en ligne <span class="hint">— si l'organisme n'accepte pas l'e-mail</span></label><input type="text" name="webform" placeholder="https://…">
+  <label>Site web</label><input type="text" name="web" placeholder="https://…">
+  <label>Adresse postale</label><textarea name="postal_address" rows="3"></textarea>
+  <label>Pays <span class="hint">— codes séparés par des virgules (fr, be, all…)</span></label><input type="text" name="countries" value="fr">
+  <label>Notes</label><textarea name="notes" rows="2"></textarea>
+  <p style="margin-top:1rem" class="actions"><button class="btn primary">Ajouter</button><a class="btn" href="/brokers">Annuler</a></p>
+</form>
+{% endblock %}

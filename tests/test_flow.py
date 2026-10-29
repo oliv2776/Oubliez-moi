@@ -1,0 +1,134 @@
+from datetime import timedelta
+from email.message import EmailMessage
+
+from sqlalchemy import select
+
+from app import letters, mailer, service
+from app.config import settings
+from app.db import COMPLETED, NEEDS_ACTION, OVERDUE, QUEUED, SENT, Broker, Profile, Request, SessionLocal, utcnow
+
+
+def test_seed_loaded(client):
+    with SessionLocal() as db:
+        n = db.scalar(select(Broker.id).limit(1))
+        enabled = db.scalars(select(Broker).where(Broker.enabled.is_(True))).all()
+    assert n and len(enabled) > 100
+    assert all(set(b.countries) & {"fr", "all"} for b in enabled)
+
+
+def test_pages_render(client):
+    for url in ["/", "/profiles", "/profiles/new", "/requests", "/tasks", "/brokers", "/brokers?state=webform", "/brokers/new", "/settings"]:
+        r = client.get(url)
+        assert r.status_code == 200, url
+
+
+def test_auth_required():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        r = anon.get("/", follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"] == "/login"
+        assert anon.get("/healthz").text == "ok"
+
+
+def test_full_flow(client):
+    r = client.post("/profiles", data={
+        "full_name": "Camille Martin", "emails": "camille@exemple.fr\nc.martin@autre.fr",
+        "phones": "06 12 34 56 78", "addresses": "1 rue de la Paix\n75002 Paris\n\n3 avenue X\n69001 Lyon",
+        "language": "auto",
+    }, follow_redirects=False)
+    assert r.status_code == 303
+    pid = int(r.headers["location"].rsplit("/", 1)[1])
+    with SessionLocal() as db:
+        p = db.get(Profile, pid)
+        assert p.addresses == ["1 rue de la Paix 75002 Paris", "3 avenue X 69001 Lyon"]
+
+    assert client.get(f"/profiles/{pid}").status_code == 200
+    prev = client.get(f"/profiles/{pid}/preview?lang=fr")
+    assert "article 17" in prev.text and "Camille Martin" in prev.text
+
+    client.post(f"/profiles/{pid}/campaign")
+    with SessionLocal() as db:
+        reqs = db.scalars(select(Request).where(Request.profile_id == pid)).all()
+        enabled = db.scalars(select(Broker).where(Broker.enabled.is_(True))).all()
+        assert len(reqs) == len(enabled)
+        assert {r.status for r in reqs} <= {QUEUED, NEEDS_ACTION}
+
+    # Envoi (simulation) de 3 demandes
+    for _ in range(3):
+        assert service.send_tick().startswith("OK")
+    with SessionLocal() as db:
+        sent = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).all()
+        assert len(sent) == 3
+        target = sent[0]
+        ref, broker_email, msgid = target.reference, target.broker.email, target.message_ids[0]
+
+    # Une réponse citant la référence -> terminée
+    m = EmailMessage()
+    m["From"] = broker_email
+    m["Subject"] = f"RE: Demande d'effacement – Réf. {ref}"
+    m["Message-ID"] = "<reply1@broker>"
+    m.set_content("Bonjour, vos données ont été supprimées. Cordialement")
+    with SessionLocal() as db:
+        req = service.process_incoming(db, mailer.parse_mail(bytes(m)))
+        assert req.reference == ref and req.status == COMPLETED
+
+    # Une réponse sans référence mais en In-Reply-To -> action requise
+    with SessionLocal() as db:
+        second = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).first()
+        m2 = EmailMessage()
+        m2["From"] = "support@" + second.broker.email.split("@")[1]
+        m2["Subject"] = "Your request"
+        m2["In-Reply-To"] = second.message_ids[0]
+        m2["Message-ID"] = "<reply2@broker>"
+        m2.set_content("Please verify your identity before we can proceed.")
+        req2 = service.process_incoming(db, mailer.parse_mail(bytes(m2)))
+        assert req2.id == second.id and req2.status == NEEDS_ACTION
+
+    # Nos propres messages sont ignorés
+    with SessionLocal() as db:
+        m3 = EmailMessage()
+        m3["From"] = "camille@exemple.fr"
+        m3["Subject"] = f"Fwd: {ref}"
+        m3.set_content("x")
+        assert service.process_incoming(db, mailer.parse_mail(bytes(m3))) is None
+
+    # Échéance dépassée -> relance, puis « sans réponse »
+    with SessionLocal() as db:
+        third = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).first()
+        third.due_at = utcnow() - timedelta(days=1)
+        db.query(Request).filter(Request.status == QUEUED).update({"status": "cancelled"})
+        db.commit()
+        tid = third.id
+    assert "relance" in service.send_tick()
+    with SessionLocal() as db:
+        t = db.get(Request, tid)
+        assert t.reminder_count == 1 and t.status == SENT
+        t.due_at = utcnow() - timedelta(days=1)
+        db.commit()
+    assert service.check_deadlines() >= 1
+    with SessionLocal() as db:
+        assert db.get(Request, tid).status == OVERDUE
+    page = client.get(f"/requests/{tid}")
+    assert "Saisir la CNIL" in page.text
+
+    # Renvoi périodique d'une demande terminée ancienne
+    with SessionLocal() as db:
+        done = db.scalars(select(Request).where(Request.reference == ref)).one()
+        done.closed_at = utcnow() - timedelta(days=settings.resend_interval_days + 1)
+        db.commit()
+    assert service.schedule_resends() == 1
+    with SessionLocal() as db:
+        again = db.scalars(select(Request).where(Request.broker_id == done.broker_id, Request.profile_id == pid, Request.cycle == 2)).one()
+        assert again.status == QUEUED
+
+    for url in ["/", f"/profiles/{pid}", "/requests", "/requests?status=sent", "/tasks", "/export.csv", f"/requests/{tid}"]:
+        assert client.get(url).status_code == 200, url
+
+
+def test_letters_en():
+    p = Profile(full_name="Jane Doe", emails=["jane@x.com"], phones=[], addresses=[], other_names=[], language="auto")
+    b = Broker(name="Acme Data", email="privacy@acme.com", countries=["all"])
+    assert letters.letter_language(p, b) == "en"
+    subject, body = letters.erasure_letter(p, b, "OUBLI-AAAAAA", "en")
+    assert "Article 17" in subject and "Acme Data" in body and "jane@x.com" in body
