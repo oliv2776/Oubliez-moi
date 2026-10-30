@@ -11,7 +11,7 @@
 {% if q|length < 2 %}
 <div class="card empty"><p>Saisissez au moins deux caractères pour lancer la recherche.</p></div>
 {% else %}
-{% set total = profiles|length + requests|length + brokers|length + senders|length %}
+{% set total = profiles|length + requests|length + brokers|length + senders|length + cases|length %}
 {% if not total %}<div class="card empty"><p>Aucun résultat pour « {{ q }} ».</p></div>{% endif %}
 {% if profiles %}
 <div class="card"><h2>Profils <span class="tag">{{ profiles|length }}</span></h2>
@@ -20,6 +20,10 @@
 {% if requests %}
 <div class="card"><h2>Demandes <span class="tag">{{ requests|length }}</span></h2>
 <table>{% for r in requests %}<tr><td><a href="/requests/{{ r.id }}"><strong>{{ r.broker.name }}</strong></a><div class="small muted">{{ r.profile.full_name }} · {{ r.reference }}</div></td><td><span class="badge s-{{ r.status }}">{{ r.status_label }}</span></td></tr>{% endfor %}</table></div>
+{% endif %}
+{% if cases %}
+<div class="card"><h2>Dossiers RGPD <span class="tag">{{ cases|length }}</span></h2>
+<table>{% for c in cases %}<tr><td><a href="/privacy-cases/{{ c.id }}"><strong>{{ c.organization.name }}</strong></a><div class="small muted">{{ c.subject or c.type_label }}{% if c.reference %} · {{ c.reference }}{% endif %}</div></td><td>{{ c.status_label }}</td></tr>{% endfor %}</table></div>
 {% endif %}
 {% if brokers %}
 <div class="card"><h2>Courtiers <span class="tag">{{ brokers|length }}</span></h2>
