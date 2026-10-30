@@ -829,7 +829,7 @@ async def senders_action(request: HttpRequest, db: Session = Depends(get_db)):
 def _csv_safe(value) -> str:
     """Neutralise les cellules susceptibles d'être interprétées comme une formule par un tableur."""
     text = "" if value is None else str(value)
-    if text.lstrip(" \\t\\r\\n").startswith(("=", "+", "-", "@")):
+    if text.lstrip(" \t\r\n").startswith(("=", "+", "-", "@")):
         return "'" + text
     return text
 
