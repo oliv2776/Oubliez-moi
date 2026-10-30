@@ -111,7 +111,7 @@ def local_site():
     srv = HTTPServer(("127.0.0.1", 0), _Page)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     confirm.ALLOW_PRIVATE = True
-    yield f"http://localhost:{srv.server_port}"
+    yield f"http://127.0.0.1:{srv.server_port}"
     confirm.ALLOW_PRIVATE = False
     srv.shutdown()
 
@@ -119,7 +119,7 @@ def local_site():
 def test_confirmation_link_clicked(client, local_site):
     settings.auto_confirm_links = True
     try:
-        rid = _sent_request(24, web="http://localhost")
+        rid = _sent_request(24, web="http://127.0.0.1")
         _reply(rid, "Please confirm your request by clicking the link below.", msgid="<conf@b.example>",
                html=f'<p>Please confirm your request by clicking the link below.</p><a href="{local_site}/unsubscribe?x=1">Unsubscribe</a>'
                     f'<a href="{local_site}/confirm?token=abc">Confirm my request</a><a href="https://evil.example/confirm">Confirm</a>')
@@ -128,7 +128,7 @@ def test_confirmation_link_clicked(client, local_site):
         with SessionLocal() as db:
             assert db.get(Request, rid).status == SENT
         # Page qui demande un bouton : la demande reste « Action requise »
-        rid2 = _sent_request(25, web="http://localhost")
+        rid2 = _sent_request(25, web="http://127.0.0.1")
         _reply(rid2, "Please confirm your email by clicking the link.", msgid="<conf2@b.example>",
                html=f'<a href="{local_site}/verify?t=1">Verify</a>')
         with SessionLocal() as db:
