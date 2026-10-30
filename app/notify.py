@@ -7,13 +7,14 @@ import urllib.parse
 import urllib.request
 
 from .config import settings
+from .net import safe_urlopen
 
 log = logging.getLogger(__name__)
 
 
 def _post(url: str, data: dict, headers: dict | None = None) -> None:
     req = urllib.request.Request(url, data=json.dumps(data).encode(), headers={"Content-Type": "application/json", **(headers or {})})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with safe_urlopen(req, timeout=20, allow_private=True) as resp:
         resp.read()
 
 
