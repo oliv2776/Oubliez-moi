@@ -237,8 +237,8 @@ def test_microsoft_device_code_flow(client, monkeypatch):
             mid = db.scalars(select(Mailbox).where(Mailbox.address == "moi@hotmail.fr")).one().id
         start = client.post(f"/mailboxes/{mid}/oauth/start").json()
         assert start["user_code"] == "ABCD-EFGH"
-        assert client.get(f"/mailboxes/{mid}/oauth/poll").json()["state"] == "pending"
-        assert client.get(f"/mailboxes/{mid}/oauth/poll").json()["state"] == "ok"
+        assert client.post(f"/mailboxes/{mid}/oauth/poll").json()["state"] == "pending"
+        assert client.post(f"/mailboxes/{mid}/oauth/poll").json()["state"] == "ok"
         with SessionLocal() as db:
             mb = db.get(Mailbox, mid)
             assert crypto.decrypt(mb.secret_enc) == "rt-1"
