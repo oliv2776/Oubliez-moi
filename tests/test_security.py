@@ -77,20 +77,34 @@ def test_authentication_results_requires_trusted_authserv_and_dmarc_pass():
 
         authenticated = EmailMessage()
         authenticated["From"] = "privacy@example.org"
-        authenticated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        authenticated["Authentication-Results"] = (
+            "mx.test; dkim=pass header.d=example.org; dmarc=pass header.from=example.org"
+        )
         authenticated.set_content("Your data has been deleted.")
         assert mailer.parse_mail(bytes(authenticated)).dmarc_pass is True
 
+        misaligned = EmailMessage()
+        misaligned["From"] = "privacy@example.org"
+        misaligned["Authentication-Results"] = (
+            "mx.test; spf=pass smtp.mailfrom=sender.other.example; dmarc=pass header.from=example.org"
+        )
+        misaligned.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(misaligned)).dmarc_pass is False
+
         duplicated = EmailMessage()
         duplicated["From"] = "privacy@example.org"
-        duplicated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
-        duplicated["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        duplicated["Authentication-Results"] = (
+            "mx.test; dkim=pass header.d=example.org; dmarc=pass header.from=example.org"
+        )
+        duplicated["Authentication-Results"] = "mx.test; dkim=fail header.d=example.org; dmarc=fail header.from=example.org"
         duplicated.set_content("Your data has been deleted.")
         assert mailer.parse_mail(bytes(duplicated)).dmarc_pass is False
 
         failed = EmailMessage()
         failed["From"] = "privacy@example.org"
-        failed["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        failed["Authentication-Results"] = (
+            "mx.test; dkim=fail header.d=example.org; dmarc=fail header.from=example.org"
+        )
         failed.set_content("Your data has been deleted.")
         assert mailer.parse_mail(bytes(failed)).dmarc_pass is False
     finally:

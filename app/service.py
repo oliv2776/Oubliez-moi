@@ -158,9 +158,22 @@ def schedule_resends() -> int:
                    Request.cycle < settings.max_automatic_resend_cycles)
         ).all()
         for old in rows:
-            if old.profile.active and old.broker.enabled and old.broker.email:
-                _create_request(db, old.profile, old.broker, cycle=old.cycle + 1)
-                n += 1
+            if not (old.profile.active and old.broker.enabled and old.broker.email):
+                continue
+            next_cycle = old.cycle + 1
+            # Idempotence : si un cycle suivant existe déjà (reprise après incident,
+            # exécution manuelle ou chevauchement de planificateurs), ne pas le dupliquer.
+            already_created = db.scalar(
+                select(Request.id).where(
+                    Request.profile_id == old.profile_id,
+                    Request.broker_id == old.broker_id,
+                    Request.cycle >= next_cycle,
+                ).limit(1)
+            )
+            if already_created:
+                continue
+            _create_request(db, old.profile, old.broker, cycle=next_cycle)
+            n += 1
         db.commit()
     if n:
         log.info("%d demandes périodiques recréées", n)

@@ -1,8 +1,11 @@
+import json
+
+import pytest
 from sqlalchemy import select
 
-from app import service, settings_store
+from app import mailer, service, settings_store
 from app.config import settings
-from app.db import QUEUED, SENT, Broker, Profile, Request, SessionLocal
+from app.db import KV, QUEUED, SENT, Broker, Profile, Request, SessionLocal, kv_set
 
 
 FORM = {
@@ -62,3 +65,33 @@ def test_switch_to_real_requeues_simulated(client):
 def test_reset_to_env(client):
     client.post("/settings/reset")
     assert settings.smtp_host == "" and settings.dry_run is True and settings.smtp_from == "moi@exemple.fr"
+
+
+def test_unreadable_encrypted_secret_is_preserved_and_reported(client):
+    old_password, old_dry_run = settings.smtp_password, settings.dry_run
+    try:
+        settings.smtp_password = ""
+        settings.dry_run = False
+        with SessionLocal() as db:
+            kv_set(db, "cfg:smtp_password", json.dumps("enc:v1:not-a-valid-fernet-token"))
+            db.commit()
+
+        settings_store.apply_overrides()
+
+        assert settings_store.secret_unavailable("smtp_password")
+        assert settings.smtp_password == ""  # ne jamais remplacer silencieusement par une autre valeur
+        with SessionLocal() as db:
+            row = db.get(KV, "cfg:smtp_password")
+            assert row is not None and json.loads(row.value) == "enc:v1:not-a-valid-fernet-token"
+
+        msg = mailer.build_message("privacy@example.org", "Test", "Body", "Test")
+        with pytest.raises(mailer.SendError, match="ENCRYPTION_KEY"):
+            mailer.send_message(msg)
+    finally:
+        with SessionLocal() as db:
+            row = db.get(KV, "cfg:smtp_password")
+            if row:
+                db.delete(row)
+                db.commit()
+        settings_store.DECRYPTION_FAILURES.discard("smtp_password")
+        settings.smtp_password, settings.dry_run = old_password, old_dry_run
