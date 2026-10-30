@@ -15,10 +15,11 @@ RUN pip install -r requirements.txt
 COPY app ./app
 
 RUN useradd --system --uid 10001 --no-create-home --home-dir /app oubliez \
-    && mkdir -p /data && chown oubliez:oubliez /data
+    && mkdir -p /data /backups && chown oubliez:oubliez /data /backups
 
 USER oubliez
 VOLUME ["/data"]
+# /backups : dossier de sauvegarde, à monter depuis votre pool (voir docker-compose.yml)
 EXPOSE 27480
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

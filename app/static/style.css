@@ -234,3 +234,19 @@ kbd { font: 600 .7rem ui-monospace, Menlo, monospace; padding: .05rem .3rem; bor
 .llm-install .progress { flex-basis: 100%; }
 details.llm-models { margin: .6rem 0; }
 details.llm-models table td { padding: .35rem .5rem; vertical-align: middle; }
+
+/* Boîtes mail */
+.grid.boxes { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-bottom: .5rem; }
+.card.box.active { border-color: var(--accent); }
+.card.box h3 a { color: var(--ink); }
+table.senders td { vertical-align: middle; }
+.ellipsis { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ukind { white-space: nowrap; }
+.ukind.ok { color: var(--ok); font-weight: 600; }
+.sb-unsubscribed { background: var(--ok-soft); color: var(--ok); }
+.sb-manual { background: var(--warn-soft); color: var(--warn); }
+.sb-kept { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.sb-failed { background: var(--bad-soft); color: var(--bad); }
+.bulkbar { justify-content: space-between; }
+.oauth-box { border: 1px dashed var(--line); border-radius: 8px; padding: .8rem 1rem; margin-top: .6rem; }
+.oauth-code { font: 700 1.6rem ui-monospace, Menlo, monospace; letter-spacing: .15em; }

@@ -18,7 +18,8 @@
   <button type="button" role="tab" id="t-releve" aria-controls="panel-releve" aria-selected="false"><span class="dot {{ imap_dot }}"></span>Relève des réponses</button>
   <button type="button" role="tab" id="t-automatismes" aria-controls="panel-automatismes" aria-selected="false">Automatismes</button>
   <button type="button" role="tab" id="t-notifications" aria-controls="panel-notifications" aria-selected="false"><span class="dot {{ 'ok' if settings.notify_enabled or settings.notify_email_digest else '' }}"></span>Notifications</button>
-  <button type="button" role="tab" id="t-auto" aria-controls="panel-auto" aria-selected="false">Délais et données</button>
+  <button type="button" role="tab" id="t-securite" aria-controls="panel-securite" aria-selected="false"><span class="dot {{ 'bad' if backup_error else ('ok' if backups else '') }}"></span>Sécurité et sauvegardes</button>
+  <button type="button" role="tab" id="t-auto" aria-controls="panel-auto" aria-selected="false">Délais</button>
 </div>
 
 <form method="post" action="/settings" autocomplete="off" id="settings-form">
@@ -299,9 +300,68 @@
       <dt>Fuseau</dt><dd>{{ settings.timezone }} — <code>TZ</code></dd>
     </dl>
   </div>
+</section>
+
+<section role="tabpanel" id="panel-securite" aria-labelledby="t-securite" class="panel-narrow" hidden>
+  <div class="card">
+    <h2>Chiffrement des mots de passe</h2>
+    <p class="small"><span class="badge s-completed">Actif</span> Les mots de passe de messagerie, les jetons de notification et les connexions des boîtes analysées sont chiffrés dans la base (AES, format Fernet). La clé n'est jamais stockée dans la base ni incluse dans les sauvegardes.</p>
+    {% if crypto_errors %}<div class="banner error small">{{ crypto_errors }} secret(s) n'ont pas pu être déchiffrés : la clé de chiffrement a changé. Ressaisissez les mots de passe concernés ou remettez l'ancienne clé.</div>{% endif %}
+    <dl class="kv small">
+      <dt>Origine de la clé</dt>
+      <dd>{% if key_source == 'env' %}variable <code>ENCRYPTION_KEY</code> du fichier <code>.env</code> (recommandé){% else %}fichier <code>{{ settings.data_dir }}/.encryption_key</code>, généré automatiquement{% endif %}</dd>
+    </dl>
+    {% if key_source != 'env' %}
+    <p class="small muted" style="margin-top:.6rem">Conservez une copie de cette clé hors du serveur (gestionnaire de mots de passe) : sans elle, une sauvegarde chiffrée ne peut pas être restaurée. Pour plus de sûreté, recopiez-la dans <code>.env</code> sous la forme <code>ENCRYPTION_KEY=…</code>.</p>
+    <p><button type="button" class="btn sm" id="show-key">Afficher la clé</button> <code id="key-value" class="mono" hidden></code></p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Sauvegardes</h2>
+    <p class="small muted">Copie complète de la base (profils, demandes, historique, réglages) dans le dossier <code>{{ settings.backup_dir }}</code> du conteneur, monté depuis votre pool par <code>BACKUP_PATH</code> dans <code>.env</code>.</p>
+    {% if backup_error %}<div class="banner error small">{{ backup_error }}</div>{% endif %}
+    <div class="row2">
+      <div>
+        <label for="backup_schedule">Sauvegarde automatique</label>
+        <select id="backup_schedule" name="backup_schedule">
+          {% for v, l in [('daily', 'Chaque nuit'), ('weekly', 'Chaque semaine'), ('off', 'Désactivée')] %}
+          <option value="{{ v }}" {{ 'selected' if settings.backup_schedule == v }}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="backup_keep">Nombre de sauvegardes conservées</label>
+        <input id="backup_keep" type="text" inputmode="numeric" name="backup_keep" value="{{ settings.backup_keep }}" style="max-width:120px">
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" name="backup_encrypt" value="true" {{ 'checked' if settings.backup_encrypt }}> Chiffrer les sauvegardes (recommandé : illisibles sans la clé)</label>
+    <div class="actions" style="margin-top:.9rem">
+      <button class="btn sm" formaction="/settings/backup-now">Enregistrer et sauvegarder maintenant</button>
+    </div>
+    {% if backups %}
+    <table class="small" style="margin-top:.9rem">
+      <tr><th>Date</th><th>Fichier</th><th class="num">Taille</th></tr>
+      {% for b in backups[:20] %}
+      <tr>
+        <td>{{ b.at.strftime('%d/%m/%Y %H:%M') }}{% if b.manual %} <span class="tag">manuelle</span>{% endif %}</td>
+        <td class="mono">{{ b.name }}{% if b.encrypted %} <span class="tag">chiffrée</span>{% endif %}</td>
+        <td class="num" style="white-space:nowrap">{{ (b.size / 1024)|round|int }} Ko</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="small muted" style="margin-top:.5rem">Les sauvegardes manuelles ne sont jamais supprimées automatiquement.</p>
+    {% elif not backup_error %}<p class="small muted">Aucune sauvegarde pour l'instant.</p>{% endif %}
+    <details style="margin-top:.6rem"><summary>Restaurer une sauvegarde</summary>
+      <pre class="small">docker compose stop oubliez-moi
+docker compose run --rm oubliez-moi python -m app.backup restore NOM_DU_FICHIER
+docker compose start oubliez-moi</pre>
+      <p class="small muted">La base actuelle est conservée à côté. Pour une sauvegarde chiffrée sur un autre serveur, ajoutez la clé à la fin de la commande de restauration.</p>
+    </details>
+  </div>
+
   <div class="card">
     <h2>Données</h2>
-    <p class="small">Profils, historique, réponses et réglages sont dans <code>{{ settings.data_dir }}/oubliez-moi.db</code> (volume Docker). Les mots de passe y sont stockés et ne sont jamais réaffichés.</p>
+    <p class="small">Profils, historique, réponses et réglages sont dans <code>{{ settings.data_dir }}/oubliez-moi.db</code> (volume Docker). Pour une protection complète du disque, activez aussi le chiffrement natif ZFS sur le dataset.</p>
     <p><a class="btn sm" href="/export.csv">Exporter l'historique (CSV)</a></p>
   </div>
 </section>
@@ -352,6 +412,13 @@
   form.addEventListener("input", () => { if (!dirty) { dirty = true; $("dirty-hint").textContent = "Modifications non enregistrées."; $("dirty-hint").style.color = "var(--warn)"; } });
   form.addEventListener("submit", () => dirty = false);
   window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+  // --- Clé de chiffrement ---
+  if ($("show-key")) $("show-key").addEventListener("click", async () => {
+    const r = await fetch("/settings/encryption-key");
+    const k = (await r.json()).key || "";
+    $("key-value").textContent = k; $("key-value").hidden = false; $("show-key").hidden = true;
+  });
 
   // --- Choix du modèle d'IA : description, champ libre, installation ---
   const modelSel = $("llm_model");

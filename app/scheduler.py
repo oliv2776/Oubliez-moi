@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import service
+from . import backup, mailboxes, service
 from .config import settings
-from .db import SessionLocal, kv_get, utcnow
+from .db import SessionLocal, kv_get, kv_set, utcnow
 
 log = logging.getLogger(__name__)
 logging.getLogger("apscheduler").setLevel(logging.WARNING)  # pas de log à chaque exécution
@@ -37,6 +37,21 @@ def maybe_update_brokers():
     return service.update_brokers_from_remote()
 
 
+def run_backup():
+    """Sauvegarde planifiée ; l'erreur éventuelle est affichée dans Réglages."""
+    with SessionLocal() as db:
+        try:
+            res = backup.scheduled()
+            if res:
+                kv_set(db, "backup_status", f"{utcnow().isoformat()}|ok|{res}")
+        except Exception as e:  # noqa: BLE001
+            kv_set(db, "backup_status", f"{utcnow().isoformat()}|error|{e}")
+            db.commit()
+            raise
+        db.commit()
+    return res
+
+
 def daily():
     return {
         "renvois": service.schedule_resends(),
@@ -55,6 +70,8 @@ def start() -> None:
     scheduler.add_job(_safe(daily), "cron", hour=4, minute=17, id="daily")
     scheduler.add_job(_safe(maybe_update_brokers), "cron", hour=4, minute=43, id="brokers")
     scheduler.add_job(_safe(service.send_digest), "cron", hour=8, minute=7, id="digest")
+    scheduler.add_job(_safe(run_backup), "cron", hour=3, minute=37, id="backup")
+    scheduler.add_job(_safe(mailboxes.scan_all), "cron", hour=5, minute=13, id="mailboxes")
     scheduler.start()
     log.info("Planificateur démarré : 1 e-mail toutes les %ss, relève IMAP toutes les %s min", interval, settings.imap_poll_minutes)
 

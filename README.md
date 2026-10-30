@@ -17,6 +17,8 @@
 | **Liens de confirmation** | Les liens « confirmez votre demande » sont ouverts automatiquement (désactivable) : seulement sur le domaine du courtier ou une plateforme RGPD connue, jamais un lien d'annulation ni un lien de désinscription ou une adresse du réseau local. |
 | **IA locale (facultatif)** | Un modèle qui tourne chez vous avec Ollama classe et résume les réponses que les mots-clés ne comprennent pas. Rien n'est envoyé à un service externe. |
 | **Boîte mail rangée** | Les réponses des courtiers sont déplacées dans un dossier (ou libellées sur Gmail) et peuvent être marquées comme lues. |
+| **Boîtes mail (séparé)** | Ajoutez vos boîtes (Gmail, Hotmail/Outlook, Proton, iCloud, autre IMAP) : Oubliez-moi repère qui vous écrit en masse, vous désabonne en un clic quand l'expéditeur le permet, et range leurs e-mails dans un dossier. Seuls les en-têtes sont lus. |
+| **Données protégées** | Mots de passe et jetons chiffrés dans la base ; sauvegardes automatiques et chiffrées vers votre pool. |
 | **Notifications** | ntfy, Gotify ou récapitulatif quotidien par e-mail, uniquement quand une décision vous attend. |
 | **Renvoi périodique** | Comme Incogni : 90 jours après une suppression confirmée, la demande est renvoyée, parce que les courtiers recollectent les données. |
 | **Plusieurs profils** | Pour vous et vos proches (avec leur accord). |
@@ -107,6 +109,42 @@ Le service est bridé pour ne pas gêner le reste du serveur : 4 cœurs au plus,
 
 Si Ollama tourne déjà ailleurs sur votre réseau, indiquez simplement son adresse (par exemple `http://192.168.1.20:11434`).
 
+## Boîtes mail : désinscriptions et rangement
+
+Rubrique **Boîtes mail**, indépendante des demandes aux courtiers. Ajoutez autant de boîtes que vous voulez ; chacune a ses propres identifiants, chiffrés dans la base.
+
+| Fournisseur | Connexion |
+|---|---|
+| Gmail | `imap.gmail.com`, mot de passe d'application Google |
+| iCloud | `imap.mail.me.com`, mot de passe pour app |
+| Proton Mail | Via [Proton Mail Bridge](https://proton.me/mail/bridge) (offre payante), par exemple en conteneur (`shenxn/protonmail-bridge`) ; adresse du Bridge, port 1143, STARTTLS, certificat non vérifié (auto-signé), identifiants affichés par la commande `info` du Bridge |
+| Hotmail / Outlook.com | Microsoft n'accepte plus de mot de passe en IMAP depuis septembre 2024. Connexion OAuth par code : il faut un identifiant d'application déclaré dans un annuaire Microsoft Entra (celui d'une organisation, ou un annuaire créé avec un compte Azure), avec les « flux clients publics » autorisés. Microsoft ne permet plus de créer cette application depuis un simple compte personnel. |
+| Autre | Tout serveur IMAP |
+
+Oubliez-moi lit uniquement les **en-têtes** (expéditeur, objet, date, liens de désinscription) : un message compte comme envoi en masse s'il porte un en-tête `List-Unsubscribe`, `List-Id` ou `Precedence: bulk`. La première analyse remonte jusqu'à 12 mois (réglable), les suivantes ne lisent que les nouveaux messages, chaque nuit.
+
+Pour chaque expéditeur :
+
+- **Se désinscrire** : automatique quand l'expéditeur propose la désinscription en un clic normalisée (RFC 8058) ; sinon, Oubliez-moi vous donne le lien ou l'adresse à utiliser et la ligne passe dans « Désinscription à finir ».
+- **Ranger** : déplace ses e-mails dans un dossier (« Newsletters » par défaut ; sur Gmail, c'est un libellé). Rien n'est jamais supprimé.
+- **Garder** : pour les lettres que vous voulez continuer à recevoir.
+
+Un expéditeur qui écrit encore après s'être désinscrit est signalé ; ceux qui figurent dans le catalogue de courtiers aussi.
+
+## Sécurité et sauvegardes
+
+- **Chiffrement** : les mots de passe de messagerie, les jetons de notification et les connexions des boîtes sont chiffrés dans la base (Fernet : AES + HMAC). La clé vient de `ENCRYPTION_KEY` dans `.env` (recommandé), sinon d'un fichier généré dans le volume de données ; elle n'est jamais dans les sauvegardes. Les mots de passe enregistrés par une version précédente sont chiffrés automatiquement au démarrage.
+- **Sauvegardes** : indiquez dans `.env` un dossier de votre pool (`BACKUP_PATH=/mnt/tank/backups/oubliez-moi`), rendez-le accessible à l'utilisateur du conteneur (`sudo chown 10001 …`), puis `docker compose up -d`. Dans **Réglages → Sécurité et sauvegardes** : fréquence (chaque nuit par défaut), nombre de sauvegardes gardées, chiffrement, bouton « Sauvegarder maintenant » et liste des sauvegardes.
+- **Restauration** :
+
+```bash
+docker compose stop oubliez-moi
+docker compose run --rm oubliez-moi python -m app.backup restore NOM_DU_FICHIER
+docker compose start oubliez-moi
+```
+
+Conservez la clé de chiffrement hors du serveur (bouton « Afficher la clé ») : sans elle, une sauvegarde chiffrée ne peut pas être restaurée. Pour une protection complète, activez aussi le chiffrement natif ZFS sur le dataset.
+
 ## Reverse proxy HTTPS
 
 **Caddy** (certificat Let's Encrypt automatique), dans `/etc/caddy/Caddyfile` :
@@ -151,7 +189,7 @@ Voir [`.env.example`](.env.example), qui documente chaque variable. La messageri
 
 ## Sauvegarde et mise à jour
 
-Toutes les données sont dans le volume Docker `oubliez-moi_oubliez-moi-data` (base SQLite `oubliez-moi.db`).
+Toutes les données sont dans le volume Docker `oubliez-moi_oubliez-moi-data` (base SQLite `oubliez-moi.db`). Les sauvegardes automatiques sont décrites plus haut ; la commande ci-dessous copie tout le volume.
 
 ```bash
 # Sauvegarde

@@ -1,0 +1,401 @@
+"""Analyse de vos boîtes mail : qui vous écrit en masse, désinscription, rangement.
+
+Indépendant des demandes RGPD aux courtiers. Pour chaque boîte :
+- seuls les EN-TÊTES des messages sont lus (expéditeur, objet, date, liens de
+  désinscription), jamais le contenu, et rien n'est marqué comme lu ;
+- un message compte comme envoi en masse s'il porte un en-tête List-Unsubscribe,
+  List-Id ou Precedence: bulk ;
+- l'analyse est incrémentale : après la première, seuls les nouveaux messages
+  sont lus.
+"""
+from __future__ import annotations
+
+import email
+import imaplib
+import logging
+import re
+import ssl
+import threading
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import timedelta
+from email.policy import default as default_policy
+from email.utils import getaddresses, parsedate_to_datetime
+
+from sqlalchemy import select
+
+from . import confirm, crypto, oauth_ms
+from .db import Broker, Mailbox, Sender, SessionLocal, utcnow
+from .mailer import _quote_folder, registered_domain
+
+log = logging.getLogger(__name__)
+
+PROVIDERS = {
+    "gmail": {"label": "Gmail", "host": "imap.gmail.com", "port": 993, "security": "ssl", "verify_tls": True,
+              "auth": "password", "folders": ["INBOX", "[Gmail]/Spam"],
+              "help": "Mot de passe d'application Google (myaccount.google.com/apppasswords), pas votre mot de passe habituel."},
+    "outlook": {"label": "Hotmail / Outlook.com", "host": "outlook.office365.com", "port": 993, "security": "ssl", "verify_tls": True,
+                "auth": "oauth_ms", "folders": ["INBOX", "Junk"],
+                "help": "Microsoft n'accepte plus de mot de passe : connexion par code (voir l'aide ci-dessous)."},
+    "proton": {"label": "Proton Mail (via Proton Mail Bridge)", "host": "", "port": 1143, "security": "starttls", "verify_tls": False,
+               "auth": "password", "folders": ["INBOX", "Spam"],
+               "help": "Adresse du Bridge sur votre réseau (ex. 172.17.0.1 ou nom du conteneur), identifiant et mot de passe affichés par la commande « info » du Bridge."},
+    "icloud": {"label": "iCloud", "host": "imap.mail.me.com", "port": 993, "security": "ssl", "verify_tls": True,
+               "auth": "password", "folders": ["INBOX", "Junk"],
+               "help": "Mot de passe pour app créé sur account.apple.com."},
+    "imap": {"label": "Autre (IMAP)", "host": "", "port": 993, "security": "ssl", "verify_tls": True,
+             "auth": "password", "folders": ["INBOX"], "help": ""},
+}
+
+HEADER_FIELDS = "FROM SUBJECT DATE LIST-UNSUBSCRIBE LIST-UNSUBSCRIBE-POST LIST-ID PRECEDENCE"
+BATCH = 200
+MAX_PER_RUN = 30_000
+_ANGLE_RE = re.compile(r"<([^>]+)>")
+_UID_RE = re.compile(rb"UID (\d+)")
+_scan_lock = threading.Lock()
+jobs: dict[str, dict] = {}  # travaux de fond (désinscriptions groupées…) affichés dans la page
+
+
+class MailboxError(Exception):
+    pass
+
+
+# ------------------------------------------------------------- Connexion ----
+
+def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
+    ctx = ssl.create_default_context()
+    if not mb.verify_tls:  # Proton Mail Bridge : certificat auto-signé sur le réseau local
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
+def _secret(mb: Mailbox) -> str:
+    return crypto.decrypt(mb.secret_enc)
+
+
+def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
+    if not mb.host:
+        raise MailboxError("Serveur IMAP non renseigné")
+    try:
+        if mb.security == "ssl":
+            conn = imaplib.IMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
+        else:
+            conn = imaplib.IMAP4(mb.host, mb.port, timeout=60)
+            if mb.security == "starttls":
+                conn.starttls(ssl_context=_ssl_context(mb))
+    except (OSError, imaplib.IMAP4.error) as e:
+        raise MailboxError(f"Connexion à {mb.host}:{mb.port} impossible : {e}") from e
+    try:
+        user = mb.username or mb.address
+        if mb.auth == "oauth_ms":
+            token, new_refresh = oauth_ms.access_token(mb.id, mb.oauth_client_id or "", mb.oauth_tenant, _secret(mb))
+            if new_refresh and db is not None:
+                mb.secret_enc = crypto.encrypt(new_refresh)  # Microsoft fait tourner les jetons
+                db.commit()
+            conn.authenticate("XOAUTH2", lambda _: oauth_ms.xoauth2(user, token))
+        else:
+            conn.login(user, _secret(mb))
+    except oauth_ms.OAuthError as e:
+        conn.logout()
+        raise MailboxError(str(e)) from e
+    except imaplib.IMAP4.error as e:
+        try:
+            conn.logout()
+        except Exception:  # noqa: BLE001
+            pass
+        raise MailboxError(f"Identifiants refusés par {mb.host} : {e}") from e
+    return conn
+
+
+def test_connection(mb: Mailbox, db=None) -> str:
+    conn = connect(mb, db)
+    try:
+        typ, data = conn.list()
+        names = []
+        for raw in data or []:
+            line = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+            names.append(line.rsplit(' "/" ', 1)[-1].strip('"'))
+        return f"Connexion réussie. Dossiers : {', '.join(names[:12])}{'…' if len(names) > 12 else ''}"
+    finally:
+        conn.logout()
+
+
+# ---------------------------------------------------------------- Analyse ----
+
+def parse_list_unsubscribe(value: str) -> tuple[str | None, str | None]:
+    """Renvoie (url https, adresse mailto) d'un en-tête List-Unsubscribe."""
+    url = mailto = None
+    for item in _ANGLE_RE.findall(value or "") or [v.strip() for v in (value or "").split(",") if v.strip()]:
+        item = item.strip()
+        low = item.lower()
+        if low.startswith("https://") and not url:
+            url = item
+        elif low.startswith("http://") and not url:
+            url = item
+        elif low.startswith("mailto:") and not mailto:
+            mailto = item
+    return url, mailto
+
+
+def _parse_headers(raw: bytes) -> dict | None:
+    msg = email.message_from_bytes(raw, policy=default_policy)
+    lu = str(msg.get("List-Unsubscribe", "") or "")
+    bulk = bool(lu) or bool(msg.get("List-Id")) or str(msg.get("Precedence", "")).lower() in ("bulk", "list", "junk")
+    if not bulk:
+        return None
+    addrs = [a for a in getaddresses([str(msg.get("From", ""))]) if "@" in a[1]]
+    if not addrs:
+        return None
+    name, addr = addrs[0]
+    try:
+        date = parsedate_to_datetime(str(msg.get("Date"))).astimezone(tz=None).replace(tzinfo=None) if msg.get("Date") else None
+    except (TypeError, ValueError, IndexError):
+        date = None
+    url, mailto = parse_list_unsubscribe(lu)
+    one_click = "one-click" in str(msg.get("List-Unsubscribe-Post", "")).lower().replace(" ", "")
+    return {"address": addr.lower(), "name": name, "subject": str(msg.get("Subject", ""))[:500], "date": date,
+            "url": url, "mailto": mailto, "one_click": one_click and bool(url and url.lower().startswith("https://"))}
+
+
+def _upsert(db, mb: Mailbox, cache: dict, h: dict) -> None:
+    s = cache.get(h["address"])
+    if s is None:
+        s = db.scalars(select(Sender).where(Sender.mailbox_id == mb.id, Sender.address == h["address"])).first()
+        if s is None:
+            s = Sender(mailbox_id=mb.id, address=h["address"], domain=registered_domain(h["address"].split("@")[-1]),
+                       name=h["name"] or "", count=0, status="new")
+            db.add(s)
+        cache[h["address"]] = s
+    s.count = (s.count or 0) + 1
+    if h["name"] and not s.name:
+        s.name = h["name"]
+    d = h["date"]
+    if d and (s.first_seen is None or d < s.first_seen):
+        s.first_seen = d
+    if d and (s.last_seen is None or d >= s.last_seen):
+        s.last_seen = d
+        s.last_subject = h["subject"]
+        if h["url"]:
+            s.unsub_url, s.unsub_one_click = h["url"], h["one_click"]
+        if h["mailto"]:
+            s.unsub_mailto = h["mailto"]
+    else:
+        s.unsub_url = s.unsub_url or h["url"]
+        s.unsub_mailto = s.unsub_mailto or h["mailto"]
+        s.unsub_one_click = s.unsub_one_click or h["one_click"]
+    if s.status == "unsubscribed" and d and s.status_at and d > s.status_at + timedelta(days=3):
+        s.seen_after_unsub = (s.seen_after_unsub or 0) + 1  # continue d'écrire malgré la désinscription
+
+
+def scan(mailbox_id: int) -> int:
+    """Analyse (incrémentale) une boîte. Renvoie le nombre de messages en masse comptés."""
+    counted = 0
+    with SessionLocal() as db:
+        mb = db.get(Mailbox, mailbox_id)
+        if mb is None:
+            return 0
+        mb.scanning, mb.progress, mb.last_error = True, "connexion…", None
+        db.commit()
+        try:
+            conn = connect(mb, db)
+            try:
+                state = dict(mb.state or {})
+                read = 0
+                for folder in mb.folders or ["INBOX"]:
+                    typ, _ = conn.select(_quote_folder(folder), readonly=True)
+                    if typ != "OK":
+                        log.info("Dossier %s absent de %s", folder, mb.label)
+                        continue
+                    validity = (conn.untagged_responses.get("UIDVALIDITY") or [b"0"])[0]
+                    validity = validity.decode() if isinstance(validity, bytes) else str(validity)
+                    prev = (state.get(folder) or ":0").split(":")
+                    last_uid = int(prev[1] or 0) if prev[0] == validity else 0
+                    if last_uid:
+                        typ, data = conn.uid("SEARCH", None, "UID", f"{last_uid + 1}:*")
+                    else:
+                        since = (utcnow() - timedelta(days=30 * max(1, mb.months))).strftime("%d-%b-%Y")
+                        typ, data = conn.uid("SEARCH", None, "SINCE", since)
+                    uids = sorted(int(u) for u in (data[0] or b"").split() if int(u) > last_uid) if typ == "OK" else []
+                    cache: dict = {}
+                    for i in range(0, len(uids), BATCH):
+                        if read >= MAX_PER_RUN:
+                            break  # la suite sera lue à la prochaine analyse
+                        chunk = uids[i:i + BATCH]
+                        typ, data = conn.uid("FETCH", ",".join(map(str, chunk)), f"(UID BODY.PEEK[HEADER.FIELDS ({HEADER_FIELDS})])")
+                        for part in data or []:
+                            if isinstance(part, tuple):
+                                h = _parse_headers(part[1])
+                                if h:
+                                    _upsert(db, mb, cache, h)
+                                    counted += 1
+                        read += len(chunk)
+                        state[folder] = f"{validity}:{chunk[-1]}"
+                        mb.state = dict(state)
+                        mb.progress = f"{folder} : {min(i + BATCH, len(uids))} / {len(uids)} messages lus"
+                        db.commit()
+                    if not uids:
+                        state[folder] = f"{validity}:{last_uid}"
+                mb.state = dict(state)
+            finally:
+                try:
+                    conn.logout()
+                except Exception:  # noqa: BLE001
+                    pass
+            mb.last_scan_at = utcnow()
+        except MailboxError as e:
+            mb.last_error = str(e)
+        except Exception as e:  # noqa: BLE001
+            log.exception("Analyse de %s", mb.label)
+            mb.last_error = f"Erreur pendant l'analyse : {e}"
+        finally:
+            mb.scanning, mb.progress = False, None
+            db.commit()
+    return counted
+
+
+def scan_in_background(mailbox_id: int) -> None:
+    def run():
+        with _scan_lock:
+            scan(mailbox_id)
+    threading.Thread(target=run, daemon=True).start()
+
+
+def scan_all() -> str | None:
+    with SessionLocal() as db:
+        ids = list(db.scalars(select(Mailbox.id).where(Mailbox.auto_scan.is_(True))))
+    total = 0
+    with _scan_lock:
+        for mid in ids:
+            total += scan(mid)
+    return f"{total} message(s) en masse analysé(s)" if ids else None
+
+
+# ---------------------------------------------------------- Désinscription ----
+
+def _post_one_click(url: str) -> int:
+    """Désinscription « en un clic » normalisée (RFC 8058) : une requête POST, sans cookie ni JavaScript."""
+    req = urllib.request.Request(url, data=b"List-Unsubscribe=One-Click", method="POST", headers={
+        "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Oubliez-moi (RFC 8058)"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return resp.status
+
+
+def unsubscribe(s: Sender) -> tuple[str, str]:
+    """Tente une désinscription. Renvoie (nouveau statut, détail)."""
+    if s.unsub_one_click and s.unsub_url:
+        parsed = urllib.parse.urlparse(s.unsub_url)
+        if parsed.scheme != "https" or not parsed.hostname or not confirm._is_public(parsed.hostname):
+            return "failed", "adresse de désinscription refusée (non publique)"
+        try:
+            status = _post_one_click(s.unsub_url)
+            if 200 <= status < 300:
+                return "unsubscribed", f"désinscription en un clic acceptée (HTTP {status})"
+            return "failed", f"le site a répondu {status}"
+        except urllib.error.HTTPError as e:
+            if s.unsub_url or s.unsub_mailto:
+                return "manual", f"désinscription en un clic refusée (HTTP {e.code}) : terminez avec le lien"
+            return "failed", f"le site a répondu {e.code}"
+        except OSError as e:
+            return "failed", f"site injoignable : {getattr(e, 'reason', e)}"
+    if s.unsub_url:
+        return "manual", "ce site demande d'ouvrir sa page de désinscription"
+    if s.unsub_mailto:
+        return "manual", "ce site demande un e-mail de désinscription, à envoyer depuis la boîte concernée"
+    return "failed", "aucun moyen de désinscription fourni par l'expéditeur"
+
+
+def apply_unsubscribe(db, s: Sender) -> str:
+    status, detail = unsubscribe(s)
+    s.status, s.detail, s.status_at = status, detail, utcnow()
+    db.commit()
+    return status
+
+
+# ---------------------------------------------------------------- Rangement ----
+
+def file_sender_messages(db, mb: Mailbox, senders: list[Sender]) -> int:
+    """Déplace les e-mails des expéditeurs donnés vers le dossier de rangement de la boîte."""
+    if not senders:
+        return 0
+    target = mb.file_folder or "Newsletters"
+    conn = connect(mb, db)
+    moved = 0
+    try:
+        caps = {c.upper() for c in (conn.capabilities or ())}
+        conn.create(_quote_folder(target))  # sans effet s'il existe déjà
+        for folder in mb.folders or ["INBOX"]:
+            if folder == target:
+                continue
+            typ, _ = conn.select(_quote_folder(folder))
+            if typ != "OK":
+                continue
+            for s in senders:
+                typ, data = conn.uid("SEARCH", None, "FROM", f'"{s.address}"')
+                uids = (data[0] or b"").split() if typ == "OK" else []
+                if not uids:
+                    continue
+                uid_set = b",".join(uids).decode()
+                if "MOVE" in caps:
+                    typ, _ = conn.uid("MOVE", uid_set, _quote_folder(target))
+                else:
+                    typ, _ = conn.uid("COPY", uid_set, _quote_folder(target))
+                    if typ == "OK":
+                        conn.uid("STORE", uid_set, "+FLAGS", "(\\Deleted)")
+                        if "UIDPLUS" in caps:
+                            conn.uid("EXPUNGE", uid_set)
+                if typ == "OK":
+                    moved += len(uids)
+                    s.filed = (s.filed or 0) + len(uids)
+        db.commit()
+    finally:
+        try:
+            conn.logout()
+        except Exception:  # noqa: BLE001
+            pass
+    return moved
+
+
+# ----------------------------------------------------------- Travaux de fond ----
+
+def run_job(name: str, mailbox_ids_senders: dict[int, list[int]], action: str) -> None:
+    """Désinscriptions ou rangements groupés, en arrière-plan avec progression."""
+    total = sum(len(v) for v in mailbox_ids_senders.values())
+    job = jobs[name] = {"action": action, "done": 0, "total": total, "ok": 0, "manual": 0, "failed": 0, "finished": False, "error": None}
+
+    def run():
+        try:
+            with SessionLocal() as db:
+                for mid, sids in mailbox_ids_senders.items():
+                    mb = db.get(Mailbox, mid)
+                    senders = [db.get(Sender, sid) for sid in sids]
+                    senders = [s for s in senders if s is not None]
+                    if action == "unsubscribe":
+                        for s in senders:
+                            st = apply_unsubscribe(db, s)
+                            job["ok" if st == "unsubscribed" else st if st in ("manual", "failed") else "failed"] += 1
+                            job["done"] += 1
+                    elif action == "file":
+                        try:
+                            job["ok"] += file_sender_messages(db, mb, senders)
+                        except MailboxError as e:
+                            job["error"] = str(e)
+                        job["done"] += len(senders)
+        except Exception as e:  # noqa: BLE001
+            log.exception("Travail %s", name)
+            job["error"] = str(e)
+        finally:
+            job["finished"] = True
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+def catalog_domains(db) -> dict[str, str]:
+    """Domaines des courtiers du catalogue, pour signaler un expéditeur qui en est un."""
+    out = {}
+    for b in db.scalars(select(Broker)):
+        for d in (registered_domain((b.email or "").split("@")[-1]), registered_domain(b.web or "")):
+            if d:
+                out.setdefault(d, b.name)
+    return out

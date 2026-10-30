@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, brokers as broker_catalog, letters, llm, mailer, mailview, notify, phones, scheduler, service, settings_store
+from . import __version__, backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store
 from .config import settings
 from .db import (
     FAILED,
@@ -32,13 +32,18 @@ from .db import (
     REPLIED,
     STATUS_LABELS,
     Broker,
+    SENDER_STATUSES,
     Event,
+    Mailbox,
     Profile,
+    Sender,
     Request,
     SessionLocal,
     add_event,
     init_db,
     kv_get,
+    kv_set,
+    utcnow,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -60,7 +65,10 @@ def get_db():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    settings_store.apply_overrides()
+    crypto.fernet()  # crée la clé de chiffrement dès le premier démarrage
+    migrated = settings_store.apply_overrides()
+    if migrated:
+        log.info("%d mot(s) de passe stocké(s) en clair ont été chiffrés", migrated)
     with SessionLocal() as db:
         if not db.scalar(select(func.count(Broker.id))):
             res = service.sync_brokers(db, broker_catalog.load_seed(SEED))
@@ -539,6 +547,216 @@ def _snippet(r: Request) -> str:
 templates.env.globals["snippet"] = _snippet
 
 
+# ------------------------------------------------------------ Boîtes mail ----
+# Analyse des expéditeurs en masse, indépendante des demandes RGPD aux courtiers.
+
+@app.get("/mailboxes", response_class=HTMLResponse)
+def mailboxes_page(request: HttpRequest, status: str = "new", mailbox: int | None = None, q: str = "",
+                   db: Session = Depends(get_db)):
+    for j in mailboxes.jobs.values():  # résultat des travaux terminés
+        if j["finished"] and not j.get("seen"):
+            j["seen"] = True
+            if j["action"] == "unsubscribe":
+                msg = f"Désinscription terminée : {j['ok']} réussie(s)"
+                if j["manual"]:
+                    msg += f", {j['manual']} à finir vous-même (lien ou e-mail, onglet « Désinscription à finir »)"
+                if j["failed"]:
+                    msg += f", {j['failed']} échec(s)"
+                flash(request, msg + ".", "ok" if not j["failed"] else "info")
+            else:
+                flash(request, f"Rangement terminé : {j['ok']} e-mail(s) déplacé(s)." if not j["error"] else f"Rangement impossible : {j['error']}",
+                      "ok" if not j["error"] else "error")
+    boxes = db.scalars(select(Mailbox).order_by(Mailbox.id)).all()
+    conds = [Sender.mailbox_id == mailbox] if mailbox else []
+    counts = dict(db.execute(select(Sender.status, func.count()).where(*conds).group_by(Sender.status)).all())
+    stmt = select(Sender).where(*conds).options(selectinload(Sender.mailbox))
+    if status in SENDER_STATUSES:
+        stmt = stmt.where(Sender.status == status)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(or_(Sender.address.ilike(like), Sender.name.ilike(like), Sender.domain.ilike(like)))
+    senders = db.scalars(stmt.order_by(Sender.count.desc(), Sender.last_seen.desc()).limit(400)).all()
+    per_box = dict(db.execute(select(Sender.mailbox_id, func.count()).where(Sender.status == "new").group_by(Sender.mailbox_id)).all())
+    return render(request, "mailboxes.html", db, boxes=boxes, senders=senders, status=status, mailbox=mailbox, q=q,
+                  counts=counts, total=sum(counts.values()), per_box=per_box, SSTATUS=SENDER_STATUSES,
+                  brokers_by_domain=mailboxes.catalog_domains(db), jobs=mailboxes.jobs)
+
+
+@app.get("/mailboxes/new", response_class=HTMLResponse)
+def mailbox_new(request: HttpRequest, db: Session = Depends(get_db)):
+    return render(request, "mailbox_form.html", db, mb=None, PROVIDERS=mailboxes.PROVIDERS)
+
+
+@app.get("/mailboxes/{mid}/edit", response_class=HTMLResponse)
+def mailbox_edit(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    return render(request, "mailbox_form.html", db, mb=_get(db, Mailbox, mid), PROVIDERS=mailboxes.PROVIDERS)
+
+
+def _fill_mailbox(mb: Mailbox, form: dict) -> list[str]:
+    errors = []
+    provider = form.get("provider", "imap")
+    preset = mailboxes.PROVIDERS.get(provider, mailboxes.PROVIDERS["imap"])
+    mb.provider = provider if provider in mailboxes.PROVIDERS else "imap"
+    mb.label = (form.get("label") or "").strip() or preset["label"]
+    mb.address = (form.get("address") or "").strip().lower()
+    mb.host = (form.get("host") or preset["host"]).strip()
+    port = (form.get("port") or str(preset["port"])).strip()
+    mb.port = int(port) if port.isdigit() else preset["port"]
+    mb.security = form.get("security") if form.get("security") in ("ssl", "starttls", "none") else preset["security"]
+    mb.verify_tls = bool(form.get("verify_tls"))
+    mb.auth = preset["auth"]
+    mb.username = (form.get("username") or "").strip()
+    if form.get("password"):
+        mb.secret_enc = crypto.encrypt(form["password"])
+    mb.oauth_client_id = (form.get("oauth_client_id") or "").strip() or None
+    mb.oauth_tenant = (form.get("oauth_tenant") or "consumers").strip() or "consumers"
+    mb.folders = [f.strip() for f in (form.get("folders") or "").split(",") if f.strip()] or list(preset["folders"])
+    mb.file_folder = (form.get("file_folder") or "Newsletters").strip() or "Newsletters"
+    months = (form.get("months") or "12").strip()
+    mb.months = min(120, max(1, int(months))) if months.isdigit() else 12
+    mb.auto_scan = bool(form.get("auto_scan"))
+    if "@" not in mb.address:
+        errors.append("Indiquez l'adresse e-mail de la boîte")
+    if not mb.host:
+        errors.append("Indiquez le serveur IMAP")
+    if mb.auth == "oauth_ms" and not mb.oauth_client_id:
+        errors.append("Indiquez l'identifiant d'application Microsoft (client ID)")
+    return errors
+
+
+@app.post("/mailboxes")
+async def mailbox_create(request: HttpRequest, db: Session = Depends(get_db)):
+    form = dict(await request.form())
+    mb = Mailbox(state={})
+    errors = _fill_mailbox(mb, form)
+    if errors:
+        for e in errors:
+            flash(request, e, "error")
+        return back("/mailboxes/new")
+    db.add(mb)
+    db.commit()
+    if mb.auth == "oauth_ms":
+        flash(request, "Boîte ajoutée. Il reste à la connecter à votre compte Microsoft (bouton ci-dessous).")
+        return back(f"/mailboxes/{mb.id}/edit#oauth")
+    flash(request, f"Boîte « {mb.label} » ajoutée : première analyse lancée.")
+    mailboxes.scan_in_background(mb.id)
+    return back(f"/mailboxes?mailbox={mb.id}")
+
+
+@app.post("/mailboxes/{mid}")
+async def mailbox_update(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    form = dict(await request.form())
+    mb = _get(db, Mailbox, mid)
+    old = (mb.host, mb.address, mb.username)
+    errors = _fill_mailbox(mb, form)
+    if errors:
+        db.rollback()
+        for e in errors:
+            flash(request, e, "error")
+        return back(f"/mailboxes/{mid}/edit")
+    if old != (mb.host, mb.address, mb.username):
+        mb.state = {}  # autre compte : on repart de zéro
+        oauth_ms.forget(mb.id)
+    db.commit()
+    flash(request, "Boîte enregistrée.")
+    return back(f"/mailboxes/{mid}/edit")
+
+
+@app.post("/mailboxes/{mid}/delete")
+def mailbox_delete(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    mb = _get(db, Mailbox, mid)
+    oauth_ms.forget(mb.id)
+    db.delete(mb)
+    db.commit()
+    flash(request, "Boîte retirée d'Oubliez-moi (rien n'a été modifié dans la boîte elle-même).")
+    return back("/mailboxes")
+
+
+@app.post("/mailboxes/{mid}/test")
+def mailbox_test(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    mb = _get(db, Mailbox, mid)
+    try:
+        flash(request, mailboxes.test_connection(mb, db))
+    except mailboxes.MailboxError as e:
+        flash(request, str(e), "error")
+    return back(f"/mailboxes/{mid}/edit")
+
+
+@app.post("/mailboxes/{mid}/scan")
+def mailbox_scan(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    mb = _get(db, Mailbox, mid)
+    if mb.scanning:
+        flash(request, "Une analyse est déjà en cours.", "info")
+    else:
+        mailboxes.scan_in_background(mid)
+        flash(request, f"Analyse de « {mb.label} » lancée. Les expéditeurs apparaissent au fur et à mesure.")
+    return back(f"/mailboxes?mailbox={mid}")
+
+
+@app.get("/mailboxes/status")
+def mailboxes_status(db: Session = Depends(get_db)):
+    boxes = db.scalars(select(Mailbox)).all()
+    return JSONResponse({
+        "scanning": [{"id": b.id, "label": b.label, "progress": b.progress} for b in boxes if b.scanning],
+        "jobs": {k: v for k, v in mailboxes.jobs.items() if not v.get("seen")},
+    })
+
+
+@app.post("/mailboxes/{mid}/oauth/start")
+def mailbox_oauth_start(mid: int, db: Session = Depends(get_db)):
+    mb = _get(db, Mailbox, mid)
+    try:
+        flow = oauth_ms.start(mb.id, mb.oauth_client_id or "", mb.oauth_tenant)
+    except oauth_ms.OAuthError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    return JSONResponse({"user_code": flow["user_code"], "uri": flow["uri"], "interval": flow["interval"]})
+
+
+@app.get("/mailboxes/{mid}/oauth/poll")
+def mailbox_oauth_poll(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
+    mb = _get(db, Mailbox, mid)
+    try:
+        state, refresh = oauth_ms.poll(mb.id)
+    except oauth_ms.OAuthError as e:
+        return JSONResponse({"state": f"error:{e}"})
+    if state == "ok" and refresh:
+        mb.secret_enc = crypto.encrypt(refresh)
+        mb.last_error = None
+        db.commit()
+        flash(request, "Compte Microsoft connecté : première analyse lancée.")
+        mailboxes.scan_in_background(mb.id)
+    return JSONResponse({"state": state})
+
+
+@app.post("/senders/action")
+async def senders_action(request: HttpRequest, db: Session = Depends(get_db)):
+    form = await request.form()
+    action = form.get("action", "")
+    ids = [int(i) for i in form.getlist("ids") if str(i).isdigit()]
+    nxt = _safe_next(form.get("next")) or "/mailboxes"
+    senders = db.scalars(select(Sender).where(Sender.id.in_(ids))).all() if ids else []
+    if not senders:
+        flash(request, "Sélectionnez au moins un expéditeur.", "info")
+        return back(nxt)
+    if action in ("keep", "reset", "done"):
+        new = {"keep": "kept", "reset": "new", "done": "unsubscribed"}[action]
+        for s in senders:
+            s.status, s.status_at = new, utcnow()
+            if action == "done":
+                s.detail = "désinscription faite à la main"
+        db.commit()
+        flash(request, f"{len(senders)} expéditeur(s) : {SENDER_STATUSES[new].lower()}.")
+    elif action in ("unsubscribe", "file"):
+        groups: dict[int, list[int]] = {}
+        for s in senders:
+            groups.setdefault(s.mailbox_id, []).append(s.id)
+        name = f"{action}-{int(utcnow().timestamp())}"
+        mailboxes.run_job(name, groups, action)
+        verb = "Désinscription" if action == "unsubscribe" else "Rangement des e-mails"
+        flash(request, f"{verb} en cours pour {len(senders)} expéditeur(s)…", "info")
+    return back(nxt)
+
+
 @app.get("/export.csv")
 def export_csv(db: Session = Depends(get_db)):
     buf = io.StringIO()
@@ -673,11 +891,13 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
         overridden=settings_store.overridden_keys(), file_status=(kv_get(db, "imap_file_status") or "").split("|", 2),
         llm_models=llm.MODELS, llm_installed=llm.installed_models() if settings.llm_url else None,
         llm_details=llm.installed_details() if settings.llm_url else None,
+        backups=backup.list_backups(), backup_error=_backup_error(db),
+        key_source=crypto.key_source, crypto_errors=crypto.decrypt_errors,
         llm_in_catalog=bool(llm.catalog_kind(settings.llm_model)),
     )
 
 
-TABS = ("general", "compte", "releve", "automatismes", "notifications", "auto")
+TABS = ("general", "compte", "releve", "automatismes", "notifications", "securite", "auto")
 
 
 def _tab_url(form) -> str:
@@ -778,6 +998,35 @@ async def llm_pull(request: HttpRequest):
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     return JSONResponse({"model": model, **state})
+
+
+def _backup_error(db) -> str | None:
+    status = (kv_get(db, "backup_status") or "").split("|", 2)
+    if len(status) == 3 and status[1] == "error":
+        return f"Dernière sauvegarde automatique en échec ({fmt_dt(datetime.fromisoformat(status[0]))}) : {status[2]}"
+    if settings.backup_schedule != "off" and not settings.backup_dir.is_dir():
+        return f"Le dossier {settings.backup_dir} n'existe pas dans le conteneur : vérifiez BACKUP_PATH dans .env et docker-compose.yml."
+    return None
+
+
+@app.post("/settings/backup-now")
+async def backup_now(request: HttpRequest, db: Session = Depends(get_db)):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
+    try:
+        path = backup.create(manual=True)
+        kv_set(db, "backup_status", f"{utcnow().isoformat()}|ok|{path.name}")
+        db.commit()
+        flash(request, f"Réglages enregistrés. Sauvegarde créée : {path.name}")
+    except (backup.BackupError, OSError) as e:
+        flash(request, f"Sauvegarde impossible : {e}", "error")
+    return back(_tab_url(form))
+
+
+@app.get("/settings/encryption-key")
+def encryption_key():
+    return JSONResponse({"key": crypto.export_key()}, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/settings/llm-delete")

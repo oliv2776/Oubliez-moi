@@ -10,6 +10,7 @@ import re
 
 from sqlalchemy import delete, select
 
+from . import crypto
 from .config import EDITABLE, SECRET_KEYS, settings
 from .db import KV, SessionLocal, kv_set
 
@@ -19,16 +20,33 @@ SECURITY_CHOICES = {"starttls", "ssl", "none"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def _dump(key: str, value) -> str:
+    """Valeur prête à stocker : les secrets sont chiffrés."""
+    return json.dumps(crypto.encrypt(value) if key in SECRET_KEYS else value)
+
+
 def apply_overrides() -> None:
+    """Charge les réglages de l'interface ; chiffre au passage les secrets encore stockés en clair."""
+    migrated = 0
     with SessionLocal() as db:
         rows = db.scalars(select(KV).where(KV.key.like(f"{PREFIX}%"))).all()
         for row in rows:
             key = row.key[len(PREFIX):]
-            if key in EDITABLE:
-                try:
-                    setattr(settings, key, json.loads(row.value))
-                except ValueError:
-                    pass
+            if key not in EDITABLE:
+                continue
+            try:
+                value = json.loads(row.value)
+            except ValueError:
+                continue
+            if key in SECRET_KEYS:
+                if value and not crypto.is_encrypted(value):
+                    row.value = _dump(key, value)  # ancienne valeur en clair : on la chiffre
+                    migrated += 1
+                value = crypto.decrypt(value)
+            setattr(settings, key, value)
+        if migrated:
+            db.commit()
+    return migrated
 
 
 def overridden_keys() -> set[str]:
@@ -78,6 +96,10 @@ def save_from_form(form: dict) -> list[str]:
         except ValueError as e:
             errors.append(str(e))
 
+    if "backup_schedule" in values and values["backup_schedule"] not in {"off", "daily", "weekly"}:
+        errors.append("Fréquence de sauvegarde inconnue")
+    if "backup_keep" in values and not 1 <= values["backup_keep"] <= 365:
+        errors.append("Le nombre de sauvegardes conservées doit être compris entre 1 et 365")
     if "llm_mode" in values and values["llm_mode"] not in {"decision", "chat"}:
         errors.append("Type de modèle inconnu")
     if "imap_file_mode" in values and values["imap_file_mode"] not in {"off", "move", "label"}:
@@ -108,7 +130,7 @@ def save_from_form(form: dict) -> list[str]:
 
     with SessionLocal() as db:
         for key, value in values.items():
-            kv_set(db, PREFIX + key, json.dumps(value))
+            kv_set(db, PREFIX + key, _dump(key, value))
             setattr(settings, key, value)
         db.commit()
     return []

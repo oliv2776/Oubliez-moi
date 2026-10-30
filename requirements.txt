@@ -8,3 +8,4 @@ itsdangerous==2.2.0
 tzdata==2026.6
 phonenumbers==9.0.42
 nh3==0.3.7
+cryptography==50.0.2

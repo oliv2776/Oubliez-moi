@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Boîte ' ~ mb.label if mb else 'Ajouter une boîte' }}{% endblock %}
+{% block content %}
+{% set prov = mb.provider if mb else 'gmail' %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/mailboxes">Boîtes mail</a></p>
+    <h1>{{ mb.label if mb else 'Ajouter une boîte' }}</h1>
+  </div>
+  {% if mb %}
+  <div class="actions">
+    <form method="post" action="/mailboxes/{{ mb.id }}/test" class="inline"><button class="btn">Tester la connexion</button></form>
+    <form method="post" action="/mailboxes/{{ mb.id }}/scan" class="inline"><button class="btn">Analyser maintenant</button></form>
+  </div>
+  {% endif %}
+</div>
+
+<form method="post" action="{{ '/mailboxes/%d'|format(mb.id) if mb else '/mailboxes' }}" autocomplete="off" class="panel-narrow">
+<div class="card">
+  <h2>Compte</h2>
+  <label for="provider">Fournisseur</label>
+  <select id="provider" name="provider">
+    {% for key, p in PROVIDERS.items() %}<option value="{{ key }}" {{ 'selected' if prov == key }}>{{ p.label }}</option>{% endfor %}
+  </select>
+  <p class="small muted" id="provider-help" style="margin-top:.4rem"></p>
+  <div class="row2">
+    <div><label for="address">Adresse e-mail *</label><input id="address" type="email" name="address" value="{{ mb.address if mb else '' }}" required></div>
+    <div><label for="label">Nom affiché</label><input id="label" type="text" name="label" value="{{ mb.label if mb else '' }}" placeholder="ex. Gmail perso"></div>
+  </div>
+
+  <div id="auth-password">
+    <label for="username">Identifiant <span class="hint">— vide = l'adresse e-mail</span></label>
+    <input id="username" type="text" name="username" value="{{ mb.username if mb else '' }}" autocomplete="off">
+    <label for="password">Mot de passe {% if mb and mb.secret_enc and mb.auth == 'password' %}<span class="hint">— enregistré (chiffré) ; laissez vide pour le conserver</span>{% endif %}</label>
+    <input id="password" type="password" name="password" value="" autocomplete="new-password" placeholder="{{ '••••••••••••' if mb and mb.secret_enc and mb.auth == 'password' else '' }}">
+  </div>
+
+  <div id="auth-oauth" hidden>
+    <label for="oauth_client_id">Identifiant d'application Microsoft (client ID) *</label>
+    <input id="oauth_client_id" type="text" name="oauth_client_id" value="{{ (mb.oauth_client_id or '') if mb else '' }}" placeholder="00000000-0000-0000-0000-000000000000">
+    <label for="oauth_tenant">Type de compte</label>
+    <select id="oauth_tenant" name="oauth_tenant">
+      {% set t = mb.oauth_tenant if mb else 'consumers' %}
+      <option value="consumers" {{ 'selected' if t == 'consumers' }}>Compte personnel (Hotmail, Outlook.com, Live, MSN)</option>
+      <option value="organizations" {{ 'selected' if t == 'organizations' }}>Compte professionnel ou scolaire (Microsoft 365)</option>
+      <option value="common" {{ 'selected' if t == 'common' }}>Les deux</option>
+    </select>
+    <details style="margin-top:.6rem">
+      <summary>Comment obtenir un identifiant d'application ?</summary>
+      <ol class="small">
+        <li>Microsoft exige une application déclarée dans un annuaire <strong>Microsoft Entra</strong> (celui de votre entreprise, ou un annuaire créé avec un compte Azure).</li>
+        <li>Sur <a href="https://entra.microsoft.com" target="_blank" rel="noopener noreferrer">entra.microsoft.com</a> → <em>Applications</em> → <em>Inscriptions d'applications</em> → <em>Nouvelle inscription</em>.</li>
+        <li>Types de comptes : <em>comptes de n'importe quel annuaire et comptes Microsoft personnels</em>. Pas d'URI de redirection.</li>
+        <li>Dans <em>Authentification</em>, activez <em>Autoriser les flux clients publics</em>.</li>
+        <li>Copiez l'<em>ID d'application (client)</em> ici, enregistrez, puis cliquez sur « Connecter le compte Microsoft ».</li>
+      </ol>
+    </details>
+    {% if mb and mb.auth == 'oauth_ms' %}
+    <div class="oauth-box" id="oauth">
+      {% if mb.secret_enc %}<p class="small"><span class="badge s-completed">Connecté</span> Le jeton d'accès est conservé chiffré.</p>{% else %}<p class="small"><span class="badge s-needs_action">Pas encore connecté</span></p>{% endif %}
+      <button type="button" class="btn sm" id="oauth-start">{{ 'Reconnecter' if mb.secret_enc else 'Connecter' }} le compte Microsoft</button>
+      <div id="oauth-flow" hidden style="margin-top:.7rem">
+        <p class="small">Ouvrez <a id="oauth-uri" href="https://microsoft.com/devicelogin" target="_blank" rel="noopener noreferrer">microsoft.com/devicelogin</a>, connectez-vous avec <strong>{{ mb.address }}</strong> et saisissez ce code :</p>
+        <p class="oauth-code" id="oauth-code"></p>
+        <p class="small muted" id="oauth-state">En attente de votre validation…</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Serveur et analyse</h2>
+  <label for="host">Serveur IMAP *</label>
+  <input id="host" type="text" name="host" value="{{ mb.host if mb else '' }}">
+  <div class="row2">
+    <div><label for="port">Port</label><input id="port" type="text" inputmode="numeric" name="port" value="{{ mb.port if mb else '' }}"></div>
+    <div><label for="security">Sécurité</label>
+      <select id="security" name="security">
+        {% set sec = mb.security if mb else 'ssl' %}
+        {% for v, l in [('ssl', 'SSL/TLS'), ('starttls', 'STARTTLS'), ('none', 'Aucune (déconseillé)')] %}<option value="{{ v }}" {{ 'selected' if sec == v }}>{{ l }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls" value="1" {{ 'checked' if (mb.verify_tls if mb else True) }}> Vérifier le certificat du serveur <span class="hint">— à décocher uniquement pour Proton Mail Bridge sur votre réseau</span></label>
+  <label for="folders">Dossiers à analyser <span class="hint">— séparés par des virgules</span></label>
+  <input id="folders" type="text" name="folders" value="{{ mb.folders|join(', ') if mb else '' }}">
+  <div class="row2">
+    <div><label for="months">Profondeur de la première analyse</label>
+      <select id="months" name="months">
+        {% set mo = mb.months if mb else 12 %}
+        {% for v, l in [(3, '3 mois'), (6, '6 mois'), (12, '12 mois'), (24, '2 ans'), (60, '5 ans')] %}<option value="{{ v }}" {{ 'selected' if mo == v }}>{{ l }}</option>{% endfor %}
+      </select></div>
+    <div><label for="file_folder">Dossier de rangement</label><input id="file_folder" type="text" name="file_folder" value="{{ mb.file_folder if mb else 'Newsletters' }}"></div>
+  </div>
+  <label class="check"><input type="checkbox" name="auto_scan" value="1" {{ 'checked' if (mb.auto_scan if mb else True) }}> Analyser automatiquement les nouveaux e-mails chaque nuit</label>
+  <p class="small muted" style="margin-top:.6rem">Seuls les en-têtes sont lus (expéditeur, objet, date, liens de désinscription), jamais le contenu des messages. Rien n'est marqué comme lu ; les e-mails ne sont déplacés que si vous cliquez sur « Ranger ».</p>
+</div>
+
+<div class="savebar">
+  <a href="/mailboxes" class="btn link">Annuler</a>
+  <button class="btn primary">{{ 'Enregistrer' if mb else 'Ajouter et analyser' }}</button>
+</div>
+</form>
+
+{% if mb %}
+<form method="post" action="/mailboxes/{{ mb.id }}/delete" class="panel-narrow" style="margin-top:1rem" onsubmit="return confirm('Retirer cette boîte d\'Oubliez-moi ? La boîte elle-même ne sera pas modifiée.')">
+  <button class="btn sm danger">Retirer cette boîte</button>
+  <span class="small muted">Supprime aussi la liste de ses expéditeurs dans Oubliez-moi.</span>
+</form>
+{% endif %}
+
+<script>
+(function () {
+  const PROVIDERS = {{ PROVIDERS|tojson }};
+  const $ = id => document.getElementById(id);
+  const isNew = {{ 'false' if mb else 'true' }};
+  function apply(fill) {
+    const p = PROVIDERS[$("provider").value];
+    $("provider-help").textContent = p.help || "";
+    $("auth-password").hidden = p.auth !== "password";
+    $("auth-oauth").hidden = p.auth !== "oauth_ms";
+    if (fill) {
+      if (p.host || $("provider").value !== "imap") $("host").value = p.host;
+      $("port").value = p.port; $("security").value = p.security; $("verify_tls").checked = p.verify_tls;
+      $("folders").value = p.folders.join(", ");
+    }
+  }
+  $("provider").addEventListener("change", () => apply(true));
+  apply(isNew);
+
+  const start = $("oauth-start");
+  if (start) start.addEventListener("click", async () => {
+    start.disabled = true;
+    const r = await fetch("/mailboxes/{{ mb.id if mb else 0 }}/oauth/start", { method: "POST" });
+    const data = await r.json();
+    if (!r.ok) { alert(data.error || "Erreur"); start.disabled = false; return; }
+    $("oauth-flow").hidden = false; $("oauth-code").textContent = data.user_code;
+    $("oauth-uri").href = data.uri; $("oauth-uri").textContent = data.uri.replace("https://", "");
+    const tick = async () => {
+      const st = (await (await fetch("/mailboxes/{{ mb.id if mb else 0 }}/oauth/poll")).json()).state;
+      if (st === "pending") return setTimeout(tick, (data.interval || 5) * 1000);
+      if (st === "ok") return location.href = "/mailboxes?mailbox={{ mb.id if mb else 0 }}";
+      $("oauth-state").textContent = st === "expired" ? "Code expiré : recommencez." : st === "denied" ? "Connexion refusée." : "Erreur : " + st.replace("error:", "");
+      start.disabled = false;
+    };
+    setTimeout(tick, (data.interval || 5) * 1000);
+  });
+})();
+</script>
+{% endblock %}

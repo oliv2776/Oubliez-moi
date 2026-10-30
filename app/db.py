@@ -163,6 +163,83 @@ class Event(Base):
     request: Mapped[Request] = relationship(back_populates="events")
 
 
+class Mailbox(Base):
+    """Boîte mail analysée pour repérer les expéditeurs en masse (indépendante des demandes RGPD)."""
+    __tablename__ = "mailboxes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    label: Mapped[str] = mapped_column(String(200))
+    address: Mapped[str] = mapped_column(String(300))
+    provider: Mapped[str] = mapped_column(String(30), default="imap")  # gmail | outlook | proton | icloud | imap
+    host: Mapped[str] = mapped_column(String(300), default="")
+    port: Mapped[int] = mapped_column(Integer, default=993)
+    security: Mapped[str] = mapped_column(String(20), default="ssl")  # ssl | starttls | none
+    verify_tls: Mapped[bool] = mapped_column(Boolean, default=True)
+    auth: Mapped[str] = mapped_column(String(20), default="password")  # password | oauth_ms
+    username: Mapped[str] = mapped_column(String(300), default="")
+    secret_enc: Mapped[str] = mapped_column(Text, default="")  # mot de passe ou jeton de rafraîchissement, chiffré
+    oauth_client_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    oauth_tenant: Mapped[str] = mapped_column(String(100), default="consumers")
+    folders: Mapped[list] = mapped_column(JSON, default=list)
+    file_folder: Mapped[str] = mapped_column(String(200), default="Newsletters")
+    months: Mapped[int] = mapped_column(Integer, default=12)
+    auto_scan: Mapped[bool] = mapped_column(Boolean, default=True)
+    state: Mapped[dict] = mapped_column(JSON, default=dict)  # dossier -> "uidvalidity:dernier_uid"
+    scanning: Mapped[bool] = mapped_column(Boolean, default=False)
+    progress: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    last_scan_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    senders: Mapped[list["Sender"]] = relationship(back_populates="mailbox", cascade="all, delete-orphan")
+
+
+SENDER_STATUSES = {
+    "new": "À traiter",
+    "unsubscribed": "Désinscrit",
+    "manual": "Désinscription à finir",
+    "kept": "Gardé",
+    "failed": "Échec",
+}
+
+
+class Sender(Base):
+    """Expéditeur d'e-mails en masse repéré dans une boîte (newsletter, publicité…)."""
+    __tablename__ = "senders"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    mailbox_id: Mapped[int] = mapped_column(ForeignKey("mailboxes.id", ondelete="CASCADE"), index=True)
+    address: Mapped[str] = mapped_column(String(300), index=True)
+    domain: Mapped[str] = mapped_column(String(200), index=True)
+    name: Mapped[str] = mapped_column(String(300), default="")
+    count: Mapped[int] = mapped_column(Integer, default=0)
+    first_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_subject: Mapped[str] = mapped_column(String(500), default="")
+    unsub_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    unsub_one_click: Mapped[bool] = mapped_column(Boolean, default=False)
+    unsub_mailto: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)
+    status_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    filed: Mapped[int] = mapped_column(Integer, default=0)
+    seen_after_unsub: Mapped[int] = mapped_column(Integer, default=0)
+
+    mailbox: Mapped[Mailbox] = relationship(back_populates="senders")
+
+    @property
+    def status_label(self) -> str:
+        return SENDER_STATUSES.get(self.status, self.status)
+
+    @property
+    def unsub_kind(self) -> str:
+        if self.unsub_one_click and self.unsub_url:
+            return "one_click"
+        if self.unsub_url:
+            return "link"
+        if self.unsub_mailto:
+            return "mailto"
+        return "none"
+
+
 class KV(Base):
     """Petit stockage clé/valeur (état IMAP, date de dernière mise à jour…)."""
     __tablename__ = "kv"

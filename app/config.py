@@ -75,6 +75,12 @@ class Settings:
     # decision : modèle de décision via /v1/systemone (Tev1, Nimble) ; chat : modèle conversationnel via /api/chat
     llm_mode: str = field(default_factory=lambda: _str("LLM_MODE", "decision").lower())
 
+    # Sauvegardes (dossier monté depuis le pool ZFS, cf. docker-compose.yml)
+    backup_dir: Path = field(default_factory=lambda: Path(_str("BACKUP_DIR", "/backups")))
+    backup_schedule: str = field(default_factory=lambda: _str("BACKUP_SCHEDULE", "daily").lower())  # off | daily | weekly
+    backup_keep: int = field(default_factory=lambda: _int("BACKUP_KEEP", 14))
+    backup_encrypt: bool = field(default_factory=lambda: _bool("BACKUP_ENCRYPT", True))
+
     # Notifications
     app_url: str = field(default_factory=lambda: _str("APP_URL"))
     notify_ntfy_url: str = field(default_factory=lambda: _str("NOTIFY_NTFY_URL"))
@@ -173,6 +179,9 @@ EDITABLE: dict[str, type] = {
     "notify_gotify_url": str,
     "notify_gotify_token": str,
     "notify_email_digest": bool,
+    "backup_schedule": str,
+    "backup_keep": int,
+    "backup_encrypt": bool,
 }
 SECRET_KEYS = {"smtp_password", "imap_password", "notify_ntfy_token", "notify_gotify_token"}
 

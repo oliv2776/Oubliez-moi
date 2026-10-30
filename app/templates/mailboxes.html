@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Boîtes mail{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Boîtes mail</h1>
+    <p class="muted" style="margin:0">Qui vous écrit en masse ? Désinscrivez-vous et rangez, boîte par boîte. Indépendant des demandes aux courtiers : seuls les en-têtes sont lus, rien n'est marqué comme lu.</p>
+  </div>
+  <a class="btn primary" href="/mailboxes/new">+ Ajouter une boîte</a>
+</div>
+
+<div id="live" class="banner info" hidden></div>
+
+{% if not boxes %}
+<div class="card empty">
+  <h2>Aucune boîte pour l'instant</h2>
+  <p>Ajoutez vos boîtes Gmail, Hotmail, Proton ou autres : Oubliez-moi repère les newsletters et publicités qui vous arrivent, et vous aide à vous en débarrasser.</p>
+  <p><a class="btn primary" href="/mailboxes/new">Ajouter une boîte</a></p>
+</div>
+{% else %}
+
+<div class="grid boxes">
+  {% for b in boxes %}
+  <div class="card box {{ 'active' if mailbox == b.id }}">
+    <div class="page-head" style="margin:0 0 .3rem">
+      <div>
+        <h3 style="margin:0"><a href="/mailboxes?mailbox={{ b.id }}">{{ b.label }}</a></h3>
+        <div class="small muted">{{ b.address }}</div>
+      </div>
+      <span class="tag">{{ b.provider }}</span>
+    </div>
+    {% if b.scanning %}
+      <p class="small" style="color:var(--info)">⟳ Analyse en cours{% if b.progress %} : {{ b.progress }}{% endif %}</p>
+    {% elif b.last_error %}
+      <p class="small" style="color:var(--bad)">{{ b.last_error }}</p>
+    {% else %}
+      <p class="small muted">{{ per_box.get(b.id, 0) }} expéditeur(s) à traiter · analysée le {{ b.last_scan_at|dt }}</p>
+    {% endif %}
+    <div class="actions">
+      <form method="post" action="/mailboxes/{{ b.id }}/scan" class="inline"><button class="btn sm" {{ 'disabled' if b.scanning }}>Analyser</button></form>
+      <a class="btn sm" href="/mailboxes/{{ b.id }}/edit">Réglages</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<nav class="chips" aria-label="Filtrer" style="margin-top:.5rem">
+  {% set qs = ('&mailbox=' ~ mailbox if mailbox else '') ~ ('&q=' ~ q if q else '') %}
+  {% for key in ['new', 'manual', 'unsubscribed', 'kept', 'failed'] %}
+  <a class="chip {{ 'active' if status == key }}" href="/mailboxes?status={{ key }}{{ qs }}">{{ SSTATUS[key] }} <span class="n">{{ counts.get(key, 0) }}</span></a>
+  {% endfor %}
+  <a class="chip {{ 'active' if status == 'all' }}" href="/mailboxes?status=all{{ qs }}">Tous <span class="n">{{ total }}</span></a>
+</nav>
+
+<form class="filters" method="get">
+  <input type="hidden" name="status" value="{{ status }}">
+  {% if boxes|length > 1 %}
+  <select name="mailbox" onchange="this.form.submit()">
+    <option value="">Toutes les boîtes</option>
+    {% for b in boxes %}<option value="{{ b.id }}" {{ 'selected' if mailbox == b.id }}>{{ b.label }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <input type="search" name="q" value="{{ q }}" placeholder="Expéditeur, domaine…">
+  <button class="btn">Filtrer</button>
+</form>
+
+{% set next_url = '/mailboxes?status=' ~ status ~ qs %}
+<form method="post" action="/senders/action" id="senders-form">
+<input type="hidden" name="next" value="{{ next_url }}">
+<div class="card table-wrap">
+{% if senders %}
+<table class="senders">
+  <tr>
+    <th style="width:28px"><input type="checkbox" id="check-all" aria-label="Tout sélectionner"></th>
+    <th>Expéditeur</th>{% if boxes|length > 1 and not mailbox %}<th class="hide-sm">Boîte</th>{% endif %}
+    <th class="num">E-mails</th><th class="hide-sm">Dernier envoi</th><th>Désinscription</th><th></th>
+  </tr>
+  {% for s in senders %}
+  <tr>
+    <td><input type="checkbox" name="ids" value="{{ s.id }}" aria-label="Sélectionner {{ s.name or s.address }}"></td>
+    <td>
+      <strong>{{ s.name or s.domain }}</strong>
+      <div class="small muted">{{ s.address }}</div>
+      <div>
+        {% if brokers_by_domain.get(s.domain) %}<span class="tag" title="{{ brokers_by_domain[s.domain] }}">courtier du catalogue</span>{% endif %}
+        {% if s.seen_after_unsub %}<span class="tag" style="color:var(--bad);border-color:var(--bad)">écrit encore après désinscription</span>{% endif %}
+        {% if s.filed %}<span class="tag">{{ s.filed }} rangé(s)</span>{% endif %}
+        {% if s.status != 'new' %}<span class="badge sb-{{ s.status }}">{{ s.status_label }}</span>{% endif %}
+      </div>
+      {% if s.detail and s.status in ('manual', 'failed', 'unsubscribed') %}<div class="small muted">{{ s.detail }}</div>{% endif %}
+    </td>
+    {% if boxes|length > 1 and not mailbox %}<td class="hide-sm small">{{ s.mailbox.label }}</td>{% endif %}
+    <td class="num">{{ s.count }}<div class="small muted">depuis {{ s.first_seen|d }}</div></td>
+    <td class="hide-sm small">{{ s.last_seen|d }}<div class="muted ellipsis" title="{{ s.last_subject }}">{{ s.last_subject }}</div></td>
+    <td class="small">
+      {% set k = s.unsub_kind %}
+      {% if k == 'one_click' %}<span class="ukind ok">⚡ en un clic</span>
+      {% elif k == 'link' %}<span class="ukind">🔗 page à ouvrir</span>
+      {% elif k == 'mailto' %}<span class="ukind">✉ e-mail à envoyer</span>
+      {% else %}<span class="ukind muted">aucune</span>{% endif %}
+      {% if s.status == 'manual' %}
+        <div style="margin-top:.3rem">
+          {% if s.unsub_url %}<a class="btn sm" href="{{ s.unsub_url|url }}" target="_blank" rel="noopener noreferrer nofollow">Ouvrir la page ↗</a>
+          {% elif s.unsub_mailto %}<a class="btn sm" href="{{ s.unsub_mailto }}">Écrire ↗</a>{% endif %}
+        </div>
+      {% endif %}
+    </td>
+    <td class="num">
+      <div class="actions" style="justify-content:flex-end">
+        {% if s.status in ('new', 'failed') and k != 'none' %}<button class="btn sm primary" name="action" value="unsubscribe" data-one="{{ s.id }}">Se désinscrire</button>{% endif %}
+        {% if s.status == 'manual' %}<button class="btn sm primary" name="action" value="done" data-one="{{ s.id }}">C'est fait</button>{% endif %}
+        <button class="btn sm" name="action" value="file" data-one="{{ s.id }}" title="Déplacer ses e-mails dans « {{ s.mailbox.file_folder }} »">Ranger</button>
+        {% if s.status == 'new' %}<button class="btn sm link" name="action" value="keep" data-one="{{ s.id }}" title="Je veux continuer à recevoir ces e-mails">Garder</button>
+        {% else %}<button class="btn sm link" name="action" value="reset" data-one="{{ s.id }}">Remettre à traiter</button>{% endif %}
+      </div>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% if senders|length == 400 %}<p class="small muted">Affichage limité aux 400 expéditeurs les plus actifs : utilisez la recherche pour les autres.</p>{% endif %}
+{% else %}
+<p class="empty">{% if status == 'new' %}Rien à traiter ici.{% else %}Aucun expéditeur dans cette catégorie.{% endif %}</p>
+{% endif %}
+</div>
+
+<div class="savebar bulkbar" id="bulkbar" hidden>
+  <span><strong id="bulk-n">0</strong> sélectionné(s)</span>
+  <div class="actions">
+    <button class="btn primary" name="action" value="unsubscribe">Se désinscrire</button>
+    <button class="btn" name="action" value="file">Ranger leurs e-mails</button>
+    <button class="btn" name="action" value="keep">Garder</button>
+  </div>
+</div>
+</form>
+{% endif %}
+
+<script>
+(function () {
+  const form = document.getElementById("senders-form");
+  if (form) {
+    const boxes = () => [...form.querySelectorAll('input[name="ids"]')];
+    const update = () => {
+      const n = boxes().filter(b => b.checked).length;
+      document.getElementById("bulk-n").textContent = n;
+      document.getElementById("bulkbar").hidden = n === 0;
+    };
+    form.addEventListener("change", update);
+    const all = document.getElementById("check-all");
+    if (all) all.addEventListener("change", () => { boxes().forEach(b => b.checked = all.checked); update(); });
+    // Boutons d'une ligne : n'agir que sur cette ligne
+    form.querySelectorAll("[data-one]").forEach(btn => btn.addEventListener("click", () => {
+      boxes().forEach(b => b.checked = (b.value === btn.dataset.one));
+    }));
+  }
+  // Progression des analyses et des travaux en arrière-plan
+  const live = document.getElementById("live");
+  let wasBusy = false;
+  async function poll() {
+    try {
+      const st = await (await fetch("/mailboxes/status")).json();
+      const parts = st.scanning.map(s => "Analyse de « " + s.label + " » : " + (s.progress || "en cours"));
+      for (const j of Object.values(st.jobs)) {
+        if (!j.finished) parts.push((j.action === "unsubscribe" ? "Désinscription" : "Rangement") + " : " + j.done + " / " + j.total);
+      }
+      live.hidden = parts.length === 0;
+      live.textContent = parts.join(" · ");
+      if (parts.length) { wasBusy = true; setTimeout(poll, 2000); }
+      else if (wasBusy) { location.reload(); }
+    } catch (e) {}
+  }
+  poll();
+})();
+</script>
+{% endblock %}

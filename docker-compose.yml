@@ -12,6 +12,9 @@ services:
       - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-27480}:27480"
     volumes:
       - oubliez-moi-data:/data
+      # Sauvegardes : indiquez dans .env un dossier de votre pool (BACKUP_PATH=/mnt/tank/backups/oubliez-moi),
+      # accessible en écriture à l'utilisateur du conteneur : sudo chown 10001 /mnt/tank/backups/oubliez-moi
+      - ${BACKUP_PATH:-./backups}:/backups
 
   # IA locale facultative, pour classer les réponses ambiguës.
   # Démarrage : docker compose --profile ia up -d

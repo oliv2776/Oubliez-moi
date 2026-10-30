@@ -19,6 +19,7 @@
     <a href="/requests" class="{{ 'active' if path.startswith('/requests') }}">Demandes</a>
     <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}">À traiter{% if nav_todo %}<span class="pill">{{ nav_todo }}</span>{% endif %}</a>
     <a href="/brokers" class="{{ 'active' if path.startswith('/brokers') }}">Courtiers</a>
+    <a href="/mailboxes" class="{{ 'active' if path.startswith('/mailboxes') }}">Boîtes mail</a>
     <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Réglages</a>
   </nav>
   <form method="post" action="/logout" class="inline"><button class="btn sm">Déconnexion</button></form>
@@ -28,7 +29,7 @@
   {% if request.session.get('user') and settings.dry_run %}
   <div class="banner warn"><strong>Mode simulation.</strong> Aucun e-mail n'est réellement envoyé. Une fois la messagerie testée et le courrier relu, passez en envoi réel dans <a href="/settings">Réglages</a>.</div>
   {% endif %}
-  {% if request.session.get('user') and not settings.smtp_configured and not path.startswith('/settings') %}
+  {% if request.session.get('user') and not settings.smtp_configured and not path.startswith(('/settings', '/mailboxes')) %}
   <div class="banner info"><strong>Messagerie non configurée.</strong> Indiquez l'adresse e-mail qui enverra les demandes dans <a href="/settings">Réglages</a>.</div>
   {% endif %}
   {% for kind, msg in flashes %}<div class="banner {{ kind }}">{{ msg }}</div>{% endfor %}
