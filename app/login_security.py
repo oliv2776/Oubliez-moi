@@ -39,7 +39,6 @@ class LoginAttemptLimiter:
             if history is None:
                 history = self._attempts[client] = deque()
             history.append(now)
-            self._attempts.move_to_end(client) if hasattr(self._attempts, "move_to_end") else None
             while len(self._attempts) > self.max_clients:
                 self._attempts.pop(next(iter(self._attempts)))
             return 0
