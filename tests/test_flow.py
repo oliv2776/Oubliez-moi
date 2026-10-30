@@ -66,6 +66,7 @@ def test_full_flow(client):
     # Une réponse citant la référence -> terminée
     m = EmailMessage()
     m["From"] = broker_email
+    m["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
     m["Subject"] = f"RE: Demande d'effacement – Réf. {ref}"
     m["Message-ID"] = "<reply1@broker>"
     m.set_content("Bonjour, vos données ont été supprimées. Cordialement")
@@ -78,6 +79,7 @@ def test_full_flow(client):
         second = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).first()
         m2 = EmailMessage()
         m2["From"] = "support@" + second.broker.email.split("@")[1]
+        m2["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
         m2["Subject"] = "Your request"
         m2["In-Reply-To"] = second.message_ids[0]
         m2["Message-ID"] = "<reply2@broker>"
@@ -155,6 +157,7 @@ def test_reference_from_unrelated_domain_is_attached_but_not_trusted(client):
         db.commit()
         raw = EmailMessage()
         raw["From"] = "attacker@evil.example"
+        raw["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
         raw["Subject"] = "Re: OUBLI-ABC123"
         raw["Message-ID"] = "<forged@evil.example>"
         raw.set_content("Your data has been deleted.")
