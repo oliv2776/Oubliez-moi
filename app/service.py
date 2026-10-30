@@ -141,7 +141,7 @@ def enroll_new_brokers() -> int:
 
 def schedule_resends() -> int:
     """Renvoie périodiquement les demandes terminées : les courtiers recollectent les données."""
-    if settings.resend_interval_days <= 0:
+    if settings.resend_interval_days <= 0 or settings.max_automatic_resend_cycles <= 1:
         return 0
     cutoff = utcnow() - timedelta(days=settings.resend_interval_days)
     n = 0
@@ -154,7 +154,8 @@ def schedule_resends() -> int:
         rows = db.scalars(
             select(Request)
             .join(latest, (Request.profile_id == latest.c.profile_id) & (Request.broker_id == latest.c.broker_id) & (Request.cycle == latest.c.cycle))
-            .where(Request.status == COMPLETED, Request.closed_at < cutoff)
+            .where(Request.status == COMPLETED, Request.closed_at.is_not(None), Request.closed_at < cutoff,
+                   Request.cycle < settings.max_automatic_resend_cycles)
         ).all()
         for old in rows:
             if old.profile.active and old.broker.enabled and old.broker.email:
@@ -424,13 +425,13 @@ def check_deadlines() -> int:
 
 # ------------------------------------------------------------- Réponses ----
 
-def _sender_matches_broker(req: Request, from_addr: str) -> bool:
-    """Évite de rattacher automatiquement une référence connue à un domaine tiers.
+def _sender_matches_broker(req: Request, from_addr: str, dmarc_pass: bool = False) -> bool:
+    """Authentifie l'expéditeur via DMARC validé par le serveur IMAP, puis vérifie son domaine.
 
     Les plateformes de gestion des demandes RGPD courantes sont admises en plus
     du domaine du courtier. Ce contrôle de cohérence ne remplace pas SPF/DKIM/DMARC.
     """
-    if "@" not in (from_addr or ""):
+    if not dmarc_pass or "@" not in (from_addr or ""):
         return False
     sender_domain = mailer.registered_domain(from_addr.rsplit("@", 1)[-1])
     if not sender_domain:
@@ -535,7 +536,7 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
 
 def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     c = _classify(db, req, m)
-    sender_trusted = _sender_matches_broker(req, m.from_addr)
+    sender_trusted = _sender_matches_broker(req, m.from_addr, m.dmarc_pass)
     if not sender_trusted:
         # Une référence permet d'identifier le ticket, pas d'authentifier son expéditeur.
         # Ne jamais clôturer, confirmer automatiquement ou prolonger sur cette seule base.
