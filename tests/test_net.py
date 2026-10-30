@@ -44,6 +44,16 @@ def test_safe_urlopen_connects_to_pinned_local_ip():
         server.shutdown()
 
 
+def test_safe_urlopen_handles_localhost_dual_stack_resolution():
+    server = HTTPServer(("127.0.0.1", 0), _Handler)
+    Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        with safe_urlopen(f"http://localhost:{server.server_port}/", allow_private=True) as response:
+            assert response.read() == b"pinned"
+    finally:
+        server.shutdown()
+
+
 def test_safe_urlopen_rejects_non_http_schemes():
     with pytest.raises(UnsafeAddressError):
         safe_urlopen("file:///etc/passwd")
