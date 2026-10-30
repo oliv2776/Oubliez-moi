@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Float,
     String,
     Text,
     create_engine,
@@ -238,6 +239,25 @@ class Sender(Base):
         if self.unsub_mailto:
             return "mailto"
         return "none"
+
+
+class ExposureLink(Base):
+    """Lien vérifiable entre un domaine observé et une entité du catalogue."""
+    __tablename__ = "exposure_links"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sender_domain: Mapped[str] = mapped_column(String(200), index=True)
+    broker_id: Mapped[int] = mapped_column(ForeignKey("brokers.id", ondelete="CASCADE"), index=True)
+    group_name: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    relation: Mapped[str] = mapped_column(String(30), default="possible_match")
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(20), default="proposed", index=True)
+    evidence: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(20), default="automatic")
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    broker: Mapped[Broker] = relationship()
 
 
 class KV(Base):
