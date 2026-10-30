@@ -44,7 +44,11 @@ def _resolve_pinned(host: str, port: int, allow_private: bool = False) -> str:
 
 def create_pinned_socket(host: str, port: int, timeout=None, source_address=None, *, allow_private: bool = True):
     """Ouvre une socket TCP vers l'IP résolue et épinglée (SMTP/IMAP configurés par l'administrateur)."""
-    pinned_ip = _resolve_pinned(host, port, allow_private=allow_private)
+    try:
+        pinned_ip = _resolve_pinned(host, port, allow_private=allow_private)
+    except UnsafeAddressError as exc:
+        # Les clients SMTP/IMAP traduisent déjà les erreurs réseau en erreurs métier.
+        raise OSError(str(exc)) from exc
     return socket.create_connection((pinned_ip, port), timeout, source_address)
 
 
