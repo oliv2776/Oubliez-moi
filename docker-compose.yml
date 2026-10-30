@@ -47,7 +47,9 @@ services:
   # Démarrage : docker compose --profile proton up -d
   # Dans Boîtes mail : fournisseur « Proton Mail », serveur protonmail-bridge, port 143, STARTTLS.
   protonmail-bridge:
-    image: shenxn/protonmail-bridge:latest
+    # Fork communautaire maintenu, auto-mise à jour désactivée : l'image d'origine (shenxn) téléchargeait
+    # des versions récentes du Bridge incompatibles avec ses bibliothèques (libfido2 manquante).
+    image: dancwilliams/protonmail-bridge:latest
     container_name: protonmail-bridge
     profiles: ["proton"]
     restart: unless-stopped
