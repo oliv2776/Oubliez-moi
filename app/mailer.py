@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import email
+from collections import Counter
 import html
 import imaplib
 import logging
@@ -217,7 +218,7 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         trusted_results = []
         for auth_result in msg.get_all("Authentication-Results", []):
             value = str(auth_result).strip()
-            authserv = value.split(";", 1)[0].strip().split()[0].lower() if value else ""
+            authserv = authserv_id(value)
             if authserv == trusted_authserv:
                 trusted_results.append(value)
         # Plusieurs résultats du même authserv-id peuvent signaler un header forgé
@@ -235,13 +236,15 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
                     hit = re.search(r"\bheader\.from\s*=\s*([^\s;()]+)", clause, re.I)
                     dmarc_from = hit.group(1).strip(".").lower() if hit else ""
                 elif re.match(r"spf\s*=\s*pass\b", clause, re.I):
-                    hit = re.search(r"\bsmtp\.mailfrom\s*=\s*([^\s;()]+)", clause, re.I)
+                    hit = re.search(r"\bsmtp\.mailfrom\s*=\s*\"?([^\s;()\"]+)", clause, re.I)
                     aligned_pass = aligned_pass or bool(
                         hit and "@" in hit.group(1)
                         and registered_domain(hit.group(1).rsplit("@", 1)[-1]) == registered_domain(from_domain)
                     )
                 elif re.match(r"dkim\s*=\s*pass\b", clause, re.I):
-                    hit = re.search(r"\bheader\.d\s*=\s*([^\s;()]+)", clause, re.I)
+                    # header.d=domaine (RFC 8601) ; Gmail n'indique que header.i=@domaine.
+                    hit = (re.search(r"\bheader\.d\s*=\s*\"?([^\s;()\"@]+)", clause, re.I)
+                           or re.search(r"\bheader\.i\s*=\s*\"?[^\s;()\"@]*@([^\s;()\"]+)", clause, re.I))
                     aligned_pass = aligned_pass or bool(
                         hit and registered_domain(hit.group(1).strip(".").lower()) == registered_domain(from_domain)
                     )
@@ -567,6 +570,53 @@ def file_messages(folder: str, uids: list[int], mode: str, target: str, mark_rea
             conn.logout()
         except Exception:  # noqa: BLE001
             pass
+
+
+def authserv_id(header_value: str) -> str:
+    """Identifiant du serveur (authserv-id) en tête d'un en-tête Authentication-Results.
+
+    Renvoie "" quand l'en-tête n'en contient pas (Outlook/Hotmail écrivent
+    directement « spf=pass … », sans identifiant).
+    """
+    first = str(header_value or "").strip().split(";", 1)[0].split()
+    token = first[0].lower() if first else ""
+    return "" if "=" in token else token
+
+
+def detect_authserv_ids(sample: int = 40) -> dict:
+    """Identifiants vus dans les Authentication-Results des derniers messages de la boîte de réception.
+
+    Celui qui figure dans presque tous les messages est celui du serveur de réception :
+    un expéditeur peut ajouter un faux en-tête à son propre message, pas à tous les autres.
+    """
+    conn = _imap_connect()
+    counts: Counter[str] = Counter()
+    scanned = without_id = 0
+    try:
+        typ, _ = conn.select("INBOX", readonly=True)
+        if typ != "OK":
+            raise RuntimeError("impossible d'ouvrir la boîte de réception")
+        typ, data = conn.uid("search", None, "ALL")
+        uids = (data[0] or b"").split()[-sample:] if typ == "OK" and data else []
+        if uids:
+            typ, data = conn.uid("fetch", b",".join(uids), "(BODY.PEEK[HEADER.FIELDS (AUTHENTICATION-RESULTS)])")
+            for part in data or []:
+                if not isinstance(part, tuple):
+                    continue
+                scanned += 1
+                headers = email.message_from_bytes(part[1]).get_all("Authentication-Results", [])
+                ids = {authserv_id(v) for v in headers}
+                if "" in ids:
+                    without_id += 1
+                counts.update(i for i in ids if i)
+    finally:
+        try:
+            conn.logout()
+        except Exception:  # noqa: BLE001
+            pass
+    best = counts.most_common(1)
+    suggestion = best[0][0] if best and best[0][1] >= 3 and best[0][1] >= 0.6 * scanned else ""
+    return {"scanned": scanned, "ids": counts.most_common(5), "without_id": without_id, "suggestion": suggestion}
 
 
 def test_imap() -> str:

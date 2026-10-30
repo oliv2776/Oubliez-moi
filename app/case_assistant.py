@@ -1,23 +1,19 @@
 """Assistant RGPD prudent : analyse locale des réponses, brouillons et export de preuves."""
 from __future__ import annotations
 
-import html
 import io
 import json
 import zipfile
-from datetime import datetime
-from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from . import __version__, mailer
-from .case_management import CASE_TYPES, CaseEvent, Organization, PrivacyCase, get_db
-from .config import settings
-from .db import FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Request as PrivacyRequest, utcnow
-from .main_templates import templates
+from . import mailer
+from .case_management import CaseEvent, PrivacyCase
+from .db import utcnow
+from .web import get_db, render
 
 router = APIRouter()
 DRAFT_KINDS = {"initial", "followup", "appeal"}
@@ -48,14 +44,7 @@ def _case(db: Session, case_id: int) -> PrivacyCase:
 
 
 def _render(request: Request, db: Session, case: PrivacyCase, **context):
-    todo = db.scalar(select(func.count(PrivacyRequest.id)).where(
-        PrivacyRequest.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
-    )) or 0
-    return templates.TemplateResponse(request, "case_assistant.html", {
-        **context, "case": case, "request": request, "settings": settings,
-        "version": __version__, "nav_todo": todo, "flashes": request.session.pop("flash", []),
-        "DRAFT_KINDS": DRAFT_KINDS,
-    })
+    return render(request, "case_assistant.html", db, **context, case=case, DRAFT_KINDS=DRAFT_KINDS)
 
 
 def build_draft(case: PrivacyCase, kind: str) -> str:

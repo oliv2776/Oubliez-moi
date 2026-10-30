@@ -68,6 +68,19 @@
         {% endfor %}
       </table>
       {% else %}<p class="muted">Aucune demande en attente.</p>{% endif %}
+      {% if late_cases or soon_cases %}
+      <h3 style="margin:1rem 0 .4rem;font-size:1rem">Dossiers RGPD</h3>
+      <table>
+        {% for c in late_cases %}
+        <tr><td><a href="/privacy-cases/{{ c.id }}">{{ c.organization.name }}</a><div class="small muted">{{ c.type_label }}</div></td>
+            <td class="num small" style="color:var(--bad)">{{ c.effective_deadline|d }}<div>en retard</div></td></tr>
+        {% endfor %}
+        {% for c in soon_cases %}
+        <tr><td><a href="/privacy-cases/{{ c.id }}">{{ c.organization.name }}</a><div class="small muted">{{ c.type_label }}</div></td>
+            <td class="num small">{{ c.effective_deadline|d }}</td></tr>
+        {% endfor %}
+      </table>
+      {% endif %}
     </div>
   </div>
 

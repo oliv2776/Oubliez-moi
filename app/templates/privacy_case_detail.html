@@ -17,7 +17,7 @@
       <h2>Chronologie</h2>
       {% if case.events %}
       <ul class="timeline">{% for event in case.events|reverse %}
-        <li class="k-{{ event.kind }}"><div class="small muted">{{ event.at.strftime('%d/%m/%Y %H:%M') }}</div><strong>{{ event.summary }}</strong>{% if event.body %}<div class="small" style="white-space:pre-wrap;margin-top:.3rem">{{ event.body }}</div>{% endif %}</li>
+        <li class="k-{{ event.kind }}"><div class="small muted">{{ event.at.strftime('%d/%m/%Y %H:%M') }}</div><strong>{{ event.summary }}</strong>{% if event.body %}<div class="small" translate="no" style="white-space:pre-wrap;margin-top:.3rem">{{ event.body }}</div>{% endif %}</li>
       {% endfor %}</ul>
       {% else %}<p class="muted">Aucun événement enregistré.</p>{% endif %}
     </section>

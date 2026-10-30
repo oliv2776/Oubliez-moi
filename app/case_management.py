@@ -2,16 +2,14 @@
 from __future__ import annotations
 
 import calendar
-from datetime import date, datetime
+from datetime import datetime, time, timedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import ForeignKey, String, Text, DateTime, Integer, select
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, and_, func, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, selectinload
 
-from . import __version__
-from .config import settings
-from .db import Base, Profile, SessionLocal, utcnow
-from .main_templates import templates
+from .db import Base, Profile, utcnow
+from .web import get_db, render
 
 router = APIRouter()
 CASE_TYPES = {
@@ -61,6 +59,7 @@ class PrivacyCase(Base):
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     extended_deadline_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     extension_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    overdue_notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
@@ -99,12 +98,6 @@ class CaseEvent(Base):
     case: Mapped[PrivacyCase] = relationship(back_populates="events")
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def add_months(value: datetime, months: int) -> datetime:
@@ -127,16 +120,47 @@ def _event(db: Session, case: PrivacyCase, kind: str, summary: str, body: str | 
 
 
 def _render(request: Request, name: str, db: Session, **context):
-    from sqlalchemy import func
-    from .db import FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Request as ExistingRequest
-    todo = db.scalar(select(func.count(ExistingRequest.id)).where(
-        ExistingRequest.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
-    )) or 0
-    return templates.TemplateResponse(request, name, {
-        **context, "request": request, "settings": settings,
-        "version": __version__, "nav_todo": todo, "flashes": request.session.pop("flash", []),
-        "CASE_TYPES": CASE_TYPES, "CASE_STATUSES": CASE_STATUSES,
-    })
+    return render(request, name, db, **context, CASE_TYPES=CASE_TYPES, CASE_STATUSES=CASE_STATUSES)
+
+
+def _start_of_today() -> datetime:
+    return datetime.combine(utcnow().date(), time.min)
+
+
+def overdue_cases_filter():
+    """Condition SQL équivalente à PrivacyCase.overdue (échéance effective passée, dossier ouvert)."""
+    deadline = func.coalesce(PrivacyCase.extended_deadline_at, PrivacyCase.deadline_at)
+    return and_(PrivacyCase.status.in_(OPEN_CASE_STATUSES), deadline.is_not(None), deadline < _start_of_today())
+
+
+def cases_due(db: Session, within_days: int = 7) -> tuple[list[PrivacyCase], list[PrivacyCase]]:
+    """(dossiers en retard, dossiers dont l'échéance tombe dans les prochains jours)."""
+    deadline = func.coalesce(PrivacyCase.extended_deadline_at, PrivacyCase.deadline_at)
+    base = select(PrivacyCase).options(selectinload(PrivacyCase.organization)).order_by(deadline, PrivacyCase.id)
+    overdue = db.scalars(base.where(overdue_cases_filter())).all()
+    soon = db.scalars(base.where(
+        PrivacyCase.status.in_(OPEN_CASE_STATUSES), deadline >= _start_of_today(),
+        deadline < _start_of_today() + timedelta(days=within_days + 1),
+    )).all()
+    return overdue, soon
+
+
+def flag_overdue_cases(db: Session) -> list[PrivacyCase]:
+    """Repère les dossiers qui viennent de dépasser leur échéance (une seule fois par échéance).
+
+    Une prolongation repousse l'échéance : le dossier sera signalé de nouveau si
+    la nouvelle échéance est elle aussi dépassée.
+    """
+    flagged = []
+    for case in db.scalars(select(PrivacyCase).options(selectinload(PrivacyCase.organization)).where(overdue_cases_filter())):
+        deadline = case.effective_deadline
+        if case.overdue_notified_at and case.overdue_notified_at >= deadline:
+            continue
+        case.overdue_notified_at = utcnow()
+        _event(db, case, "deadline", f"Échéance du {deadline.strftime('%d/%m/%Y')} dépassée sans résultat confirmé",
+               "Relancez l'organisme, consignez sa réponse ou envisagez une réclamation auprès de la CNIL.")
+        flagged.append(case)
+    return flagged
 
 
 @router.get("/privacy-cases", response_class=HTMLResponse)

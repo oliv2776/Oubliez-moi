@@ -39,6 +39,9 @@
   {% if request.session.get('user') and not settings.smtp_configured and not path.startswith(('/settings', '/mailboxes')) %}
   <div class="banner info"><strong>Messagerie non configurée.</strong> Indiquez l'adresse e-mail qui enverra les demandes dans <a href="/settings">Réglages</a>.</div>
   {% endif %}
+  {% if request.session.get('user') and settings.imap_configured and not settings.imap_authserv_id and path == '/' %}
+  <div class="banner info"><strong>Clôture automatique désactivée.</strong> Les réponses des courtiers sont relevées et classées, mais aucune ne peut clôturer une demande tant que l'identifiant de votre serveur de messagerie n'est pas réglé dans <a href="/settings#releve">Réglages › Relève des réponses</a>.</div>
+  {% endif %}
   {% for kind, msg in flashes %}<div class="banner {{ kind }}">{{ msg }}</div>{% endfor %}
   {% block content %}{% endblock %}
 </main>

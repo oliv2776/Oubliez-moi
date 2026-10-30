@@ -12,15 +12,27 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.13 = version de l'image Docker ; 3.12 = installation hors Docker la plus courante
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - run: pytest -q
+      - name: Lint (imports inutilisés, noms indéfinis)
+        run: python -m pyflakes app tests
+      - name: Compilation
+        run: python -m compileall -q app
+      - name: Tests
+        run: pytest -q
 
   docker:
     needs: tests

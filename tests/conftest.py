@@ -40,8 +40,11 @@ def client():
 
 
 @pytest.fixture(autouse=True)
-def clean_requests():
-    """Chaque test démarre sans profil ni demande (le catalogue de courtiers est conservé)."""
+def clean_requests(client):
+    """Chaque test démarre sans profil ni demande (le catalogue de courtiers est conservé).
+
+    Dépend de `client` pour que la base existe même quand un fichier de tests est lancé seul.
+    """
     from app.db import Event, Profile, Request, SessionLocal
 
     with SessionLocal() as db:

@@ -14,7 +14,7 @@
 | **Relève automatique des réponses** | Via IMAP en lecture seule. Chaque e-mail porte une référence unique (`OUBLI-XXXXXX`) qui permet de rattacher les réponses. Elles sont classées automatiquement (données supprimées, aucune donnée, justificatif demandé, accusé de réception, non-distribution) en français, anglais et allemand. |
 | **Relances, mise en demeure et CNIL** | Une relance part automatiquement à l'expiration du délai légal, puis une mise en demeure. Sans réponse, la demande passe « sans réponse » et Oubliez-moi prépare un dossier de réclamation complet à imprimer en PDF (exposé des faits, chronologie, courriers et réponses) pour la CNIL. |
 | **Réponses automatiques** | Pièce d'identité exigée, refus au nom de l'« intérêt légitime », question sur le pays de résidence : Oubliez-moi répond seul avec le bon argument juridique (une fois par motif, trois réponses au maximum par courtier). Les prolongations de délai sont prises en compte. |
-| **Liens de confirmation** | Les liens « confirmez votre demande » sont ouverts automatiquement (désactivable) : seulement sur le domaine du courtier ou une plateforme RGPD connue, jamais un lien d'annulation ni un lien de désinscription ou une adresse du réseau local. |
+| **Liens de confirmation** | Les liens « confirmez votre demande » sont ouverts automatiquement (désactivable) : seulement sur le domaine du courtier ou une plateforme RGPD connue, jamais un lien d'annulation ni un lien de désinscription ou une adresse du réseau local. Les redirections sont suivies une à une (5 au maximum) et chaque étape est revérifiée. |
 | **IA locale (facultatif)** | Un modèle qui tourne chez vous avec Ollama classe et résume les réponses que les mots-clés ne comprennent pas. Rien n'est envoyé à un service externe. |
 | **Boîte mail rangée** | Les réponses des courtiers sont déplacées dans un dossier (ou libellées sur Gmail) et peuvent être marquées comme lues. |
 | **Boîtes mail (séparé)** | Ajoutez vos boîtes (Gmail, Hotmail/Outlook, Proton, iCloud, autre IMAP) : Oubliez-moi repère qui vous écrit en masse, vous désabonne en un clic quand l'expéditeur le permet, et range leurs e-mails dans un dossier. Seuls les en-têtes sont lus. |
@@ -27,6 +27,7 @@
 | **Aide aux formulaires** | Pour les courtiers qui n'acceptent que leur formulaire en ligne : chaque information prête à copier en un clic (nom, prénom, e-mails, téléphones aux deux formats, adresse découpée), message de demande en français et en anglais, et délai d'un mois qui démarre quand vous confirmez l'envoi. |
 | **Compléments** | Vous ajoutez une adresse e-mail, un téléphone ou une ancienne adresse au profil après l'envoi ? Oubliez-moi repère les courtiers qui ne l'ont pas reçue et leur envoie un complément sous la même référence. |
 | **Protection de vos comptes** | Les organismes chez qui vous avez peut-être un vrai compte (instituts de panels, outils de prospection professionnels, cashback et affiliation, avis clients) sont signalés avant l'envoi, pour que vous puissiez les exclure. |
+| **Dossiers RGPD** | Pour les autres droits (accès, rectification, portabilité…) auprès de n'importe quel organisme : suivi des délais (un mois, prolongeable de deux), assistant de rédaction et export des preuves. Les dossiers en retard apparaissent dans « À traiter » et sur le tableau de bord, et sont notifiés une fois par échéance. |
 | **Export CSV** | L'historique complet, utile comme preuve. |
 
 <p align="center"><img src="docs/a-traiter.png" width="49%"> <img src="docs/demande.png" width="49%"></p>
@@ -68,6 +69,7 @@ Utilisez de préférence **une adresse dédiée** (par exemple `rgpd.prenom@…`
 - **iCloud** : il faut un mot de passe pour app, à créer sur account.apple.com.
 - **Outlook.com / Hotmail** : Microsoft impose désormais une connexion OAuth aux logiciels tiers, que l'outil ne gère pas. Préférez une autre adresse.
 - Ajoutez le dossier spam aux dossiers surveillés (Gmail : `INBOX, [Gmail]/Spam`). Les réponses de courtiers y finissent souvent.
+- **Authentification des réponses** (onglet *Relève des réponses*) : cliquez sur **Enregistrer et détecter automatiquement**. Oubliez-moi lit les en-têtes des derniers messages reçus et retient l'identifiant de votre serveur (`mx.google.com` pour Gmail). Sans lui, les réponses sont classées mais aucune ne clôture une demande toute seule ; un bandeau le rappelle sur le tableau de bord.
 
 Les réglages saisis dans l'interface sont enregistrés dans la base (volume Docker) et prennent le pas sur le fichier `.env`.
 
@@ -134,9 +136,9 @@ Un expéditeur qui écrit encore après s'être désinscrit est signalé ; ceux 
 ## Sécurité et sauvegardes
 
 - **Chiffrement** : les mots de passe de messagerie, les jetons de notification et les connexions des boîtes sont chiffrés dans la base (Fernet : AES + HMAC). La clé vient de `ENCRYPTION_KEY` dans `.env` (recommandé), sinon d'un fichier généré dans le volume de données ; elle n'est jamais dans les sauvegardes. Les mots de passe enregistrés par une version précédente sont chiffrés automatiquement au démarrage. Si une valeur ne peut pas être déchiffrée, elle est conservée et une erreur explicite est inscrite dans les journaux : elle n'est jamais remplacée silencieusement par une chaîne vide.
-- **CSRF** : toutes les requêtes qui modifient des données exigent une origine `Origin` ou `Referer` identique à celle de l'application. Derrière un reverse proxy, renseignez `APP_URL` avec l'URL publique exacte ; les POST sans origine sont refusés.
-- **DNS rebinding / SSRF** : les requêtes HTTP sortantes épinglent l'adresse IP résolue pour la connexion, refusent les IP non publiques pour les destinations non fiables et ne suivent pas les redirections automatiquement.
-- **Authentification des réponses** : pour autoriser la clôture automatique d'une demande, configurez `IMAP_AUTHSERV_ID` avec l'identifiant exact du serveur qui ajoute `Authentication-Results`. Le relais doit supprimer les en-têtes `Authentication-Results` reçus des expéditeurs avant d'ajouter le sien. L'application exige un résultat DMARC pass émis par cet authserv-id, avec `header.from` correspondant au domaine de `From` et un SPF (`smtp.mailfrom`) ou DKIM (`header.d`) réussi et aligné. Les résultats dupliqués ou non alignés sont refusés ; sans ce réglage, les réponses restent non authentifiées et ne clôturent pas automatiquement les demandes.
+- **CSRF** : toute requête qui modifie des données doit venir de l'application elle-même : `Origin` (ou `Referer`) identique à l'adresse utilisée pour l'ouvrir ou à `APP_URL`, ou, à défaut, `Sec-Fetch-Site: same-origin` envoyé par le navigateur. Les pages sont servies avec `Referrer-Policy: same-origin` : aucun Referer ne part vers l'extérieur, mais le navigateur continue d'envoyer `Origin` à l'application (avec `no-referrer`, il enverrait `Origin: null` et plus aucun formulaire ne passerait). Renseigner `APP_URL` n'empêche pas de passer par l'IP locale.
+- **DNS rebinding / SSRF** : les requêtes HTTP sortantes épinglent l'adresse IP résolue pour la connexion, refusent les IP non publiques pour les destinations non fiables et ne suivent jamais une redirection sans la revérifier (seuls les liens de confirmation en suivent, étape par étape).
+- **Authentification des réponses** : pour autoriser la clôture automatique d'une demande, réglez l'identifiant du serveur qui ajoute `Authentication-Results` (Réglages › Relève des réponses, bouton de détection automatique, ou `IMAP_AUTHSERV_ID`). L'application exige un résultat DMARC pass émis par cet identifiant, avec `header.from` correspondant au domaine de `From` et un SPF (`smtp.mailfrom`) ou DKIM (`header.d`, ou `header.i` chez Gmail) réussi et aligné. Les résultats dupliqués ou non alignés sont refusés, et l'historique de la demande indique pourquoi une réponse n'a pas été retenue. Outlook/Hotmail n'écrivent pas d'identifiant : avec ces boîtes, les décisions sensibles restent manuelles.
 - **Renouvellements** : les renvois automatiques sont limités à trois cycles au total par courtier et profil par défaut (cycle initial compris). Modifiez `MAX_AUTOMATIC_RESEND_CYCLES` si nécessaire ; `1` désactive tout renouvellement automatique.
 - **Sauvegardes** : indiquez dans `.env` un dossier de votre pool (`BACKUP_PATH=/mnt/tank/backups/oubliez-moi`), rendez-le accessible à l'utilisateur du conteneur (`sudo chown 10001 …`), puis `docker compose up -d`. Dans **Réglages → Sécurité et sauvegardes** : fréquence (chaque nuit par défaut), nombre de sauvegardes gardées, chiffrement, bouton « Sauvegarder maintenant » et liste des sauvegardes.
 - **Restauration** :
@@ -174,7 +176,13 @@ server {
 }
 ```
 
-Mettez ensuite `COOKIE_SECURE=true` dans `.env`. L'application contient des données personnelles sensibles : ne l'exposez jamais en HTTP simple, et envisagez de la réserver à votre VPN (WireGuard, Tailscale…).
+Mettez ensuite dans `.env` :
+
+- `COOKIE_SECURE=true` ;
+- `APP_URL=https://oubliez-moi.mondomaine.fr` (liens des notifications ; l'accès par l'IP locale reste possible) ;
+- `FORWARDED_ALLOW_IPS` = l'adresse depuis laquelle le proxy joint le conteneur. Ce n'est **pas** `127.0.0.1` : vu du conteneur, un proxy installé sur l'hôte arrive par la passerelle du réseau Docker. Pour la connaître : `docker inspect oubliez-moi --format '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}'`. Sans ce réglage, tous les visiteurs semblent venir de la même adresse : cinq mots de passe erronés, d'où qu'ils viennent, bloquent la connexion de tout le monde pendant 15 minutes.
+
+L'application contient des données personnelles sensibles : ne l'exposez jamais en HTTP simple, et envisagez de la réserver à votre VPN (WireGuard, Tailscale…).
 
 ## Toutes les options
 
@@ -219,6 +227,7 @@ git pull && docker compose up -d --build
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
+python -m pyflakes app tests   # même contrôle que la CI
 pytest -q
 
 # Lancer en local (simulation, données dans ./data)
@@ -229,7 +238,12 @@ Structure :
 
 ```
 app/
-  main.py        routes web (FastAPI + Jinja2)
+  main.py        routes web (FastAPI + Jinja2) et sécurité HTTP (CSRF, en-têtes, connexion)
+  web.py         gabarits, rendu et compteur « À traiter » communs à toutes les pages
+  case_management.py, case_assistant.py   dossiers RGPD (suivi, échéances, assistant, export)
+  exposures.py, search.py                  cartographie des expositions, recherche globale
+  confirm.py     ouverture prudente des liens de confirmation
+  net.py         requêtes sortantes (IP épinglée, anti-SSRF)
   service.py     campagnes, envoi, relances, rattachement des réponses
   mailer.py      SMTP, IMAP, analyse et classement des réponses
   letters.py     modèles de courriers (FR/EN) et texte de plainte CNIL

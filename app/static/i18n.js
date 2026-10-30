@@ -4,8 +4,7 @@
   const translations = {
     "Tableau de bord":"Dashboard","Profils":"Profiles","Demandes":"Requests","Dossiers RGPD":"GDPR cases",
     "À traiter":"Needs attention","Courtiers":"Data brokers","Boîtes mail":"Mailboxes","Expositions":"Exposure map",
-    "Réglages":"Settings","Déconnexion":"Log out","Rechercher…":"Search…","Recherche globale":"Global search",
-    "Tableau de bord":"Dashboard","courtiers ciblés":"brokers targeted","e-mails/heure max.":"emails/hour max.",
+    "Réglages":"Settings","Déconnexion":"Log out","Rechercher…":"Search…","Recherche globale":"Global search","courtiers ciblés":"brokers targeted","e-mails/heure max.":"emails/hour max.",
     "Envoyer le suivant":"Send next","Relever la boîte":"Check mailbox","Mode simulation.":"Simulation mode.",
     "Aucun e-mail n'est réellement envoyé.":"No email is actually sent.",
     "Une fois la messagerie testée et le courrier relu, passez en envoi réel dans":"After testing your mail settings and reviewing the message, switch to live sending in",
@@ -20,7 +19,7 @@
     "Activité récente":"Recent activity","Rien pour l'instant.":"Nothing yet.",
     "Dernière relève IMAP :":"Last IMAP check:","IMAP non configuré : les réponses doivent être reportées à la main.":"IMAP is not configured: replies must be recorded manually.",
     "Une personne par profil (vous, votre conjoint·e, vos parents…).":"One person per profile (you, your partner, your parents…).",
-    "+ Nouveau profil":"+ New profile","Nom":"Name","E-mails":"Emails","Demandes":"Requests","Avancement":"Progress",
+    "+ Nouveau profil":"+ New profile","Nom":"Name","E-mails":"Emails","Avancement":"Progress",
     "terminé":"complete","pas lancé":"not started","Modifier":"Edit","Aucun profil.":"No profiles yet.","Créer un profil":"Create profile",
     "résultat(s)":"result(s)","Réessayer les échecs":"Retry failed","Exporter (CSV)":"Export (CSV)",
     "Courtier, e-mail ou référence":"Broker, email or reference","Tous les statuts":"All statuses",
@@ -33,7 +32,7 @@
     "Note initiale":"Initial note","Créer le dossier":"Create case","Ajoutez d’abord un organisme pour créer un dossier.":"Add an organization first to create a case.",
     "Ajouter un organisme":"Add an organization","Nom de l’organisme *":"Organization name *","Site web":"Website",
     "Adresse de contact RGPD":"Privacy contact email","Adresse postale":"Postal address","Notes privées":"Private notes",
-    "Enregistrer l’organisme":"Save organization","Suivi des dossiers":"Case tracking","Tous les statuts":"All statuses",
+    "Enregistrer l’organisme":"Save organization","Suivi des dossiers":"Case tracking",
     "Organisme / objet":"Organization / subject","Demande":"Request","Aucun dossier ne correspond à ces critères.":"No cases match these filters.",
     "Créer un dossier n’envoie aucun courrier. L’envoi et la confirmation du résultat restent des actions explicites de votre part.":"Creating a case does not send anything. Sending and confirming the outcome remain actions you must explicitly take.",
     "Cartographie des expositions":"Exposure map","Reliez les domaines qui vous écrivent aux organismes connus du catalogue. Les correspondances automatiques sont des pistes à vérifier, pas des preuves de partage de données.":"Link the domains that email you to organizations in the catalog. Automatic matches are leads to review, not proof of data sharing.",
@@ -43,52 +42,66 @@
     "Facultatif":"Optional","Justification / source":"Reason / source","Confirmer l’association":"Confirm link",
     "Tous les liens":"All links","À vérifier":"Needs review","Confirmer":"Confirm","Écarter":"Reject",
     "Modifier le groupe":"Edit group","Aucune correspondance connue.":"No known matches.",
-    "Aucun domaine observé pour le moment. Ajoutez une boîte mail et lancez une analyse pour commencer la cartographie.":"No domains observed yet. Add a mailbox and run an analysis to start mapping.",
-    "Réglages":"Settings","Enregistrer":"Save","Général":"General","Données":"Data","Sauvegardes":"Backups",
-    "Identifiants incorrects.":"Incorrect credentials.","Connexion":"Log in","Nom d'utilisateur":"Username","Mot de passe":"Password",
+    "Aucun domaine observé pour le moment. Ajoutez une boîte mail et lancez une analyse pour commencer la cartographie.":"No domains observed yet. Add a mailbox and run an analysis to start mapping.","Enregistrer":"Save","Général":"General","Données":"Data","Sauvegardes":"Backups",
+    "Identifiants incorrects.":"Incorrect credentials.","Connexion":"Log in","Mot de passe":"Password",
     "Se connecter":"Sign in","Au moins une adresse e-mail est nécessaire pour que les courtiers vous identifient.":"At least one email address is required so data brokers can identify you.",
-    "Aucune sauvegarde pour l'instant.":"No backups yet.","Exporter l'historique (CSV)":"Export history (CSV)",
-    "Enregistrer les modifications":"Save changes","Annuler":"Cancel","Supprimer":"Delete","Ajouter":"Add",
-    "Précédent":"Previous","Suivant":"Next","Aucun résultat.":"No results.","Chargement…":"Loading…",
-    "Rechercher":"Search","Date":"Date","Actions":"Actions","Détails":"Details","Historique":"History",
-    "Enregistrer l'organisme":"Save organization","Créer":"Create","Fermer":"Close","Oui":"Yes","Non":"No"
+    "Aucune sauvegarde pour l'instant.":"No backups yet.","Exporter l'historique (CSV)":"Export history (CSV)","Annuler":"Cancel","Supprimer":"Delete","Ajouter":"Add",
+    "Précédent":"Previous","Suivant":"Next",
+    "Rechercher":"Search","Date":"Date","Actions":"Actions","Détails":"Details","Historique":"History","Créer":"Create","Non":"No"
   };
-  const pairs = Object.entries(translations).sort((a,b)=>b[0].length-a[0].length);
+  // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
+  // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées
+  // seulement entre deux limites de mot.
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const exact = new Map();
+  const phrases = [];
+  for (const [fr, en] of Object.entries(translations)) {
+    if (/\s/.test(fr.trim())) phrases.push([new RegExp("(?<![\\p{L}\\p{N}])" + escapeRe(fr) + "(?![\\p{L}\\p{N}])", "gu"), en, fr.length]);
+    else exact.set(fr, en);
+  }
+  phrases.sort((a, b) => b[2] - a[2]);
   function translateText(value) {
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    if (exact.has(trimmed)) return value.replace(trimmed, exact.get(trimmed));
     let result = value;
-    for (const [fr,en] of pairs) result = result.split(fr).join(en);
+    for (const [re, en] of phrases) result = result.replace(re, en);
     return result;
   }
+  // Jamais de traduction dans le contenu de l'utilisateur ou des courtiers : e-mails, courriers
+  // (y compris le texte à coller dans un formulaire), notes, champs de saisie.
+  const SKIP = "script,style,textarea,pre,code,.mail-body,.mono,[translate='no']";
   function apply(lang) {
     document.documentElement.lang = lang;
+    const selector = document.getElementById("language-switch");
+    if (selector) selector.value = lang;
+    if (lang !== "en") return;  // la page est servie en français : rien à faire
     document.title = translateText(document.title);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
-      if (node.parentElement && !["SCRIPT","STYLE","TEXTAREA"].includes(node.parentElement.tagName)) {
-        node.nodeValue = lang === "en" ? translateText(node.nodeValue) : node.nodeValue;
-      }
+      if (node.parentElement && !node.parentElement.closest(SKIP)) node.nodeValue = translateText(node.nodeValue);
     }
     for (const el of document.querySelectorAll("[placeholder],[aria-label],[title]")) {
-      for (const attr of ["placeholder","aria-label","title"]) {
-        if (!el.hasAttribute(attr)) continue;
-        const original = el.getAttribute("data-fr-" + attr) || el.getAttribute(attr);
-        if (!el.hasAttribute("data-fr-" + attr)) el.setAttribute("data-fr-" + attr, original);
-        el.setAttribute(attr, lang === "en" ? translateText(el.getAttribute("data-fr-" + attr)) : el.getAttribute("data-fr-" + attr));
+      const protectedBlock = el.closest(SKIP);
+      if (protectedBlock && protectedBlock !== el) continue;  // un champ de saisie garde son libellé traduit
+      for (const attr of ["placeholder", "aria-label", "title"]) {
+        if (el.hasAttribute(attr)) el.setAttribute(attr, translateText(el.getAttribute(attr)));
       }
     }
-    const selector = document.getElementById("language-switch");
-    if (selector) selector.value = lang;
   }
-  let lang = localStorage.getItem(KEY);
+  function stored() {
+    try { return localStorage.getItem(KEY); } catch (e) { return null; }  // stockage indisponible (navigation privée…)
+  }
+  let lang = stored();
   if (!["fr","en"].includes(lang)) lang = (navigator.language || "").toLowerCase().startsWith("en") ? "en" : "fr";
   document.addEventListener("DOMContentLoaded", () => {
     apply(lang);
     const selector = document.getElementById("language-switch");
     if (selector) selector.addEventListener("change", () => {
       lang = selector.value;
-      localStorage.setItem(KEY, lang);
+      try { localStorage.setItem(KEY, lang); } catch (e) { /* choix non mémorisé */ }
       location.reload();
     });
   });

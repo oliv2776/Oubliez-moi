@@ -3,7 +3,7 @@ from email.message import EmailMessage
 from sqlalchemy import select
 
 from app import mailer, mailview, service
-from app.db import Broker, Event, Profile, Request, SessionLocal
+from app.db import Broker, Event, Profile, SessionLocal
 
 HOSTILE = (
     '<style>body{background:url(http://t/css)}</style><p style="color:red;background:url(http://t/bg)" onclick="x()">Salut '

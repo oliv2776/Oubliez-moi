@@ -61,7 +61,7 @@ def test_full_flow(client):
         sent = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).all()
         assert len(sent) == 3
         target = sent[0]
-        ref, broker_email, msgid = target.reference, target.broker.email, target.message_ids[0]
+        ref, broker_email = target.reference, target.broker.email
 
     # Une réponse citant la référence -> terminée
     m = EmailMessage()
@@ -169,7 +169,7 @@ def test_reference_from_unrelated_domain_is_attached_but_not_trusted(client):
 
         assert matched is not None and matched.id == req.id
         assert db.get(Request, req.id).status != COMPLETED
-        assert any(e.kind == "warning" and "Réponse non vérifiée" in e.summary for e in req.events)
+        assert any(e.kind == "warning" and "Réponse non vérifiée" in e.summary and "DMARC" in e.summary for e in req.events)
 
 
 def test_automatic_resends_stop_at_configured_cycle_limit(client):
