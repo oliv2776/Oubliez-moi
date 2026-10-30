@@ -39,7 +39,7 @@ def push(title: str, message: str, path: str = "/tasks", priority: int = 3) -> l
                 _post(base, body, headers)
             except (OSError, ValueError) as e:
                 errors.append(f"ntfy : {e}")
-    if settings.notify_gotify_url and settings.notify_gotify_token:
+    if settings.notify_gotify_url and (settings.notify_gotify_token or settings_store.secret_unavailable("notify_gotify_token")):
         body = {"title": title, "message": message, "priority": 5 if priority >= 4 else 4}
         if click:
             body["extras"] = {"client::notification": {"click": {"url": click}}}
