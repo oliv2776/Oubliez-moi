@@ -124,6 +124,20 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Applique des en-têtes défensifs et interdit la mise en cache des pages privées."""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if not request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
@@ -137,6 +151,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(AuthMiddleware)
 app.add_middleware(CSRFMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, same_site="lax", max_age=7 * 24 * 3600, https_only=settings.cookie_secure)
 
 
@@ -810,14 +825,24 @@ async def senders_action(request: HttpRequest, db: Session = Depends(get_db)):
     return back(nxt)
 
 
+def _csv_safe(value) -> str:
+    """Neutralise les cellules susceptibles d'être interprétées comme une formule par un tableur."""
+    text = "" if value is None else str(value)
+    if text.lstrip(" \t\r\n").startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
 @app.get("/export.csv")
 def export_csv(db: Session = Depends(get_db)):
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(["reference", "profil", "courtier", "contact", "cycle", "statut", "envoyee_le", "echeance", "relances", "derniere_reponse", "close_le"])
     for r in db.scalars(select(Request).options(selectinload(Request.broker), selectinload(Request.profile)).order_by(Request.id)):
-        w.writerow([r.reference, r.profile.full_name, r.broker.name, r.broker.email or r.broker.webform, r.cycle, r.status_label,
-                    fmt_dt(r.sent_at), fmt_d(r.due_at), r.reminder_count, fmt_dt(r.last_reply_at), fmt_dt(r.closed_at)])
+        w.writerow([_csv_safe(value) for value in (
+            r.reference, r.profile.full_name, r.broker.name, r.broker.email or r.broker.webform, r.cycle, r.status_label,
+            fmt_dt(r.sent_at), fmt_d(r.due_at), r.reminder_count, fmt_dt(r.last_reply_at), fmt_dt(r.closed_at),
+        )])
     data = "﻿" + buf.getvalue()  # BOM pour Excel
     return StreamingResponse(iter([data]), media_type="text/csv; charset=utf-8",
                              headers={"Content-Disposition": f'attachment; filename="oubliez-moi-{datetime.now():%Y%m%d}.csv"'})
