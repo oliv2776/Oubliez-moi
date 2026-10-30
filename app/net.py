@@ -16,7 +16,7 @@ import urllib.parse
 import urllib.request
 
 
-class UnsafeAddressError(ValueError):
+class UnsafeAddressError(OSError):
     """URL invalide, destination interdite ou hôte impossible à résoudre."""
 
 
@@ -84,7 +84,10 @@ def safe_urlopen(url_or_request, *, timeout: float = 20, allow_private: bool = F
     parsed = urllib.parse.urlsplit(request.full_url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
         raise UnsafeAddressError("URL HTTP(S) invalide ou contenant des identifiants")
-    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError as exc:
+        raise UnsafeAddressError("port de destination invalide") from exc
     pinned_ip = _resolve_pinned(parsed.hostname, port, allow_private=allow_private)
     request.timeout = timeout
 
