@@ -62,6 +62,34 @@ def backup_dir():
     settings.backup_dir = old
 
 
+def test_authentication_results_requires_trusted_authserv_and_dmarc_pass():
+    from email.message import EmailMessage
+    from app import mailer
+    from app.config import settings
+    previous = settings.imap_authserv_id
+    settings.imap_authserv_id = "mx.test"
+    try:
+        forged = EmailMessage()
+        forged["From"] = "privacy@example.org"
+        forged["Authentication-Results"] = "evil.example; spf=pass; dkim=pass; dmarc=pass"
+        forged.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(forged)).dmarc_pass is False
+
+        authenticated = EmailMessage()
+        authenticated["From"] = "privacy@example.org"
+        authenticated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        authenticated.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(authenticated)).dmarc_pass is True
+
+        failed = EmailMessage()
+        failed["From"] = "privacy@example.org"
+        failed["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        failed.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(failed)).dmarc_pass is False
+    finally:
+        settings.imap_authserv_id = previous
+
+
 def test_wrong_key_does_not_overwrite_secret_settings(client):
     from cryptography.fernet import Fernet
     with SessionLocal() as db:
@@ -72,6 +100,14 @@ def test_wrong_key_does_not_overwrite_secret_settings(client):
     assert settings.smtp_password == previous
     with SessionLocal() as db:
         assert json.loads(db.get(KV, "cfg:smtp_password").value).startswith("enc:v1:")
+
+
+def test_csrf_rejects_missing_origin():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", data={"username": "admin", "password": "test-password"})
+        assert response.status_code == 403
 
 
 def test_csrf_rejects_cross_origin_post():
