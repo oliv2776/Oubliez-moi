@@ -14,6 +14,7 @@ from email.policy import default as default_policy
 from email.utils import formataddr, getaddresses, make_msgid, formatdate
 
 from .config import settings
+from .net import create_pinned_socket
 
 log = logging.getLogger(__name__)
 
@@ -25,6 +26,27 @@ class SendError(Exception):
 
 
 # ---------------------------------------------------------------- SMTP ----
+
+class _PinnedSMTP(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return create_pinned_socket(host, port, timeout, self.source_address, allow_private=True)
+
+
+class _PinnedSMTP_SSL(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        sock = create_pinned_socket(host, port, timeout, self.source_address, allow_private=True)
+        return self.context.wrap_socket(sock, server_hostname=host)
+
+
+class _PinnedIMAP4(imaplib.IMAP4):
+    def _create_socket(self, timeout):
+        return create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+
+
+class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
+    def _create_socket(self, timeout):
+        sock = create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+        return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
 
 def build_message(to: str, subject: str, body: str, from_name: str, reply_to: str | None = None,
                   in_reply_to: str | None = None) -> EmailMessage:
@@ -57,9 +79,9 @@ def send_message(msg: EmailMessage, force: bool = False) -> None:
     ctx = ssl.create_default_context()
     try:
         if settings.smtp_security == "ssl":
-            server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=ctx, timeout=60)
+            server = _PinnedSMTP_SSL(settings.smtp_host, settings.smtp_port, context=ctx, timeout=60)
         else:
-            server = smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=60)
+            server = _PinnedSMTP(settings.smtp_host, settings.smtp_port, timeout=60)
         with server:
             server.ehlo()
             if settings.smtp_security == "starttls":
@@ -365,9 +387,9 @@ def registered_domain(host: str) -> str:
 
 def _imap_connect() -> imaplib.IMAP4:
     if settings.imap_security == "ssl":
-        conn = imaplib.IMAP4_SSL(settings.imap_host, settings.imap_port, ssl_context=ssl.create_default_context(), timeout=60)
+        conn = _PinnedIMAP4_SSL(settings.imap_host, settings.imap_port, ssl_context=ssl.create_default_context(), timeout=60)
     else:
-        conn = imaplib.IMAP4(settings.imap_host, settings.imap_port, timeout=60)
+        conn = _PinnedIMAP4(settings.imap_host, settings.imap_port, timeout=60)
         if settings.imap_security == "starttls":
             conn.starttls(ssl_context=ssl.create_default_context())
     conn.login(*settings.imap_login)
