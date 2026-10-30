@@ -12,11 +12,21 @@ os.environ.update(
     DRY_RUN="true",
     SMTP_FROM="moi@exemple.fr",
     BROKER_AUTO_UPDATE_DAYS="0",
+    IMAP_AUTHSERV_ID="mx.test",
 )
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient as _TestClient  # noqa: E402
+
+
+class TestClient(_TestClient):
+    def request(self, method, url, **kwargs):
+        if method.upper() not in {"GET", "HEAD", "OPTIONS", "TRACE"}:
+            headers = dict(kwargs.get("headers") or {})
+            headers.setdefault("Origin", "http://testserver")
+            kwargs["headers"] = headers
+        return super().request(method, url, **kwargs)
 
 from app.main import app  # noqa: E402
 
