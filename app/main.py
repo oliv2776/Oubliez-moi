@@ -88,7 +88,8 @@ app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=N
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-PUBLIC_PATHS = ("/login", "/static", "/healthz")
+PUBLIC_PATHS = ("/login", "/healthz")
+PUBLIC_PREFIXES = ("/static",)
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -123,7 +124,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        if not request.url.path.startswith(PUBLIC_PATHS) and not request.session.get("user"):
+        path = request.url.path
+        is_public = path in PUBLIC_PATHS or any(
+            path == prefix or path.startswith(prefix + "/") for prefix in PUBLIC_PREFIXES
+        )
+        if not is_public and not request.session.get("user"):
             return RedirectResponse("/login", status_code=303)
         return await call_next(request)
 
@@ -755,7 +760,7 @@ def mailbox_oauth_start(mid: int, db: Session = Depends(get_db)):
     return JSONResponse({"user_code": flow["user_code"], "uri": flow["uri"], "interval": flow["interval"]})
 
 
-@app.get("/mailboxes/{mid}/oauth/poll")
+@app.post("/mailboxes/{mid}/oauth/poll")
 def mailbox_oauth_poll(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
     mb = _get(db, Mailbox, mid)
     try:
