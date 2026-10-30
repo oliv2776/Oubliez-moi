@@ -37,7 +37,7 @@ def test_classify_new_kinds():
     cases = {
         "Please confirm your request by clicking the link below: https://privacy.acme.com/confirm?t=1": "confirm_link",
         "Cliquez sur le lien ci-dessous pour confirmer votre demande.": "confirm_link",
-        "Please use our online form at https://acme.com/privacy to submit your request.": "needs_action",
+        "Please use our online form at https://acme.com/privacy to submit your request.": "webform",
         "Due to the number of requests, we need to extend the response period by an additional two months.": "extension",
         "Nous devons prolonger le délai de traitement de deux mois supplémentaires.": "extension",
         "We are unable to delete your data as we process it on the basis of our legitimate interest.": "legit_refusal",
@@ -66,8 +66,11 @@ def test_classify_ack():
 
 
 def test_classify_other():
-    m = mailer.parse_mail(_raw("Question", "Pourriez-vous préciser votre ancienne adresse ?"))
+    m = mailer.parse_mail(_raw("Question", "Nous étudions votre message."))
     assert mailer.classify(m).kind == "reply"
+    # Une question du courtier attend une réponse de votre part.
+    m = mailer.parse_mail(_raw("Question", "Pourriez-vous préciser votre ancienne adresse ?"))
+    assert mailer.classify(m).kind == "needs_action"
 
 
 def test_html_body():

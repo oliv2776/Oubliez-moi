@@ -191,6 +191,8 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
             continue
         try:
             payload = part.get_payload()
+            if isinstance(payload, list):  # message/delivery-status : une liste de blocs d'en-têtes
+                payload = "\n".join(p.as_string() if hasattr(p, "as_string") else str(p) for p in payload)
             texts.append(payload if isinstance(payload, str) else str(payload))
         except (LookupError, UnicodeError, KeyError) as e:
             log.debug("Partie de rapport illisible : %s", e)
@@ -290,14 +292,45 @@ CONFIRM_RE = _P(
 )
 VERIFY_RE = _P(
     r"verify your identity", r"identity verification", r"v[ée]rifier votre identit[ée]", r"confirmer votre identit[ée]",
-    r"fill (in|out) (the|our) (web ?|online ?)?form", r"use our (web ?|online ?|privacy )?(form|portal)", r"submit (your request )?(via|through) our",
-    r"remplir (le|notre) formulaire", r"utiliser notre formulaire", r"via notre formulaire",
+)
+# Le courtier n'accepte que son formulaire / portail, ou cette adresse n'est pas lue.
+WEBFORM_RE = _P(
+    r"fill (in|out) (the|our|this) (web ?|online ?)?form", r"use our (web ?|online ?|privacy )?(form|portal)", r"submit (your request )?(via|through) our",
+    r"(please|kindly) (visit|use|go to|complete|fill (in|out)|click|submit[^.\n]{0,40}(via|through|using|on))[^.\n]{0,90}"
+    r"(portal|privacy (center|centre|hub|tool|page|request page|choices)|request (center|centre|page|form)|web ?form|online form|request form|\bform\b|rights request)",
+    r"(privacy rights requests|requests?)[^.\n]{0,80}(must|should|need to|have to) be (submitted|made|sent|filed)",
+    r"(requests?)[^.\n]{0,40}(made|filed|sent|submitted) (otherwise|through other channels|by e-?mail|via e-?mail)[^.\n]{0,30}(cannot|will not|won't|can't|are not)",
+    r"(cannot|can't|will not|won't) be (made|submitted|processed|handled) (through|via|by) (e-?mail|this|privacy@)",
+    r"(inbox|mailbox|e-?mail address) is (no longer|not) (actively |being )?(monitored|checked)",
+    r"(inbox|mailbox) is (currently )?(nonfunctional|non-functional|not functional|unable to receive)",
+    r"(will|do) not (receive|get) a response", r"(dedicated|secure) (online |web )?(form|portal)",
+    r"follow the instructions[^.\n]{0,40}\n?[^.\n]{0,80}privacy (policy|notice)",
+    r"to exercise (your|any|applicable|these|data subject|your applicable)[^.\n]{0,40}rights,?[^.\n]{0,20}(please )?(visit|use|click|go to|follow|submit)",
+    r"(if you('re| are) looking to|if you would like to|if you wish to|if you want to) (make|submit|exercise)[^.\n]{0,80}(please )?(visit|click|use|go to)",
+    r"submit (a|an|your) [^.\n]{0,30}request[^.\n]{0,40}(through|via|using|on) [^.\n]{0,50}(portal|form|privacy cent(er|re)|request page)",
+    r"only way[^.\n]{0,60}(is|would be) (through|via|using) (our|the|a) (web ?form|form|portal)",
+    r"(merci de|veuillez|nous vous invitons [àa]) (passer par|utiliser|remplir|compl[ée]ter)[^.\n]{0,40}(formulaire|portail|espace)",
+    r"(remplir|utiliser) (le|notre) formulaire", r"via (notre|le) (formulaire|portail)",
+    r"(nutzen|verwenden) sie (bitte )?(unser|das)[^.\n]{0,30}(formular|portal)", r"[üu]ber (unser|das) [^.\n]{0,30}(formular|portal)",
+)
+# Le courtier ne connaît que des identifiants publicitaires (cookie, appareil) et les réclame.
+DEVICE_RE = _P(
+    r"(cookie|device|advertising|online|mobile advertising) ?(id|identifier)s?\b[^.\n]{0,80}(is |are )?(required|needed|necessary)",
+    r"(provide|send|share|give)( us)?( with)? (your|the) [^.\n]{0,50}(cookie ?id|device id|advertising id|identifier|idfa|aaid|maid)",
+    r"(without|in the absence of) (such |these |further information such as your [^.\n]{0,40})?identifiers",
+    r"(need|require) (you to provide|your)[^.\n]{0,40}(cookie|device|advertising) ?(id|identifier)",
+    r"(identifiant|id) (cookie|publicitaire|de l'appareil)[^.\n]{0,60}(n[ée]cessaire|requis|indispensable)",
+    r"(screenshots?|copy|value) of (the )?(relevant )?identifiers", r"onlinekennung", r"(cookie|werbe)-?id\b[^.\n]{0,60}(mit|senden|nennen)",
 )
 NO_DATA_RE = _P(
     r"no (personal )?(data|information|records?) (about|on|relating to|regarding|associated with|linked to) you",
-    r"(do not|don't|does not|doesn't) (hold|have|store|process) any (personal )?(data|information)",
-    r"(could|were) not (find|locate|identify) any", r"unable to (find|locate|identify) any", r"no records? (were |was )?found",
-    r"aucune donn[ée]e", r"ne (d[ée]tenons|disposons|poss[ée]dons|traitons) (d')?aucune", r"pas de donn[ée]es (vous )?concernant",
+    r"(do not|don't|does not|doesn't) (hold|have|store|process)( or (hold|have|store|process))? any (other )?(personal )?(data|information)",
+    r"(could|were|did) not (find|locate|identify) any", r"unable to (find|locate|identify) (any|your)", r"no records? (were |was )?found",
+    r"did not identify any", r"no (personal )?data to (be )?(erased|deleted)", r"(do not|does not|don't|doesn't) (maintain|keep) (any )?records",
+    r"aucune donn[ée]e(?![^.\n]{0,60}(communication|communiqu|transmi|partag|c[ée]d[ée]|vendu))",
+    r"ne (d[ée]tenons|disposons|poss[ée]dons|traitons) (d')?aucune", r"pas de donn[ée]es (vous )?concernant",
+    r"n'avons pas (pu )?trouv(er|[ée]) (de |d'|aucun|un enregistrement)", r"n'avons pas enregistr[ée] de donn[ée]es", r"ne parvenons pas [àa] trouver",
+    r"ne figurent? pas dans (notre|nos) (base|fichier)", r"not holding any (personal )?data",
     r"n'apparaissez pas", r"ne figurez pas", r"keine (personenbezogenen )?daten", r"nicht (in unserer datenbank )?gespeichert",
 )
 DELETED_RE = _P(
@@ -306,6 +339,7 @@ DELETED_RE = _P(
     r"successfully (deleted|erased|removed)", r"(added|placed) (you |your [a-z ]+)?(to|on) (our|the) (suppression|opt-?out|do not contact|blocking) list",
     r"(ont|a) [ée]t[ée] (d[ée]finitivement )?(supprim|effac|anonymis)", r"nous avons (bien )?(proc[ée]d[ée] [àa] la suppression|supprim|effac)",
     r"suppression (a [ée]t[ée] )?effectu[ée]e", r"(liste|fichier) (d'opposition|repoussoir|de blocage)",
+    r"have (now )?(checked [^.\n]{0,40} and )?(have )?(permanently |successfully )?(deleted|erased|removed) (all )?(of )?your (personal )?data",
     r"wurden? (vollst[äa]ndig |erfolgreich )?gel[öo]scht", r"haben (ihre daten )?gel[öo]scht", r"(sperrliste|werbesperre)",
 )
 EXTENSION_RE = _P(
@@ -320,14 +354,57 @@ REFUSAL_RE = _P(
     r"k[öo]nnen .{0,40}nicht (l[öo]schen|nachkommen|entsprechen)",
 )
 RESIDENCE_RE = _P(
+    r"which country (did|do|are) you", r"what country (do|are|did) you", r"(country|state)( and state)?( or region)? in which you (are located|reside|live)",
     r"(country|state) of residence", r"which country (do )?you (live|reside)", r"where (do )?you (live|reside)", r"are you (a )?(resident|located) in",
     r"pays de r[ée]sidence", r"dans quel pays (r[ée]sidez|habitez)", r"wohnsitzland", r"in welchem land (wohnen|leben)",
 )
+ASK_RE = _P(
+    r"(could|would|can) you (please )?(confirm|provide|send|tell us|indicate|specify|clarify|respond|reply)",
+    r"please (provide|confirm|send us|indicate|specify|reply with|respond with)", r"(we )?(therefore )?ask you to (send|confirm|provide|indicate)",
+    r"we (would |do |will )?(need|require) (you to|your|the following|additional|further|more|to confirm)",
+    r"pourriez-vous", r"pouvez-vous (nous )?(indiquer|confirmer|pr[ée]ciser|communiquer|envoyer)",
+    r"merci de (bien vouloir )?(nous )?(confirmer|indiquer|pr[ée]ciser|communiquer|transmettre|envoyer)",
+    r"nous vous (remercions|prions|demandons) de (bien vouloir )?(nous )?(confirmer|indiquer|pr[ée]ciser|communiquer|transmettre|lancer|faire)",
+    r"bitte (teilen|senden|best[äa]tigen|nennen) sie",
+)
+# Ce que dit le courtier juste après « aucune donnée » quand il attend encore quelque chose.
+_BUT_RE = re.compile(r"\b(however|but|nevertheless|cependant|toutefois|n[ée]anmoins|jedoch|allerdings)\b", re.I)
+# Délais et incidents de distribution temporaires, ou limités à un membre d'une liste de diffusion.
+DELIVERY_ISSUE_RE = _P(
+    r"\bdelay(ed)?\b", r"temporar(y|ily)", r"will (be )?retr(y|ied)", r"(d'autres|nouvelles) tentatives", r"probl[èe]me temporaire",
+    r"vor[üu]bergehend", r"verz[öo]gert", r"mailbox (is )?full", r"quota", r"\b5\.2\.2\b", r"bo[îi]te (aux lettres |de r[ée]ception )?pleine",
+)
+# Phrases de nos propres courriers : si elles apparaissent, c'est notre message cité.
+OWN_LETTER_RE = re.compile(
+    r"(?is)(pursuant to article 17 of the general data protection regulation \(gdpr, regulation \(eu\) 2016/679\), i request"
+    r"|conform[ée]ment [àa] l'article 17 du r[èe]glement g[ée]n[ée]ral sur la protection des donn[ée]es \(rgpd, r[èe]glement \(ue\) 2016/679\), je vous demande"
+    r"|please confirm in writing that my data has been erased|je vous remercie de me confirmer par [ée]crit l'effacement de mes donn[ée]es"
+    r"|on [^\n]{1,40}, i sent you a request for the erasure of my personal data|le [^\n]{1,40}, je vous ai adress[ée] une demande d'effacement"
+    r"|you have asked me for proof of identity in order to process my erasure request|vous me demandez un justificatif d'identit[ée] pour traiter"
+    r"|you have declined my request of [^\n]{1,40} on the basis of your legitimate|vous refusez de donner suite [àa] ma demande du"
+    r"|in answer to your question: i reside in|en r[ée]ponse [àa] votre question : je r[ée]side)"
+    .replace(" ", r"\s+")
+)
+# Formules qui annoncent une vérification éventuelle, sans rien demander.
+# (ce qui arrivera plus tard, ou ce que le courtier n'exige pas, n'est pas une demande)
+_MAYBE_LATER_RE = re.compile(
+    r"(?i)(we )?may need to (confirm|verify) your identity[^.\n]*|(vous allez recevoir|vous recevrez|you will (then )?receive|you'll receive)[^.\n]{0,120}"
+    r"|(do not|don't|does not|will not|won't|no) (require|need|ask for)[^.\n]{0,30}(identity document|proof of identity|copy of (your )?id|photo id|pi[èe]ce d'identit[ée])"
+)
+
 ACK_RE = _P(
     r"accus[ée] de r[ée]ception", r"accusons r[ée]ception", r"automatic reply", r"auto(matic)?[- ]?reply", r"out of (the )?office", r"r[ée]ponse automatique",
-    r"we (have )?received your (request|message|e-?mail)", r"nous avons (bien )?re[çc]u votre", r"thank you for (contacting|your (request|message|e-?mail))",
-    r"ticket (number|#|no)", r"request (number|#|id)", r"eingangsbest[äa]tigung", r"automatische antwort", r"abwesenheit",
+    r"we (have )?received your (request|message|e-?mail)", r"nous avons (bien )?re[çc]u votre",
+    r"ticket (number|#|no)", r"request (number|#|id)", r"eingangsbest[äa]tigung",
+    r"(request|message|e-?mail|inquiry) (has been|was|have been) (successfully )?(received|submitted|logged)", r"confirm (the )?receipt",
+    r"(has been|was) forwarded to", r"automatische antwort", r"abwesenheit",
+    r"(passed|forwarded|transferred|escalated) (your request|it|this|your message) to", r"will (get back to|be in touch with|contact|respond to|reply to|email) you",
+    r"(are|is|will be) (usually |normally |generally )?processed within", r"we will (process|handle|review) (your|the|this) request",
+    r"nous reviendrons vers vous", r"wir (melden uns|werden uns)[^.\n]{0,40}(melden|zur[üu]ckmelden)",
 )
+# Formules de politesse : un accusé seulement si le message s'arrête là (sinon, il dit autre chose).
+ACK_WEAK_RE = _P(r"thank you for (contacting|your (request|message|e-?mail)|submitting|reaching out)", r"merci (de|pour) votre (message|demande)")
+ACK_WEAK_MAX = 700
 
 KIND_LABELS = {
     "bounce": "adresse invalide",
@@ -341,6 +418,9 @@ KIND_LABELS = {
     "refusal": "refus probable",
     "residence_question": "question sur le pays de résidence",
     "ack": "accusé de réception",
+    "webform": "formulaire ou portail exigé",
+    "device_id": "identifiant publicitaire demandé",
+    "delivery_issue": "incident de distribution temporaire",
     "reply": "réponse à examiner",
 }
 
@@ -352,15 +432,27 @@ class Classification:
 
 
 _QUOTE_START_RE = re.compile(
-    r"(?im)^\s*(?:[-_]{2,}\s*(?:original message|message d'origine|message initial|forwarded message)\s*[-_]*|"
-    r"begin forwarded message:|on .{1,240} wrote:|le .{1,240} a [ée]crit\s*:|"
+    r"(?im)^\s*(?:[-_]{2,}\s*(?:original message|message d'origine|message initial|forwarded message|urspr[üu]ngliche nachricht|"
+    r"original nachricht|oorspronkelijk bericht|messaggio originale|mensaje original|weitergeleitete nachricht)\s*[-_]*|"
+    r"(?:original message|urspr[üu]ngliche nachricht|message d'origine)\s*:?|"
+    r"begin forwarded message:|on .{1,240} wrote:|le .{1,240} a [ée]crit\s*:|.{0,240}\b(?:wrote|schrieb|a [ée]crit|schreef|skrev|escribi[óo]|ha scritto)\s*:|"
     r"\*{2,}\s*(?:original message|message d'origine)\s*\*{2,})\s*$"
+)
+# En-têtes « De / Envoyé / À / Objet » d'Outlook et équivalents, dans les langues courantes.
+_HEADER_FROM_RE = re.compile(r"(?i)^\s*\**(?:from|de|von|van|fr[åa]n|da|fra|od|desde)\s*:")
+_HEADER_NEXT_RE = re.compile(
+    r"(?i)\b(?:sent|envoy[ée]|to|[àa]|subject|objet|date|datum|gesendet|an|betreff|verzonden|aan|onderwerp|skickat|till|[äa]mne|"
+    r"inviato|oggetto|enviado|para|asunto|cc)\s*:"
 )
 
 
 def latest_reply_text(body: str) -> str:
     """Écarte le bloc cité pour ne classer que la réponse la plus récente."""
-    lines = (body or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    text = (body or "").replace("\r\n", "\n").replace("\r", "\n")
+    own = OWN_LETTER_RE.search(text)
+    if own:  # notre propre courrier, cité sans marque reconnaissable (ticket, client mail exotique)
+        text = text[:text.rfind("\n", 0, own.start()) + 1]
+    lines = text.split("\n")
     kept = []
     for index, line in enumerate(lines):
         if not line.strip():
@@ -368,27 +460,41 @@ def latest_reply_text(body: str) -> str:
             continue
         if line.lstrip().startswith(">") or _QUOTE_START_RE.match(line):
             break
-        # Outlook et certains clients français/allemands introduisent la citation
-        # par un bloc d'en-têtes plutôt que par "On ... wrote:".
-        if re.match(r"(?i)^\s*(?:from|de|von)\s*:", line):
+        # Outlook et certains clients introduisent la citation par un bloc d'en-têtes.
+        if _HEADER_FROM_RE.match(line):
             following = " ".join(lines[index + 1:index + 5])
-            if re.search(r"(?i)\b(?:sent|envoy[ée]|to|à|subject|objet|date)\s*:", following):
+            if _HEADER_NEXT_RE.search(following):
                 break
         kept.append(line)
     return "\n".join(kept).strip()
 
 
 def classify(m: ParsedMail) -> Classification:
-    current_reply = latest_reply_text(m.text)
-    text = f"{m.subject}\\n{current_reply}"[:20000]
+    current_reply = latest_reply_text(m.text).replace("\u2019", "'")
+    # Lignes coupées à 72 caractères : on recolle les phrases (les paragraphes restent séparés).
+    current_reply = re.sub(r"[ \t]+", " ", re.sub(r"(?<!\n)[ \t]*\n[ \t]*(?!\n)", " ", current_reply))
+    text = f"{m.subject}\n{current_reply}"[:20000]
     if m.is_bounce:
+        hit = DELIVERY_ISSUE_RE.search(f"{m.subject}\n{current_reply[:1500]}")
+        if hit:
+            return Classification("delivery_issue", hit.group(0))
         return Classification("bounce", "message de non-distribution")
-    # Ordre important : les confirmations de suppression priment sur le reste.
+    text = _MAYBE_LATER_RE.sub(" ", text)
+    # « Aucune donnée » ne clôt que si le courtier n'attend rien d'autre (« however… », question).
+    vetoed = None
+    for kind, rx in (("completed_no_data", NO_DATA_RE), ("completed_deleted", DELETED_RE)):
+        hit = rx.search(text)
+        if hit:
+            after = text[hit.end():hit.end() + 400]
+            ask = _BUT_RE.search(after) or ASK_RE.search(text) or DEVICE_RE.search(text) or WEBFORM_RE.search(text)
+            if not ask:
+                return Classification(kind, hit.group(0))
+            vetoed = vetoed or hit.group(0)
     for kind, rx in (
-        ("completed_no_data", NO_DATA_RE),
-        ("completed_deleted", DELETED_RE),
         ("id_request", ID_RE),
         ("confirm_link", CONFIRM_RE),
+        ("device_id", DEVICE_RE),
+        ("webform", WEBFORM_RE),
         ("needs_action", VERIFY_RE),
         ("extension", EXTENSION_RE),
     ):
@@ -404,10 +510,24 @@ def classify(m: ParsedMail) -> Classification:
     hit = RESIDENCE_RE.search(text)
     if hit:
         return Classification("residence_question", hit.group(0))
-    hit = ACK_RE.search(text)
+    hit = ASK_RE.search(text)
+    if hit or vetoed:
+        return Classification("needs_action", hit.group(0) if hit else f"{vetoed}, mais…")
+    hit = ACK_RE.search(text) or (ACK_WEAK_RE.search(text) if len(current_reply) <= ACK_WEAK_MAX else None)
     if hit or m.is_auto:
         return Classification("ack", hit.group(0) if hit else "en-tête de réponse automatique")
     return Classification("reply", "")
+
+
+_BOUNCED_TO_RE = re.compile(
+    r"(?i)(?:failed to these recipients or groups:\s*|your message to |n'est pas parvenu [àa] |could not be delivered to |"
+    r"wasn't delivered to |konnte nicht an |delivery to the following recipients? failed[^\n]*\s*)<?([\w.+'-]+@[\w.-]+\w)"
+)
+
+
+def bounced_recipients(text: str) -> set[str]:
+    """Adresses que le rapport de non-distribution déclare en échec (vide si on ne sait pas)."""
+    return {a.lower() for a in _BOUNCED_TO_RE.findall(text or "")}
 
 
 _TICKET_RE = re.compile(

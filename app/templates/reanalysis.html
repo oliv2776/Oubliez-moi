@@ -5,7 +5,7 @@
   <div>
     <p class="small muted" style="margin:0"><a href="/tasks">À traiter</a></p>
     <h1>Réanalyse des réponses</h1>
-    <p class="muted" style="margin:0">La dernière réponse de chaque demande en cours repasse dans le classement actuel{% if model %} (règles, puis {{ model }} pour les cas ambigus){% endif %}. Rien n'est modifié sans votre accord, et aucune réponse automatique, aucun lien ni aucune relance ne part après coup.</p>
+    <p class="muted" style="margin:0">La dernière réponse de chaque demande en cours, et de chaque demande close ou en échec par l'automatisme (jamais celles que vous avez tranchées), repasse dans le classement actuel{% if model %} (règles, puis {{ model }} pour les cas ambigus){% endif %}. Rien n'est modifié sans votre accord, et aucune réponse automatique, aucun lien ni aucune relance ne part après coup.</p>
   </div>
   <form method="post" action="/tasks/reanalysis/start" class="inline"><button class="btn {{ '' if proposals else 'primary' }}" {{ 'disabled' if rp.running }}>{{ 'Relancer la réanalyse' if proposals else 'Réanalyser les réponses' }}</button></form>
 </div>

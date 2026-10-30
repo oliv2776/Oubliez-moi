@@ -31,6 +31,9 @@ log = logging.getLogger(__name__)
 PROPOSALS_KEY = "reanalysis:proposals"
 MODEL_KEY = "reanalysis:model"        # modèle avec lequel la dernière réanalyse a tourné
 ELIGIBLE = (REPLIED, NEEDS_ACTION, SENT, OVERDUE)
+# Clôtures et échecs décidés par l'automatisme (jamais ceux décidés à la main) : à revérifier aussi.
+AUTO_DECIDED = (COMPLETED, FAILED)
+_AUTO_PREFIXES = ("Classement automatique", "Réanalyse")
 SENSITIVE = ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce")
 
 _lock = threading.Lock()
@@ -43,12 +46,20 @@ def _target(kind: str, current: str) -> str | None:
     return {
         "bounce": FAILED,
         "completed_no_data": COMPLETED, "completed_deleted": COMPLETED,
-        "ack": SENT if current in (REPLIED, NEEDS_ACTION) else None,
+        "ack": SENT if current in (REPLIED, NEEDS_ACTION, COMPLETED, FAILED) else None,
+        "delivery_issue": SENT if current == FAILED else None,
+        "webform": NEEDS_ACTION, "device_id": NEEDS_ACTION,
         "extension": SENT,
         "confirm_link": NEEDS_ACTION, "needs_action": NEEDS_ACTION, "id_request": NEEDS_ACTION,
         "legit_refusal": REPLIED, "residence_question": NEEDS_ACTION,
         "refusal": REPLIED, "reply": REPLIED,
     }.get(kind)
+
+
+def decided_automatically(req: Request) -> bool:
+    """Le dernier changement de statut vient du classement automatique ou d'une réanalyse, pas de l'utilisateur."""
+    last = next((e for e in reversed(req.events) if e.kind == "status"), None)
+    return bool(last and (last.summary or "").startswith(_AUTO_PREFIXES))
 
 
 def _from_event(ev: Event) -> mailer.ParsedMail:
@@ -66,11 +77,12 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
     from .service import _sender_matches_broker, classify_reply
     with SessionLocal() as db:
         stmt = select(Request).options(selectinload(Request.events), selectinload(Request.broker))
-        stmt = stmt.where(Request.id.in_(request_ids)) if request_ids else stmt.where(Request.status.in_(ELIGIBLE))
+        scope = (*ELIGIBLE, *AUTO_DECIDED)
+        stmt = stmt.where(Request.id.in_(request_ids)) if request_ids else stmt.where(Request.status.in_(scope))
         items = []
         for req in db.scalars(stmt):
             replies = [e for e in req.events if e.kind == "reply"]
-            if replies and req.status in ELIGIBLE:
+            if replies and (req.status in ELIGIBLE or (req.status in AUTO_DECIDED and decided_automatically(req))):
                 items.append((req.id, replies[-1].id, replies[-1].message_id))
     raw_by_id: dict[str, bytes] = {}
     ids = [mid for _, _, mid in items if mid]
@@ -190,6 +202,8 @@ def apply(db, request_ids: list[int]) -> tuple[int, int]:
         why = f"Réanalyse : {p['label']}" + (f" (« {p['reason']} »)" if p["reason"] else "")
         if p["to_status"] == FAILED:
             req.last_error = "Adresse e-mail du courtier invalide (message de non-distribution)"
+        elif p["from_status"] == FAILED:
+            req.last_error = None
         set_status(db, req, p["to_status"], why)
         if p["kind"] == "extension":
             base = req.sent_at or utcnow()

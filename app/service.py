@@ -506,6 +506,7 @@ def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
 
 
 MAX_AUTO_REPLIES = 3
+BOUNCE_ERROR = "Adresse e-mail du courtier invalide (message de non-distribution)"
 LLM_MIN_CONFIDENCE = 0.7
 _NOREPLY_RE = re.compile(r"^(no-?reply|do-?not-?reply|ne-?pas-?repondre|mailer-daemon|postmaster|bounce)", re.I)
 
@@ -577,8 +578,20 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
     return c
 
 
+def _list_member_bounce(req: Request, m: mailer.ParsedMail) -> bool:
+    """Échec limité à des membres d'une liste de diffusion du courtier : son adresse a bien reçu le message."""
+    failed = mailer.bounced_recipients(m.text)
+    broker = (req.broker.email or "").lower()
+    if not failed or not broker or broker in failed:
+        return False
+    domains = confirm.broker_domains(req.broker.email, req.broker.web)
+    return all(mailer.registered_domain(a.rsplit("@", 1)[-1]) in domains for a in failed)
+
+
 def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     c = _classify(db, req, m)
+    if c.kind == "bounce" and _list_member_bounce(req, m):
+        c = mailer.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
     sender_trusted = _sender_matches_broker(req, m.from_addr, m.dmarc_pass)
     if not sender_trusted:
         # Une référence permet d'identifier le ticket, pas d'authentifier son expéditeur.
@@ -591,11 +604,20 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
 
     if c.kind == "bounce":
-        req.last_error = "Adresse e-mail du courtier invalide (message de non-distribution)"
+        req.last_error = BOUNCE_ERROR
         set_status(db, req, FAILED, why)
+        return
+    if c.kind == "delivery_issue":
+        add_event(db, req, "info", f"Incident de distribution sans conséquence (« {c.reason} ») : rien à faire")
         return
     if req.status in FINAL_STATUSES:
         return  # une réponse tardive ne rouvre pas une demande close
+    if req.status == FAILED and (req.last_error or "") == BOUNCE_ERROR:
+        # Le courtier répond : le message de non-distribution ne concernait pas son adresse principale.
+        req.last_error = None
+        add_event(db, req, "info", "Le courtier a répondu après un message de non-distribution : son adresse fonctionne")
+        if c.kind == "ack":
+            set_status(db, req, SENT, why)
     if c.kind in ("completed_no_data", "completed_deleted"):
         set_status(db, req, COMPLETED, why)
     elif c.kind == "ack":
@@ -629,7 +651,7 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         elif links:
             add_event(db, req, "info", "Lien de confirmation à ouvrir", links[0])
         set_status(db, req, NEEDS_ACTION, why)
-    elif c.kind == "needs_action":
+    elif c.kind in ("needs_action", "webform", "device_id"):
         set_status(db, req, NEEDS_ACTION, why)
     else:  # refus probable, réponse non reconnue
         set_status(db, req, REPLIED, why)

@@ -6,7 +6,7 @@ from app.db import Broker, Event, Profile, Request, SessionLocal
 
 REPLY = ("De : DPO <dpo@{slug}.example>\nDate : hier\nObjet : Re: Olivier Testeur\n\n"
          "Dear Olivier Testeur,\n\n{text}\n\nYou wrote from moi.perso@gmail.com, phone +33 6 12 34 56 78, "
-         "12 rue des Lilas, 75011 Paris, born 14/03/1985. Confirm: https://{slug}.example/c/AbC123xyz987TOKENabc?u=42\n\n"
+         "12 rue des Lilas, 75011 Paris, born 14/03/1985. Mobile 06 12 34 56 78. Mr Testéur. moi.perso couldn't be reached. Confirm: https://{slug}.example/c/AbC123xyz987TOKENabc?u=42\n\n"
          "On Mon, Olivier wrote:\n> Je vous demande de supprimer mes données")
 
 
@@ -66,7 +66,7 @@ def test_personal_data_is_masked_by_default():
     with SessionLocal() as db:
         masked = json.dumps(task_export.build(db, sections={"todo"}), ensure_ascii=False)
         raw = json.dumps(task_export.build(db, anonymize=False, sections={"todo"}), ensure_ascii=False)
-    for secret in ("Olivier", "Testeur", "moi.perso@gmail.com", "12 34 56 78", "rue des Lilas", "75011", "14/03/1985",
+    for secret in ("Olivier", "Testeur", "Testéur", "moi.perso", "moi.perso@gmail.com", "12 34 56 78", "rue des Lilas", "75011", "14/03/1985",
                    "AbC123xyz987TOKENabc", "u=42"):
         assert secret not in masked, secret
         assert secret in raw, secret
