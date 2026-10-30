@@ -28,6 +28,7 @@ from sqlalchemy import select
 from . import confirm, crypto, oauth_ms
 from .db import Broker, Mailbox, Sender, SessionLocal, utcnow
 from .mailer import _quote_folder, registered_domain
+from .net import safe_urlopen
 
 log = logging.getLogger(__name__)
 
@@ -290,8 +291,7 @@ def _post_one_click(url: str) -> int:
         raise urllib.error.URLError("adresse de désinscription non publique ou non HTTPS")
     req = urllib.request.Request(url, data=b"List-Unsubscribe=One-Click", method="POST", headers={
         "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Oubliez-moi (RFC 8058)"})
-    opener = urllib.request.build_opener(_NoRedirect())
-    with opener.open(req, timeout=20) as resp:
+    with safe_urlopen(req, timeout=20, allow_private=False) as resp:
         return resp.status
 
 
