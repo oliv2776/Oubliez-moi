@@ -22,6 +22,7 @@
     <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}">À traiter{% if nav_todo %}<span class="pill">{{ nav_todo }}</span>{% endif %}</a>
     <a href="/brokers" class="{{ 'active' if path.startswith('/brokers') }}">Courtiers</a>
     <a href="/mailboxes" class="{{ 'active' if path.startswith('/mailboxes') }}">Boîtes mail</a>
+    <a href="/exposures" class="{{ 'active' if path.startswith('/exposures') }}">Expositions</a>
     <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Réglages</a>
   </nav>
   <form method="post" action="/logout" class="inline"><button class="btn sm">Déconnexion</button></form>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Cartographie des expositions{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Cartographie des expositions</h1><p class="muted">Reliez les domaines qui vous écrivent aux organismes connus du catalogue. Les correspondances automatiques sont des pistes à vérifier, pas des preuves de partage de données.</p></div></div>
+<div class="grid k4 exposure-kpis">
+  <div class="kpi"><div class="v">{{ stats.domains }}</div><div class="l">Domaines observés</div></div>
+  <div class="kpi"><div class="v">{{ stats.unmatched }}</div><div class="l">Sans lien identifié</div></div>
+  <div class="kpi"><div class="v">{{ stats.proposed }}</div><div class="l">Correspondances à vérifier</div></div>
+  <div class="kpi {{ 'warn' if stats.reappeared else '' }}"><div class="v">{{ stats.reappeared }}</div><div class="l">Expéditeurs revenus après désinscription</div></div>
+</div>
+<section class="card">
+  <h2>Associer un domaine manuellement</h2>
+  <form method="post" action="/exposures/manual" class="exposure-manual">
+    <div><label>Domaine observé</label><input name="sender_domain" required placeholder="exemple.fr" maxlength="200"></div>
+    <div><label>Organisme du catalogue</label><select name="broker_id" required><option value="">Choisir…</option>{% for b in brokers %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select></div>
+    <div><label>Groupe / marque commune</label><input name="group_name" maxlength="300" placeholder="Facultatif"></div>
+    <div><label>Justification / source</label><input name="note" maxlength="1000" placeholder="Ex. mentions légales, politique de confidentialité…"></div>
+    <button class="btn primary">Confirmer l’association</button>
+  </form>
+</section>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Domaine, expéditeur, organisme…">
+  <select name="status"><option value="">Tous les liens</option><option value="review" {{ 'selected' if status=='review' }}>À vérifier</option>{% for key,label in LINK_STATUSES.items() %}<option value="{{ key }}" {{ 'selected' if status==key }}>{{ label }}</option>{% endfor %}</select>
+  <button class="btn">Filtrer</button>
+</form>
+{% if suggestions_added %}<p class="small muted">{{ suggestions_added }} nouvelle(s) correspondance(s) exacte(s) proposée(s) à vérifier.</p>{% endif %}
+{% for row in rows %}
+<section class="card exposure-row">
+  <div class="page-head">
+    <div><h2 class="mono">{{ row.domain }}</h2><p class="small muted">{{ row.senders|length }} expéditeur(s) · {{ row.mail_count }} e-mail(s) observé(s) · dernier : {{ row.last_seen|dt if row.last_seen else '—' }}</p></div>
+    {% if row.reappeared %}<span class="badge s-overdue">{{ row.reappeared }} message(s) après désinscription</span>{% elif row.new_count %}<span class="tag">{{ row.new_count }} nouveau(x)</span>{% endif %}
+  </div>
+  <div class="exposure-senders">
+    {% for sender in row.senders %}
+    <div><strong>{{ sender.name or sender.address }}</strong><span class="small muted"> {{ sender.address }} · {{ sender.status_label }}{% if sender.seen_after_unsub %} · revenu après désinscription{% endif %}</span></div>
+    {% endfor %}
+  </div>
+  {% if row.matches %}
+    <div class="exposure-links">
+    {% for link in row.matches %}
+      <div class="exposure-link">
+        <div class="exposure-link-head">
+          <div><strong>{{ link.group_name or link.broker.name }}</strong><div class="small muted">{{ link.broker.name }} · {{ RELATION_LABELS.get(link.relation, link.relation) }} · confiance indicative {{ (link.confidence * 100)|int }} %</div>
+          <div class="small muted">{{ link.evidence }}</div>{% if link.review_note %}<div class="small muted">Note : {{ link.review_note }}</div>{% endif %}</div>
+          <span class="badge {{ 's-completed' if link.status=='confirmed' else 's-overdue' if link.status=='proposed' else '' }}">{{ LINK_STATUSES[link.status] }}</span>
+        </div>
+        {% if link.status == 'proposed' %}
+        <form method="post" action="/exposures/{{ link.id }}/review" class="exposure-review">
+          <input name="group_name" maxlength="300" placeholder="Groupe / marque (facultatif)" value="{{ link.group_name or '' }}">
+          <input name="note" maxlength="1000" placeholder="Note de vérification (facultatif)">
+          <button class="btn sm primary" name="decision" value="confirmed">Confirmer</button>
+          <button class="btn sm" name="decision" value="rejected">Écarter</button>
+        </form>
+        {% elif link.status == 'confirmed' %}
+        <form method="post" action="/exposures/{{ link.id }}/group" class="exposure-review">
+          <input name="group_name" maxlength="300" value="{{ link.group_name or link.broker.name }}" aria-label="Groupe commercial">
+          <button class="btn sm">Modifier le groupe</button>
+        </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <p class="small muted">Aucune correspondance connue. Cela ne signifie pas que le domaine est indépendant ou sans lien commercial.</p>
+  {% endif %}
+</section>
+{% else %}
+<div class="card empty"><p>Aucun domaine observé pour le moment. Ajoutez une boîte mail et lancez une analyse pour commencer la cartographie.</p></div>
+{% endfor %}
+<div class="banner info small">Méthode : les propositions automatiques reposent uniquement sur l’égalité exacte du domaine enregistrable (PSL) entre l’expéditeur et les coordonnées publiques du catalogue. Elles ne prouvent ni une transmission de données, ni l’appartenance à un groupe. Vérifiez les mentions légales et politiques de confidentialité avant confirmation. Les domaines inconnus restent non classés.</div>
+{% endblock %}

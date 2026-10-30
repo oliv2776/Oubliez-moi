@@ -266,3 +266,15 @@ table.senders td { vertical-align: middle; }
   .global-search-page { flex-direction: column; }
   .global-search-page .btn { justify-content: center; }
 }
+
+/* Cartographie des expositions */
+.exposure-manual { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .75rem; align-items: end; }
+.exposure-manual label, .exposure-review input { display: block; }
+.exposure-row .page-head { margin-bottom: .5rem; align-items: center; }
+.exposure-senders { display: grid; gap: .3rem; padding: .65rem 0; border-top: 1px solid var(--line); }
+.exposure-links { display: grid; gap: .6rem; }
+.exposure-link { border: 1px solid var(--line); border-radius: 8px; padding: .75rem; }
+.exposure-link-head { display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start; }
+.exposure-review { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .65rem; }
+.exposure-review input { flex: 1 1 180px; min-width: 0; }
+@media (max-width: 560px) { .exposure-link-head { flex-direction: column; } }
