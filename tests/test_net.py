@@ -57,3 +57,26 @@ def test_safe_urlopen_handles_localhost_dual_stack_resolution():
 def test_safe_urlopen_rejects_non_http_schemes():
     with pytest.raises(UnsafeAddressError):
         safe_urlopen("file:///etc/passwd")
+
+
+def test_safe_urlopen_resolves_only_once_before_connecting(monkeypatch):
+    """Une seconde résolution DNS ne doit pas pouvoir remplacer l'IP validée."""
+    calls = []
+    attempted = []
+
+    def fake_getaddrinfo(host, port, type):
+        calls.append((host, port))
+        # Une deuxième résolution aurait renvoyé une IP privée : elle ne doit jamais arriver.
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", port))]
+
+    def fake_create_connection(address, timeout, source_address=None):
+        attempted.append(address)
+        raise OSError("connexion simulée")
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+    monkeypatch.setattr(socket, "create_connection", fake_create_connection)
+    with pytest.raises(Exception):
+        safe_urlopen("http://rebind.example/resource")
+
+    assert calls == [("rebind.example", 80)]
+    assert attempted == [("8.8.8.8", 80)]
