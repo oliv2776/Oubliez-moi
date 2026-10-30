@@ -107,6 +107,14 @@ def test_wrong_key_does_not_overwrite_secret_settings(client):
     assert settings.smtp_password == previous
     with SessionLocal() as db:
         assert json.loads(db.get(KV, "cfg:smtp_password").value).startswith("enc:v1:")
+    from app import mailer
+    from email.message import EmailMessage
+    msg = EmailMessage()
+    msg["To"] = "privacy@example.org"
+    msg["Subject"] = "test"
+    msg.set_content("test")
+    with pytest.raises(mailer.SendError, match="Mot de passe SMTP chiffré illisible"):
+        mailer.send_message(msg, force=True)
 
 
 def test_csrf_rejects_missing_origin():
