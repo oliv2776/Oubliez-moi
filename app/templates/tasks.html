@@ -54,7 +54,7 @@
     <a class="triage-item {{ 'active' if r and it.id == r.id }}" href="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ it.id }}" {% if r and it.id == r.id %}aria-current="true"{% endif %}>
       <div class="ti-top"><span class="ti-name">{{ it.broker.name }}</span><span class="ti-date">{{ (it.last_reply_at or it.sent_at or it.created_at)|d }}</span></div>
       <div class="ti-snippet">{{ snippet(it) }}</div>
-      <div class="ti-bottom">{{ badge(it.status) }}{% if multi_profiles %}<span class="small muted">{{ it.profile.full_name }}</span>{% endif %}</div>
+      <div class="ti-bottom">{{ badge(it.status) }}{% if insights[it.id] and insights[it.id].by_ai %}<span class="tag-ai" title="Classée par l'IA">IA</span>{% endif %}{% if multi_profiles %}<span class="small muted">{{ it.profile.full_name }}</span>{% endif %}</div>
     </a>
     {% endfor %}
   </aside>
@@ -66,7 +66,7 @@
           <p class="small muted" style="margin:0">{{ position }} sur {{ items|length }} · {{ r.profile.full_name }} · <span class="mono">{{ r.reference }}</span></p>
           <h2 style="margin:.15rem 0 0;font-size:1.35rem">{{ r.broker.name }} {{ badge(r.status) }}</h2>
           <p class="small muted" style="margin:.2rem 0 0">{{ r.broker.email or 'Formulaire en ligne uniquement' }}{% if r.sent_at %} · demande envoyée le {{ r.sent_at|d }}{% endif %}{% if r.reminder_count %} · relancée{% endif %}</p>
-          {% if why %}<p class="td-why">{{ why }}</p>{% endif %}
+          {% if why and not insights[r.id] %}<p class="td-why">{{ why }}</p>{% endif %}
         </div>
         <div class="actions">
           <a class="btn sm" href="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ prev_id }}" {% if not prev_id %}aria-disabled="true" tabindex="-1" style="opacity:.4;pointer-events:none"{% endif %} data-key="k" title="Précédent (K)">↑</a>
@@ -77,9 +77,31 @@
     </div>
 
     {% if latest_reply %}
+    {% set ins = insights[r.id] %}
+    {% if ins %}
+    <div class="card brief {{ 'brief-ai' if ins.by_ai }}">
+      <div class="brief-head">
+        <h3>En bref</h3>
+        {% if ins.by_ai %}<span class="tag-ai">Analysé par l'IA{% if ins.confidence %} · {{ ins.confidence }} %{% endif %}</span>
+        {% else %}<span class="tag">Classé par les règles</span>{% endif %}
+        <span class="small muted">{{ ins.label }}{% if ins.ticket %} · dossier n° {{ ins.ticket }}{% endif %}</span>
+      </div>
+      {% if not ins.ai_summary %}<p class="small muted" style="margin:0 0 .2rem">Début du message :</p>{% endif %}
+      <p class="brief-summary" translate="no">{{ ins.summary }}</p>
+      <div class="brief-todo">
+        <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
+      </div>
+      {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
+      {% if can_summarize and not ins.ai_summary %}
+      <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Le modèle lit le message… (jusqu\'à une minute)';">
+        <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
+        <button class="btn sm">Résumer et conseiller avec l'IA ({{ settings.llm_model }})</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
     <div class="card">
       <h3>Ce que {{ r.broker.name }} a répondu</h3>
-      {% if ai_note %}<div class="ai-note">{{ ai_note }}</div>{% endif %}
       {{ mail_view(latest_reply) }}
       {% set n_replies = r.events|selectattr('kind', 'equalto', 'reply')|list|length %}
       {% if n_replies > 1 %}<p class="small"><a href="/requests/{{ r.id }}">{{ n_replies - 1 }} autre(s) message(s) dans la fiche complète</a></p>{% endif %}

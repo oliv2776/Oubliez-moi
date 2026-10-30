@@ -101,6 +101,7 @@ SYSTEM = (
     "Tu analyses la réponse d'une entreprise à une demande d'effacement de données personnelles (RGPD). "
     "Réponds UNIQUEMENT avec un objet JSON : "
     '{"category": "<catégorie>", "confidence": <nombre entre 0 et 1>, "summary": "<une phrase en français>", '
+    '"action": "<ce que la personne doit faire maintenant, une phrase concrète en français, ou null si rien>", '
     '"ticket": "<numéro de dossier ou null>"}. Catégories possibles :\n'
     + "\n".join(f"- {k} : {v}" for k, v in CATEGORIES.items())
     + "\nIgnore le message cité (notre demande d'origine). En cas de doute, utilise « reply » avec une confiance basse."
@@ -173,10 +174,12 @@ def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
     except (TypeError, ValueError):
         conf = 0.0
     ticket = content.get("ticket")
+    action = content.get("action")
     return {
         "category": cat,
         "confidence": conf,
         "summary": str(content.get("summary") or "")[:400],
+        "action": str(action)[:400] if action and str(action).lower() not in ("null", "none", "") else None,
         "ticket": str(ticket)[:80] if ticket and str(ticket).lower() != "null" else None,
         "mode": "chat",
     }

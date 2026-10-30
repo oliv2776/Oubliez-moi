@@ -401,3 +401,14 @@ details.menu .menu-list button:hover, details.menu .menu-list button:focus-visib
 .rp-model { margin: .25rem 0 0; }
 @media (prefers-reduced-motion: reduce) { .rp-bar span { transition: none; } }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
+/* En bref : résumé et marche à suivre au-dessus du message */
+.tag-ai { display: inline-block; font-size: .72rem; font-weight: 700; padding: .05rem .45rem; border-radius: 5px;
+  background: var(--info-soft); color: var(--info); margin-left: .35rem; white-space: nowrap; }
+.brief-head { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .5rem; margin-bottom: .5rem; }
+.brief-head h3 { margin: 0; }
+.brief-head .tag-ai, .brief-head .tag { margin-left: 0; }
+.brief-summary { font-size: 1rem; line-height: 1.55; margin: 0 0 .75rem; max-width: 78ch; }
+.brief-todo { background: var(--accent-soft); border-radius: 8px; padding: .65rem .85rem; line-height: 1.5; max-width: 78ch; }
+.brief-ai .brief-todo { background: var(--info-soft); }
+.brief-caution { color: var(--warn); margin: .55rem 0 0; max-width: 78ch; }
+.brief-ask { margin-top: .7rem; }
