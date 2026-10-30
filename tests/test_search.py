@@ -3,7 +3,7 @@ from app.db import Broker, Mailbox, Profile, Request, Sender, SessionLocal
 
 def test_global_search_finds_profiles_brokers_requests_and_senders(client):
     with SessionLocal() as db:
-        profile = Profile(full_name="Alice Exemple", emails=["alice@example.fr"])
+        profile = Profile(full_name="Search Example Alice", emails=["alice@example.fr"])
         broker = Broker(slug="privacy-search-example", name="Privacy Search Example",
                         email="privacy@search-example.test", countries=["fr"], categories=[])
         mailbox = Mailbox(label="Boîte test", address="alice@example.fr", host="imap.example.fr",
@@ -23,8 +23,15 @@ def test_global_search_finds_profiles_brokers_requests_and_senders(client):
     assert "Privacy Search Example" in response.text
     assert "Search Example News" in response.text
     assert f"/requests/{request_id}" in response.text
-    assert f"/brokers?q=Privacy%20Search%20Example" in response.text or "/brokers?q=" in response.text
+    assert 'href="/brokers?q=' in response.text
     assert f"/mailboxes?status=all" in response.text
+    with SessionLocal() as db:
+        db.delete(db.get(Sender, sender_id))
+        mailbox_row = db.get(Mailbox, mailbox.id)
+        if mailbox_row:
+            db.delete(mailbox_row)
+        db.delete(db.get(Broker, broker_id))
+        db.commit()
 
 
 def test_global_search_requires_two_characters(client):
