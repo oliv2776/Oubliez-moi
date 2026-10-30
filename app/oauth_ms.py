@@ -5,8 +5,12 @@ IMAP depuis septembre 2024. On utilise le flux « code d'appareil » : Oubliez-m
 affiche un code, vous l'entrez sur microsoft.com/devicelogin, et Microsoft
 délivre un jeton de rafraîchissement, conservé chiffré.
 
-Il faut un identifiant d'application (client ID) enregistré dans un annuaire
-Microsoft Entra, avec les flux clients publics autorisés (voir le README).
+Microsoft n'accepte que les applications déclarées chez lui, chacune avec son
+identifiant (client ID) — comme Apple Mail ou Thunderbird. Oubliez-moi a le sien,
+déclaré une fois pour tout le projet (PROJECT_CLIENT_ID) : l'utilisateur n'a
+alors qu'à cliquer sur « Connecter » et saisir le code. MS_CLIENT_ID (.env) ou
+l'identifiant saisi pour une boîte le remplacent si besoin. Un identifiant
+d'application public n'est pas un secret : il n'autorise rien à lui seul.
 """
 from __future__ import annotations
 
@@ -20,6 +24,10 @@ import urllib.request
 from .net import safe_urlopen
 
 AUTHORITY = os.environ.get("MS_AUTHORITY", "https://login.microsoftonline.com")
+# Identifiant de l'application « Oubliez-moi » déclarée dans Microsoft Entra (comptes
+# personnels et professionnels, flux clients publics autorisés, sans secret client).
+# Valeur publique par nature, comme celle d'Apple Mail ou de Thunderbird.
+PROJECT_CLIENT_ID = "40870361-82c7-42f9-8e99-594cc906acf8"
 ALLOW_PRIVATE = False  # surchargeable uniquement dans les tests de flux OAuth local
 SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
@@ -47,6 +55,15 @@ def _post(url: str, data: dict) -> dict:
         raise OAuthError(f"Microsoft injoignable : {getattr(e, 'reason', e)}") from e
 
 
+def default_client_id() -> str:
+    """Identifiant utilisé quand une boîte n'en précise pas : .env, sinon celui du projet."""
+    return os.environ.get("MS_CLIENT_ID", "").strip() or PROJECT_CLIENT_ID
+
+
+def client_id_for(own: str | None) -> str:
+    return (own or "").strip() or default_client_id()
+
+
 def _endpoint(tenant: str, path: str) -> str:
     return f"{AUTHORITY.rstrip('/')}/{tenant or 'consumers'}/oauth2/v2.0/{path}"
 
@@ -54,7 +71,7 @@ def _endpoint(tenant: str, path: str) -> str:
 def start(mailbox_id: int, client_id: str, tenant: str) -> dict:
     """Démarre la connexion : renvoie le code à saisir et l'adresse où le saisir."""
     if not client_id:
-        raise OAuthError("Indiquez l'identifiant d'application (client ID) Microsoft")
+        raise OAuthError("Aucun identifiant d'application Microsoft : indiquez-en un dans « Utiliser votre propre identifiant »")
     data = _post(_endpoint(tenant, "devicecode"), {"client_id": client_id, "scope": SCOPE})
     if "device_code" not in data:
         raise OAuthError(data.get("error_description") or data.get("error") or "réponse inattendue de Microsoft")

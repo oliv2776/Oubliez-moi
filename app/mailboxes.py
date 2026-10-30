@@ -39,7 +39,7 @@ PROVIDERS = {
               "help": "Mot de passe d'application Google (myaccount.google.com/apppasswords), pas votre mot de passe habituel."},
     "outlook": {"label": "Hotmail / Outlook.com", "host": "outlook.office365.com", "port": 993, "security": "ssl", "verify_tls": True,
                 "auth": "oauth_ms", "folders": ["INBOX", "Junk"],
-                "help": "Microsoft n'accepte plus de mot de passe : connexion par code (voir l'aide ci-dessous)."},
+                "help": "Pas de mot de passe : après l'ajout, cliquez sur « Connecter le compte Microsoft » et saisissez le code affiché."},
     "proton": {"label": "Proton Mail (via Proton Mail Bridge)", "host": "", "port": 1143, "security": "starttls", "verify_tls": False,
                "auth": "password", "folders": ["INBOX", "Spam"],
                "help": "Adresse du Bridge sur votre réseau (ex. 172.17.0.1 ou nom du conteneur), identifiant et mot de passe affichés par la commande « info » du Bridge."},
@@ -193,7 +193,7 @@ def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
     try:
         user = acc["user"]
         if acc["auth"] == "oauth_ms":
-            token, new_refresh = oauth_ms.access_token(mb.id, mb.oauth_client_id or "", mb.oauth_tenant, _secret(mb))
+            token, new_refresh = oauth_ms.access_token(mb.id, oauth_ms.client_id_for(mb.oauth_client_id), mb.oauth_tenant, _secret(mb))
             if new_refresh and db is not None:
                 mb.secret_enc = crypto.encrypt(new_refresh)  # Microsoft fait tourner les jetons
                 db.commit()
