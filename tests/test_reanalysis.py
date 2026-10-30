@@ -156,3 +156,30 @@ def test_fetch_by_message_id_searches_watched_and_filing_folders(monkeypatch):
     monkeypatch.setattr(settings, "imap_file_folder", "Oubliez-moi")
     assert mailer.fetch_by_message_id(["<a@b.example>", 'pas"valide']) == {"<a@b.example>": b"raw"}
     assert fake.searched == [("INBOX", '"<a@b.example>"'), ("Oubliez-moi", '"<a@b.example>"')]
+
+
+def test_progress_reports_model_activity(client, monkeypatch):
+    import time as _time
+    monkeypatch.setattr(settings, "llm_url", "http://ollama:11434")
+    monkeypatch.setattr(settings, "llm_model", "qwen3:8b")
+    monkeypatch.setattr(llm, "loaded_models", lambda: [{"name": "qwen3:8b", "size_gb": 5.9}])
+    monkeypatch.setitem(llm.activity, "model", "qwen3:8b")
+    monkeypatch.setitem(llm.activity, "since", _time.time() - 12)
+    st = client.get("/tasks/reanalysis/status").json()
+    assert st["llm_busy_model"] == "qwen3:8b" and st["llm_busy_for"] >= 12 and st["llm_loaded"][0]["size_gb"] == 5.9
+    llm.activity.clear()
+
+
+def test_triage_shows_reply_text_and_useful_snippet(client):
+    rid, _ = _request("replied", "Hi Olivier,\n\nOur team reviewed the matter in detail.\n\nOn Mon wrote:\n> old", "<t@acme-re.example>", "re-i")
+    html_page = __import__("html").unescape(client.get(f"/tasks?id={rid}").text)
+    assert "Our team reviewed the matter in detail." in html_page          # texte affiché directement
+    assert '<div class="ti-snippet">Our team reviewed the matter in detail.</div>' in html_page  # ni objet, ni « Hi Olivier »
+    with SessionLocal() as db:
+        eid = db.query(Event).filter(Event.request_id == rid, Event.kind == "reply").one().id
+    assert client.get(f"/events/{eid}/view").headers["x-frame-options"] == "SAMEORIGIN"
+
+
+def test_theme_selector_and_early_theme_script(client):
+    page = client.get("/tasks").text
+    assert 'id="theme-switch"' in page and "oubliez-moi-theme" in page.split("</head>")[0]

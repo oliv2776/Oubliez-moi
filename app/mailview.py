@@ -45,6 +45,7 @@ CSP = (
 )
 
 _BASE_CSS = """
+html,body{height:auto!important;min-height:0!important}
 html{background:#fff}
 body{margin:0;padding:14px 16px;font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1d232b;overflow-wrap:anywhere}
 a{color:#23524a}

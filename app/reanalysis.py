@@ -14,6 +14,7 @@ import json
 import logging
 import re
 import threading
+import time
 from datetime import timedelta
 
 from sqlalchemy import select
@@ -33,7 +34,8 @@ ELIGIBLE = (REPLIED, NEEDS_ACTION, SENT, OVERDUE)
 SENSITIVE = ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce")
 
 _lock = threading.Lock()
-state: dict = {"running": False, "done": 0, "total": 0, "current": ""}
+state: dict = {"running": False, "done": 0, "total": 0, "current": "", "phase": "", "started": None,
+                "finished": None, "found": 0, "error": ""}
 
 
 def _target(kind: str, current: str) -> str | None:
@@ -72,12 +74,13 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
                 items.append((req.id, replies[-1].id, replies[-1].message_id))
     raw_by_id: dict[str, bytes] = {}
     ids = [mid for _, _, mid in items if mid]
+    state.update(phase="mailbox", total=len(items))
     if ids and settings.imap_configured:
         try:
             raw_by_id = mailer.fetch_by_message_id(ids)
         except Exception as e:  # noqa: BLE001 - boîte injoignable : on se rabat sur l'historique
             log.warning("Réanalyse : boîte injoignable (%s), analyse depuis l'historique", e)
-    state.update(total=len(items), done=0)
+    state.update(total=len(items), done=0, phase="analyse")
     proposals = []
     for req_id, ev_id, mid in items:
         with SessionLocal() as db:
@@ -95,6 +98,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
             target = _target(kind, req.status)
             state["done"] += 1
             if target and target != req.status:
+                state["found"] += 1
                 proposals.append({
                     "request_id": req.id, "event_id": ev.id, "broker": req.broker.name, "reference": req.reference,
                     "from_status": req.status, "to_status": target, "kind": kind,
@@ -115,10 +119,12 @@ def _run(request_ids: list[int] | None) -> None:
             if not request_ids:
                 kv_set(db, MODEL_KEY, current_model())
             db.commit()
-    except Exception:  # noqa: BLE001
+        state["phase"] = "done"
+    except Exception as e:  # noqa: BLE001
         log.exception("Réanalyse des réponses")
+        state.update(phase="error", error=str(e)[:300])
     finally:
-        state.update(running=False, current="")
+        state.update(running=False, current="", finished=time.time())
         _lock.release()
 
 
@@ -126,9 +132,24 @@ def start(request_ids: list[int] | None = None) -> bool:
     """Lance la réanalyse en arrière-plan. Renvoie False si une réanalyse tourne déjà."""
     if not _lock.acquire(blocking=False):
         return False
-    state.update(running=True, done=0, total=0, current="")
+    state.update(running=True, done=0, total=0, current="", phase="start", started=time.time(), finished=None,
+                 found=0, error="")
     threading.Thread(target=_run, args=(request_ids,), daemon=True).start()
     return True
+
+
+def progress(with_models: bool = True) -> dict:
+    """État lisible pour l'interface : réanalyse et modèle d'IA (with_models : interroge Ollama, jusqu'à 3 s)."""
+    from . import llm
+    busy = llm.activity.get("since")
+    return {
+        **state,
+        "llm_model": current_model(),
+        "llm_busy_for": round(time.time() - busy) if busy else None,
+        "llm_busy_model": llm.activity.get("model"),
+        "llm_loaded": llm.loaded_models() if (with_models and current_model()) else None,
+        "finished_ago": round(time.time() - state["finished"]) if state.get("finished") else None,
+    }
 
 
 def current_model() -> str:

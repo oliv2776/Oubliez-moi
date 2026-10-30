@@ -61,7 +61,9 @@
     "Créer l'alias":"Create alias","Saisir un alias":"Enter an alias","Copier":"Copy","Marquer comme migré":"Mark as migrated",
     "Ce n'est pas un compte":"Not an account","Statut automatique":"Automatic status","Retirer l'alias":"Remove alias",
     "Réglages de la migration":"Migration settings","Rôle des boîtes":"Mailbox roles","Recommencer l'inventaire":"Restart the scan",
-    "Ancienne adresse":"Old address","Service":"Service"
+    "Ancienne adresse":"Old address","Service":"Service",
+    "Thème auto":"Auto theme","Clair":"Light","Sombre":"Dark","Voir la mise en forme d'origine":"Show original formatting",
+    "Réanalyse en cours":"Re-analysis in progress","Réanalyser les réponses":"Re-analyse replies"
   };
   // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
   // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées
