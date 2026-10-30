@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
 import urllib.request
 
 from .config import settings
@@ -194,7 +195,7 @@ import threading as _threading
 import time as _time
 
 _MODEL_NAME_RE = _re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._/-]*(:[a-zA-Z0-9._-]+)?$")
-_installed_cache: dict = {"at": 0.0, "url": "", "names": None}
+_installed_cache: dict = {"at": 0.0, "url": "", "names": None, "sizes": {}}
 PULLS: dict[str, dict] = {}  # téléchargements en cours ou terminés, par nom normalisé
 
 
@@ -205,14 +206,54 @@ def installed_models(max_age: float = 20.0) -> list[str] | None:
     now = _time.monotonic()
     if _installed_cache["names"] is not None and _installed_cache["url"] == settings.llm_url and now - _installed_cache["at"] < max_age:
         return _installed_cache["names"]
+    sizes = {}
     try:
         with urllib.request.urlopen(settings.llm_url.rstrip("/") + "/api/tags", timeout=3) as resp:
-            names = sorted(m["name"] for m in json.loads(resp.read()).get("models", []))
+            models = json.loads(resp.read()).get("models", [])
+        names = sorted(m["name"] for m in models)
+        sizes = {m["name"]: int(m.get("size") or 0) for m in models}
     except (OSError, ValueError, KeyError, TypeError) as e:
         log.info("Liste des modèles Ollama indisponible : %s", e)
         names = None
-    _installed_cache.update(at=now, url=settings.llm_url, names=names)
+    _installed_cache.update(at=now, url=settings.llm_url, names=names, sizes=sizes)
     return names
+
+
+def installed_details() -> list[dict] | None:
+    """Modèles installés avec leur taille sur le disque, du plus gros au plus petit."""
+    names = installed_models()
+    if names is None:
+        return None
+    sizes = _installed_cache["sizes"]
+    current = normalize(settings.llm_model)
+    out = [{"name": n, "size": sizes.get(n, 0), "gb": f"{sizes.get(n, 0) / 1e9:.1f}".replace(".", ","),
+            "current": normalize(n) == current} for n in names]
+    return sorted(out, key=lambda m: -m["size"])
+
+
+def delete_model(name: str) -> None:
+    """Supprime un modèle d'Ollama pour libérer de la place sur le disque."""
+    if not settings.llm_url:
+        raise ValueError("Indiquez d'abord l'adresse d'Ollama")
+    if not _MODEL_NAME_RE.match(name or ""):
+        raise ValueError("Nom de modèle invalide")
+    pull = PULLS.get(normalize(name))
+    if pull and not pull["done"]:
+        raise ValueError("Ce modèle est en cours de téléchargement")
+    # « model » pour les versions récentes d'Ollama, « name » pour les anciennes
+    req = urllib.request.Request(settings.llm_url.rstrip("/") + "/api/delete", method="DELETE",
+                                 data=json.dumps({"model": name, "name": name}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            resp.read()
+    except urllib.error.HTTPError as e:
+        raise ValueError("Ollama ne connaît pas ce modèle" if e.code == 404 else f"Ollama a répondu {e.code}") from e
+    except OSError as e:
+        raise ValueError(f"Ollama injoignable : {getattr(e, 'reason', e)}") from e
+    finally:
+        _installed_cache["names"] = None
+    PULLS.pop(normalize(name), None)
 
 
 def is_installed(name: str) -> bool:

@@ -672,6 +672,7 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
         imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"),
         overridden=settings_store.overridden_keys(), file_status=(kv_get(db, "imap_file_status") or "").split("|", 2),
         llm_models=llm.MODELS, llm_installed=llm.installed_models() if settings.llm_url else None,
+        llm_details=llm.installed_details() if settings.llm_url else None,
         llm_in_catalog=bool(llm.catalog_kind(settings.llm_model)),
     )
 
@@ -777,6 +778,20 @@ async def llm_pull(request: HttpRequest):
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     return JSONResponse({"model": model, **state})
+
+
+@app.post("/settings/llm-delete")
+async def llm_delete(request: HttpRequest):
+    """Supprime un modèle d'Ollama pour libérer de la place."""
+    form = dict(await request.form())
+    model = form.get("model", "")
+    try:
+        llm.delete_model(model)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    flash(request, f"Modèle « {model} » supprimé." + (
+        " C'était le modèle sélectionné : choisissez-en un autre, ou téléchargez-le à nouveau." if llm.normalize(model) == llm.normalize(settings.llm_model) else ""))
+    return JSONResponse({"ok": True})
 
 
 @app.get("/settings/llm-status")

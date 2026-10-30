@@ -232,6 +232,23 @@
       <div class="progress" id="llm-progress" hidden><span style="width:0%"></span></div>
     </div>
     <p class="small muted">Les modèles de décision nécessitent Ollama 0.35 ou plus récent (<code>docker compose pull ollama</code> pour le mettre à jour).</p>
+
+    {% if llm_details %}
+    {% set total = llm_details|sum(attribute='size') %}
+    <details class="llm-models" {{ 'open' if llm_details|length > 1 }}>
+      <summary>Modèles installés sur votre serveur : {{ llm_details|length }} · {{ '%.1f'|format(total / 1e9)|replace('.', ',') }} Go</summary>
+      <table class="small">
+        {% for m in llm_details %}
+        <tr>
+          <td class="mono">{{ m.name }}{% if m.current %} <span class="tag">sélectionné</span>{% endif %}</td>
+          <td class="num">{{ m.gb }} Go</td>
+          <td class="num"><button type="button" class="btn sm danger llm-del" data-model="{{ m.name }}" data-current="{{ '1' if m.current else '' }}">Supprimer</button></td>
+        </tr>
+        {% endfor %}
+      </table>
+      <p class="small muted" style="margin:.4rem 0 0">Supprimer un modèle libère sa place sur le disque ; vous pourrez le télécharger à nouveau. Des modèles de la même famille partagent parfois des fichiers : l'espace libéré peut alors être un peu inférieur.</p>
+    </details>
+    {% endif %}
     <div class="actions" style="margin-top:.8rem"><button class="btn sm" formaction="/settings/test-llm">Enregistrer et tester le modèle</button></div>
   </div>
 </section>
@@ -380,6 +397,17 @@
     if (!r.ok) { $("llm-install-text").textContent = (await r.json()).error || "Erreur"; return; }
     refreshInstall();
   });
+  document.querySelectorAll(".llm-del").forEach(btn => btn.addEventListener("click", async () => {
+    const name = btn.dataset.model;
+    const warn = btn.dataset.current ? "\n\nC'est le modèle actuellement sélectionné : l'analyse par l'IA ne fonctionnera plus tant que vous n'en aurez pas choisi un autre." : "";
+    if (!confirm("Supprimer le modèle « " + name + " » de votre serveur ?" + warn)) return;
+    btn.disabled = true; btn.textContent = "Suppression…";
+    const fd = new FormData(); fd.append("model", name);
+    const r = await fetch("/settings/llm-delete", { method: "POST", body: fd });
+    if (!r.ok) { btn.disabled = false; btn.textContent = "Supprimer"; alert((await r.json()).error || "Erreur"); return; }
+    dirty = false;
+    location.hash = "automatismes"; location.reload();
+  }));
   modelSel.addEventListener("change", describeModel);
   $("llm_model_custom").addEventListener("change", refreshInstall);
   describeModel();

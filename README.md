@@ -99,7 +99,7 @@ Puis, dans **Réglages → Automatismes**, indiquez l'adresse `http://ollama:114
 | Tev1 0.8B (`tev1:0.8b`) | décision | ~1 Go | Très petites machines, moins fiable |
 | Qwen2.5 3B / 7B, Qwen3 4B / 8B | conversationnel | 2,5 à 6 Go | Si vous voulez un résumé en une phrase de chaque réponse |
 
-Un **modèle de décision** choisit une catégorie dans la liste et donne une probabilité, en une seule passe : c'est plus rapide et plus fiable pour ce travail, mais il n'écrit pas de texte. Un **modèle conversationnel** classe et résume la réponse. Dans les deux cas, la décision n'est appliquée que si sa probabilité atteint 70 % ; le numéro de dossier du courtier est repéré dans le texte. Tout autre modèle Ollama peut être indiqué avec « Autre modèle… ». Les modèles de décision nécessitent Ollama 0.35 ou plus récent (`docker compose pull ollama`).
+Un **modèle de décision** choisit une catégorie dans la liste et donne une probabilité, en une seule passe : c'est plus rapide et plus fiable pour ce travail, mais il n'écrit pas de texte. Un **modèle conversationnel** classe et résume la réponse. Dans les deux cas, la décision n'est appliquée que si sa probabilité atteint 70 % ; le numéro de dossier du courtier est repéré dans le texte. Tout autre modèle Ollama peut être indiqué avec « Autre modèle… ». La même page liste les modèles installés avec leur taille et permet de supprimer ceux qui ne servent plus, pour récupérer de la place. Les modèles de décision nécessitent Ollama 0.35 ou plus récent (`docker compose pull ollama`).
 
 Seules les réponses que les mots-clés ne savent pas classer sont analysées, quelques-unes par semaine : une analyse prend de quelques secondes à une minute sur processeur, ce qui est sans importance ici. Rien ne quitte votre serveur.
 

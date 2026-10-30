@@ -232,3 +232,5 @@ kbd { font: 600 .7rem ui-monospace, Menlo, monospace; padding: .05rem .3rem; bor
 
 .llm-install { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; margin: .6rem 0 .4rem; padding: .6rem .8rem; border: 1px dashed var(--line); border-radius: 8px; }
 .llm-install .progress { flex-basis: 100%; }
+details.llm-models { margin: .6rem 0; }
+details.llm-models table td { padding: .35rem .5rem; vertical-align: middle; }

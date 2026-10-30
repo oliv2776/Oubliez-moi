@@ -179,10 +179,22 @@ class _DecisionOllama(BaseHTTPRequestHandler):
     """Faux Ollama : modèles de décision (/v1/systemone), liste (/api/tags) et téléchargement (/api/pull)."""
     pulled = set()
 
+    deleted = set()
+
     def do_GET(self):
         if self.path == "/api/tags":
-            names = ["tev1:4b", "qwen2.5:3b", "mistral:7b"] + sorted(self.pulled)
-            self._json({"models": [{"name": n} for n in names]})
+            names = [n for n in ["tev1:4b", "qwen2.5:3b", "mistral:7b"] + sorted(self.pulled) if n not in self.deleted]
+            self._json({"models": [{"name": n, "size": 3_400_000_000} for n in names]})
+
+    def do_DELETE(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        name = body.get("model") or body.get("name")
+        if name in ("tev1:4b", "qwen2.5:3b", "mistral:7b") or name in self.pulled:
+            type(self).deleted.add(name)
+            self._json({})
+        else:
+            self.send_response(404)
+            self.end_headers()
 
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -266,6 +278,14 @@ def test_model_picker_download_and_status(client):
             time.sleep(0.05)
         assert st["pull"]["done"] and not st["pull"]["error"] and st["installed"]
         assert client.post("/settings/llm-pull", data={"model": "bad name;rm"}).status_code == 400
+        # Liste des modèles installés avec leur taille, puis suppression
+        page = client.get("/settings")
+        assert "Modèles installés sur votre serveur" in page.text and "3,4 Go" in page.text
+        assert client.post("/settings/llm-delete", data={"model": "mistral:7b"}).json() == {"ok": True}
+        llm._installed_cache["names"] = None
+        assert "mistral:7b" not in (llm.installed_models() or [])
+        assert client.post("/settings/llm-delete", data={"model": "inconnu:1b"}).status_code == 400
+        assert client.post("/settings/llm-delete", data={"model": "x;rm -rf"}).status_code == 400
     finally:
         settings_store.reset_to_env()
         llm._installed_cache["names"] = None
