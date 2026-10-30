@@ -47,7 +47,7 @@ def _target(kind: str, current: str) -> str | None:
         "bounce": FAILED,
         "completed_no_data": COMPLETED, "completed_deleted": COMPLETED,
         "ack": SENT if current in (REPLIED, NEEDS_ACTION, COMPLETED, FAILED) else None,
-        "delivery_issue": SENT if current == FAILED else None,
+        "delivery_issue": SENT if current in (FAILED, REPLIED, NEEDS_ACTION) else None,
         "webform": NEEDS_ACTION, "device_id": NEEDS_ACTION,
         "extension": SENT,
         "confirm_link": NEEDS_ACTION, "needs_action": NEEDS_ACTION, "id_request": NEEDS_ACTION,
@@ -62,19 +62,55 @@ def decided_automatically(req: Request) -> bool:
     return bool(last and (last.summary or "").startswith(_AUTO_PREFIXES))
 
 
+_BOUNCE_SENDER = re.compile(r"^(mailer-daemon|postmaster|non-?delivery|mail-?daemon)@", re.I)
+_BOUNCE_SUBJECT = re.compile(r"^\s*(undeliverable|undelivered mail|delivery status notification|mail delivery (failed|failure)|"
+                             r"returned mail|non remis|unzustellbar|nicht zustellbar|failure notice)", re.I)
+
+
 def _from_event(ev: Event) -> mailer.ParsedMail:
     """Reconstitue la réponse depuis l'historique quand elle n'est plus dans la boîte (non authentifiée)."""
     head, _, text = (ev.body or "").partition("\n\n")
     meta = dict(re.findall(r"^(De|Date|Objet) : (.*)$", head, re.M))
     sender = re.search(r"<([^<>@\s]+@[^<>\s]+)>|(\S+@\S+)", meta.get("De", ""))
     addr = (sender.group(1) or sender.group(2)).lower() if sender else ""
-    return mailer.ParsedMail(uid="", from_addr=addr, from_name="", subject=meta.get("Objet", ""),
+    subject = meta.get("Objet", "")
+    # Le type MIME du rapport de non-distribution n'est pas conservé : on le reconnaît à l'expéditeur et à l'objet.
+    bounce = bool(_BOUNCE_SENDER.match(addr) or _BOUNCE_SUBJECT.match(subject))
+    return mailer.ParsedMail(uid="", from_addr=addr, from_name="", subject=subject, is_bounce=bounce,
                              message_id=ev.message_id or "", text=text, date=meta.get("Date", ""), html=ev.html or "")
+
+
+# Libellés d'un classement automatique qui exigeait un expéditeur authentifié (anciens libellés de statut inclus).
+_SENSITIVE_LABELS = tuple(mailer.KIND_LABELS[k] for k in SENSITIVE) + (STATUS_LABELS[COMPLETED], STATUS_LABELS[FAILED])
+
+
+def verified_at_reception(req: Request, ev: Event) -> bool:
+    """L'expéditeur de cette réponse a été authentifié à sa réception.
+
+    Une clôture ou un échec automatique n'est décidé qu'avec un expéditeur vérifié : si cette réponse
+    en a provoqué un, on peut s'y fier même quand le message n'est plus dans la boîte.
+    """
+    events = list(req.events)
+    try:
+        i = next(k for k, e in enumerate(events) if e.id == ev.id)
+    except StopIteration:
+        return False
+    for e in events[i + 1:]:
+        if e.kind == "reply":
+            break
+        if e.kind == "warning" and (e.summary or "").startswith("Réponse non vérifiée"):
+            return False
+        summary = e.summary or ""
+        if e.kind == "status" and summary.startswith("Classement automatique : ") and "non vérifié" not in summary:
+            label = summary[len("Classement automatique : "):]
+            if label.startswith(_SENSITIVE_LABELS):
+                return True
+    return False
 
 
 def analyse(request_ids: list[int] | None = None) -> list[dict]:
     """Réanalyse la dernière réponse de chaque demande et renvoie les changements proposés."""
-    from .service import _sender_matches_broker, classify_reply
+    from .service import _list_member_bounce, _sender_matches_broker, classify_reply
     with SessionLocal() as db:
         stmt = select(Request).options(selectinload(Request.events), selectinload(Request.broker))
         scope = (*ELIGIBLE, *AUTO_DECIDED)
@@ -103,9 +139,14 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
             raw = raw_by_id.get(mid or "")
             m = mailer.parse_mail(raw) if raw else _from_event(ev)
             c, note, advice = classify_reply(m)
-            trusted = bool(raw) and _sender_matches_broker(req, m.from_addr, m.dmarc_pass)
+            if c.kind == "bounce" and _list_member_bounce(req, m):
+                c = mailer.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
+            trusted = (bool(raw) and _sender_matches_broker(req, m.from_addr, m.dmarc_pass)) or verified_at_reception(req, ev)
             kind = c.kind
             if kind in SENSITIVE and not trusted:
+                if _target(kind, req.status) == req.status or req.status in AUTO_DECIDED:
+                    state["done"] += 1
+                    continue  # faute de pouvoir vérifier l'expéditeur, on ne défait pas une décision qui reste cohérente
                 kind = "reply"  # même garde-fou qu'à la réception : pas de clôture sans expéditeur authentifié
             target = _target(kind, req.status)
             state["done"] += 1

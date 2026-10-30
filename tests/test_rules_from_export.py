@@ -242,3 +242,61 @@ def test_reanalysis_reopens_automatic_closures_only(client, no_imap):
     proposals = {p["request_id"]: p for p in reanalysis.analyse()}
     assert proposals[auto]["from_status"] == COMPLETED and proposals[auto]["to_status"] == SENT
     assert manual not in proposals  # une décision prise à la main n'est jamais remise en cause
+
+
+# ---------- réanalyse sans le message d'origine dans la boîte (export du 31/10, 00 h 27) ----------
+
+def _history(slug, status, body, summaries, sender=None):
+    sender = sender or f"dpo@{slug}.example"
+    rid, _ = _request(slug, f"dpo@{slug}.example", status=status)
+    with SessionLocal() as db:
+        t = utcnow() - timedelta(hours=5)
+        db.add(Event(request_id=rid, kind="reply", summary="Réponse reçue", at=t,
+                     body=f"De : <{sender}>\nDate : hier\n{body}"))
+        for i, (kind_, summary) in enumerate(summaries, 1):
+            db.add(Event(request_id=rid, kind=kind_, summary=summary, at=t + timedelta(minutes=i)))
+        db.commit()
+    return rid
+
+
+NO_DATA = "Objet : Re: x\n\nDear Sir, we do not hold any personal data about you. Kind regards."
+DSN = ("Objet : Undeliverable: Request for erasure\n\nYour message to dpo@{slug}.example couldn't be delivered. "
+       "dpo wasn't found at {slug}.example.")
+
+
+def test_correct_closure_is_not_reopened_when_the_message_is_gone(client, no_imap):
+    """Message introuvable dans la boîte : on ne défait pas une clôture que le texte confirme."""
+    rid = _history("garde1", COMPLETED, NO_DATA, [("status", "Classement automatique : aucune donnée détenue (« x »)")])
+    assert rid not in {p["request_id"] for p in reanalysis.analyse()}
+
+
+def test_wrongly_reopened_closure_is_restored(client, no_imap):
+    """L'expéditeur avait été authentifié à la réception (clôture automatique) : on peut s'y fier."""
+    rid = _history("garde2", "replied", NO_DATA, [
+        ("status", "Classement automatique : Terminée (« has been erased »)"),
+        ("status", "Réanalyse : réponse à examiner (« do not hold any personal data »)"),
+    ])
+    p = {p["request_id"]: p for p in reanalysis.analyse()}[rid]
+    assert (p["from_status"], p["to_status"], p["kind"]) == ("replied", COMPLETED, "completed_no_data")
+
+
+def test_unverified_closure_is_still_not_proposed(client, no_imap):
+    rid = _history("garde3", "replied", NO_DATA, [
+        ("warning", "Réponse non vérifiée de x@ailleurs.example : décision sensible non appliquée"),
+        ("status", "Classement automatique : réponse à examiner (« expéditeur non vérifié »)"),
+    ])
+    assert rid not in {p["request_id"] for p in reanalysis.analyse()}
+
+
+def test_bounce_is_recognised_from_history(client, no_imap):
+    """Le rapport de non-distribution relu depuis l'historique reste un échec, pas un accusé de réception."""
+    failed = _history("garde4", FAILED, DSN.format(slug="garde4"),
+                      [("status", "Classement automatique : Échec d'envoi (« message de non-distribution »)")],
+                      sender="postmaster@garde4.example")
+    wrongly_sent = _history("garde5", SENT, DSN.format(slug="garde5"), [
+        ("status", "Classement automatique : Échec d'envoi (« message de non-distribution »)"),
+        ("status", "Réanalyse : accusé de réception (« IA, probabilité 95 % »)"),
+    ], sender="postmaster@garde5.example")
+    proposals = {p["request_id"]: p for p in reanalysis.analyse()}
+    assert failed not in proposals
+    assert (proposals[wrongly_sent]["to_status"], proposals[wrongly_sent]["kind"]) == (FAILED, "bounce")
