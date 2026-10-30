@@ -65,7 +65,7 @@
     "Thème auto":"Auto theme","Clair":"Light","Sombre":"Dark","Voir la mise en forme d'origine":"Show original formatting",
     "Réanalyse en cours":"Re-analysis in progress","Réanalyser les réponses":"Re-analyse replies",
     "Classées par l'IA":"Classified by AI","Classé par les règles":"Classified by rules","Début du message :":"Message starts with:",
-    "Conseil de l'IA :":"AI advice:","À faire :":"To do:"
+    "Conseil de l'IA":"AI advice","À faire":"To do"
   };
   // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
   // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées
