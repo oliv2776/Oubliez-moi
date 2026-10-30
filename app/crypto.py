@@ -103,6 +103,7 @@ def encrypt_bytes(data: bytes) -> bytes:
 
 
 def decrypt_bytes(data: bytes) -> bytes:
+    global decrypt_errors
     try:
         return _load().decrypt(data)
     except InvalidToken as exc:
