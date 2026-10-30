@@ -120,3 +120,28 @@ def test_summarize_on_demand_keeps_status(client, monkeypatch):
     assert (ins.summary, ins.action, ins.ticket) == ("Ils veulent une pièce d'identité. (dossier n° 77)", "Envoyez une copie masquée.", "77")
     with SessionLocal() as db:
         assert db.get(Request, rid).status == "needs_action"
+
+
+def test_model_input_is_cleaned_and_own_reference_is_not_a_ticket(client):
+    text = ("We submitted your deletion request. Please verify via the email from privacy-requests@branch.io.\n\n\n\n"
+            "<https://us.content.exclaimer.net/?url=https%3A%2F%2Fwww.branch.io%2F&tenantid=abc&signature=" + "x" * 300 + ">;")
+    cleaned = llm.clean_for_model(text)
+    assert "[lien us.content.exclaimer.net]" in cleaned and "signature" not in cleaned and "\n\n\n" not in cleaned
+    assert "privacy-requests@branch.io" in cleaned
+    assert llm._their_ticket("OUBLI-YSYGBH") is None and llm._their_ticket("null") is None
+    assert llm._their_ticket("CASE-4521") == "CASE-4521"
+    assert "N'invente aucun lien" in llm.SYSTEM and "OUBLI-" in llm.SYSTEM
+
+
+def test_old_notes_with_own_reference_are_cleaned(client):
+    rid = _req("ins-g", "needs_action", [
+        ("info", "Analyse IA : Le courtier demande une vérification d'identité. (dossier n° OUBLI-YSYGBH)"),
+        ("status", "Classement automatique : action demandée (« IA, probabilité 90 % »)")])
+    ins = _insight(rid)
+    assert ins.summary == "Le courtier demande une vérification d'identité." and ins.ticket is None
+
+
+def test_long_tracking_links_are_shortened_in_mail_text():
+    from app import mailview
+    out = mailview.text_to_html("Best,\nhttps://us.content.exclaimer.net/?url=https%3A%2F%2Fwww.branch.io%2F&signature=" + "y" * 200)
+    assert ">us.content.exclaimer.net/…</a>" in out and "y" * 200 in out  # le lien complet reste dans href

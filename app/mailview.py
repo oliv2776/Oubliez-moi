@@ -89,7 +89,11 @@ def _linkify(escaped_line: str) -> str:
         while href and href[-1] in ".,;:!?":
             href, trail = href[:-1], href[-1] + trail
         target = href if href.startswith("http") else f"https://{href}"
-        return f'<a href="{target}" target="_blank" rel="noopener noreferrer nofollow">{href}</a>{trail}'
+        # Liens de pistage interminables (signatures, réseaux sociaux) : on n'affiche que le domaine.
+        shown = href
+        if len(href) > 60:
+            shown = re.sub(r"^https?://", "", href).split("/", 1)[0] + "/…"
+        return f'<a href="{target}" title="{target}" target="_blank" rel="noopener noreferrer nofollow">{shown}</a>{trail}'
 
     line = _URL_RE.sub(url, escaped_line)
     if "<a " not in line:

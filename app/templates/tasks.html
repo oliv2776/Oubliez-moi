@@ -92,10 +92,10 @@
         <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
       </div>
       {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
-      {% if can_summarize and not ins.ai_summary %}
+      {% if can_summarize %}
       <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Le modèle lit le message… (jusqu\'à une minute)';">
         <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
-        <button class="btn sm">Résumer et conseiller avec l'IA ({{ settings.llm_model }})</button>
+        <button class="btn sm {{ 'link' if ins.ai_summary }}">{{ "Redemander un résumé et un conseil à l'IA" if ins.ai_summary else "Résumer et conseiller avec l'IA" }} ({{ settings.llm_model }})</button>
       </form>
       {% endif %}
     </div>
