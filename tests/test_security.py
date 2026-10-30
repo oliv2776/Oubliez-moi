@@ -48,7 +48,9 @@ def test_crypto_roundtrip_and_wrong_key():
     from cryptography.fernet import Fernet
     other = "enc:v1:" + Fernet(Fernet.generate_key()).encrypt(b"x").decode()
     before = crypto.decrypt_errors
-    assert crypto.decrypt(other) == "" and crypto.decrypt_errors == before + 1
+    with pytest.raises(crypto.DecryptionError):
+        crypto.decrypt(other)
+    assert crypto.decrypt_errors == before + 1
 
 
 @pytest.fixture()
@@ -58,6 +60,27 @@ def backup_dir():
     settings.backup_dir = d
     yield d
     settings.backup_dir = old
+
+
+def test_wrong_key_does_not_overwrite_secret_settings(client):
+    from cryptography.fernet import Fernet
+    with SessionLocal() as db:
+        db.merge(KV(key="cfg:smtp_password", value=json.dumps("enc:v1:" + Fernet(Fernet.generate_key()).encrypt(b"secret").decode())))
+        db.commit()
+    previous = settings.smtp_password
+    settings_store.apply_overrides()
+    assert settings.smtp_password == previous
+    with SessionLocal() as db:
+        assert json.loads(db.get(KV, "cfg:smtp_password").value).startswith("enc:v1:")
+
+
+def test_csrf_rejects_cross_origin_post():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", headers={"Origin": "https://attacker.example"},
+                             data={"username": "admin", "password": "test-password"})
+        assert response.status_code == 403
 
 
 def test_backup_encrypted_restore_and_rotation(client, backup_dir):
