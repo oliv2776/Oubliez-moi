@@ -31,6 +31,10 @@ key_source = ""          # "env" ou "fichier"
 decrypt_errors = 0       # > 0 : la clé ne correspond pas à certaines données (clé changée ?)
 
 
+class DecryptionError(RuntimeError):
+    """Un secret chiffré existe mais ne peut pas être déchiffré avec la clé active."""
+
+
 def _from_passphrase(value: str) -> bytes:
     """Accepte une clé Fernet ou n'importe quelle phrase secrète (dérivée en clé de 32 octets)."""
     try:
@@ -88,10 +92,10 @@ def decrypt(value: str | None) -> str:
         return value
     try:
         return _load().decrypt(value[len(PREFIX):].encode()).decode()
-    except InvalidToken:
+    except (InvalidToken, UnicodeDecodeError) as exc:
         decrypt_errors += 1
         log.error("Impossible de déchiffrer un secret : la clé de chiffrement a-t-elle changé ?")
-        return ""
+        raise DecryptionError("Secret chiffré illisible : vérifiez ENCRYPTION_KEY et restaurez la clé d'origine") from exc
 
 
 def encrypt_bytes(data: bytes) -> bytes:
@@ -99,7 +103,11 @@ def encrypt_bytes(data: bytes) -> bytes:
 
 
 def decrypt_bytes(data: bytes) -> bytes:
-    return _load().decrypt(data)
+    try:
+        return _load().decrypt(data)
+    except InvalidToken as exc:
+        decrypt_errors += 1
+        raise DecryptionError("Données chiffrées illisibles : vérifiez la clé de chiffrement") from exc
 
 
 def export_key() -> str:
