@@ -424,15 +424,35 @@ def check_deadlines() -> int:
 
 # ------------------------------------------------------------- Réponses ----
 
+def _sender_matches_broker(req: Request, from_addr: str) -> bool:
+    """Évite de rattacher automatiquement une référence connue à un domaine tiers.
+
+    Les plateformes de gestion des demandes RGPD courantes sont admises en plus
+    du domaine du courtier. Ce contrôle de cohérence ne remplace pas SPF/DKIM/DMARC.
+    """
+    if "@" not in (from_addr or ""):
+        return False
+    sender_domain = mailer.registered_domain(from_addr.rsplit("@", 1)[-1])
+    if not sender_domain:
+        return False
+    expected = {
+        d for d in (
+            mailer.registered_domain((req.broker.email or "").rsplit("@", 1)[-1]),
+            mailer.registered_domain(req.broker.web or ""),
+        ) if d
+    }
+    return sender_domain in expected or sender_domain in confirm.PRIVACY_PLATFORMS
+
+
 def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
     refs = mailer.find_references(m)
     if refs:
         req = db.scalars(select(Request).where(Request.reference.in_(refs)).order_by(Request.id.desc())).first()
-        if req:
+        if req and _sender_matches_broker(req, m.from_addr):
             return req
     for mid in m.in_reply_to:
         req = db.scalars(select(Request).where(cast(Request.message_ids, String).contains(mid, autoescape=True))).first()
-        if req:
+        if req and _sender_matches_broker(req, m.from_addr):
             return req
     if m.is_bounce:
         return None
