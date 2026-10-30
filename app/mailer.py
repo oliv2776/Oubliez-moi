@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from email.message import EmailMessage
 from email.policy import default as default_policy
 from email.utils import formataddr, getaddresses, make_msgid, formatdate
+from urllib.parse import urlsplit
 
 from .config import settings
 from .net import create_pinned_socket
