@@ -298,3 +298,9 @@ def test_hotmail_requires_identifier_without_project_default(client, monkeypatch
     r = client.post("/mailboxes", data={"provider": "outlook", "address": "sansid@hotmail.fr", "folders": "INBOX"},
                     follow_redirects=True)
     assert "Indiquez l'identifiant d'application Microsoft" in html.unescape(r.text)
+
+
+def test_project_identifier_is_a_public_client_id():
+    """Un identifiant d'application (GUID), jamais un secret client ni un jeton."""
+    import re as _re
+    assert _re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", oauth_ms.PROJECT_CLIENT_ID)

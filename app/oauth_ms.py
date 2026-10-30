@@ -25,8 +25,9 @@ from .net import safe_urlopen
 
 AUTHORITY = os.environ.get("MS_AUTHORITY", "https://login.microsoftonline.com")
 # Identifiant de l'application « Oubliez-moi » déclarée dans Microsoft Entra (comptes
-# personnels et professionnels, flux clients publics autorisés).
-PROJECT_CLIENT_ID = ""
+# personnels et professionnels, flux clients publics autorisés, sans secret client).
+# Valeur publique par nature, comme celle d'Apple Mail ou de Thunderbird.
+PROJECT_CLIENT_ID = "40870361-82c7-42f9-8e99-594cc906acf8"
 ALLOW_PRIVATE = False  # surchargeable uniquement dans les tests de flux OAuth local
 SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
