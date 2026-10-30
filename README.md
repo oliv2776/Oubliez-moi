@@ -157,7 +157,7 @@ Page **Migration des comptes** : la liste des services qui écrivent encore à v
 2. **Alias Proton Pass** : les alias de Proton Pass sont partagés avec SimpleLogin. Créez une clé d'API sur [SimpleLogin › Paramètres](https://app.simplelogin.io/dashboard/setting) (connexion avec votre compte Proton) et collez-la dans la page. Oubliez-moi relie alors chaque alias au service qui lui écrit, repère les comptes déjà migrés, et crée en un clic l'alias d'un service (préfixe = nom du service), visible ensuite dans Proton Pass. La clé est conservée chiffrée.
 3. **Suivi** : un compte passe « Migré » dès que le service écrit à son alias. Il est signalé s'il écrit encore à l'ancienne adresse (autre compte, newsletter oubliée). Vous pouvez aussi marquer un compte migré à la main, « à abandonner » ou « pas un compte ». Les nouveaux e-mails et l'activité des alias sont vérifiés chaque nuit.
 
-**Boîte Proton (facultatif)** : avec une offre Proton payante, Proton Mail Bridge permet aussi de lire la boîte Proton. Le service est prévu dans `docker-compose.yml` (image communautaire `shenxn/protonmail-bridge`, aucun port publié) :
+**Boîte Proton (facultatif)** : avec une offre Proton payante, Proton Mail Bridge permet aussi de lire la boîte Proton. Le service est prévu dans `docker-compose.yml` (image communautaire `dancwilliams/protonmail-bridge`, sans auto-mise à jour, aucun port publié) :
 
 ```bash
 docker compose --profile proton run --rm protonmail-bridge init
