@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 import string
 from importlib import import_module
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import (
     JSON,
@@ -188,6 +188,8 @@ class Mailbox(Base):
     auto_scan: Mapped[bool] = mapped_column(Boolean, default=True)
     # Boîte des réglages (relève des réponses) : connexion lue dans Réglages, rien n'est dupliqué ici.
     linked_settings: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Migration des comptes : "old" (adresse à quitter), "new" (Proton), "none" ; vide = selon le fournisseur.
+    migration_role: Mapped[str | None] = mapped_column(String(10), nullable=True)
     state: Mapped[dict] = mapped_column(JSON, default=dict)  # dossier -> "uidvalidity:dernier_uid"
     scanning: Mapped[bool] = mapped_column(Boolean, default=False)
     progress: Mapped[str | None] = mapped_column(String(300), nullable=True)
@@ -264,6 +266,69 @@ class ExposureLink(Base):
     broker: Mapped[Broker] = relationship()
 
 
+MIGRATION_STATUSES = {
+    "todo": "À migrer",
+    "alias": "Alias prêt",
+    "migrated": "Migré",
+    "abandoned": "À abandonner",
+    "ignored": "Pas un compte",
+}
+
+
+class AccountMigration(Base):
+    """Service qui écrit à une ancienne adresse (Gmail, Hotmail…) et son passage à un alias Proton."""
+    __tablename__ = "account_migrations"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    domain: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(300), default="")
+    sample_sender: Mapped[str] = mapped_column(String(300), default="")
+    # Ce que les anciennes boîtes ont reçu de ce service
+    old_address: Mapped[str] = mapped_column(String(300), default="")
+    old_count: Mapped[int] = mapped_column(Integer, default=0)
+    old_account_count: Mapped[int] = mapped_column(Integer, default=0)  # sécurité, mot de passe, commande…
+    old_first_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    old_last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_subject: Mapped[str] = mapped_column(String(500), default="")
+    # L'alias Proton (Pass / SimpleLogin) et ce qu'il a reçu de ce service
+    alias: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    alias_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    alias_source: Mapped[str | None] = mapped_column(String(20), nullable=True)  # created | matched | guessed | manual
+    new_count: Mapped[int] = mapped_column(Integer, default=0)
+    new_first_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    new_last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Choix de l'utilisateur (prioritaire) et statut affiché
+    user_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="todo", index=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    def refresh_status(self) -> str:
+        if self.user_status in MIGRATION_STATUSES:
+            self.status = self.user_status
+        elif self.new_last_seen:
+            self.status = "migrated"
+        elif self.alias:
+            self.status = "alias"
+        else:
+            self.status = "todo"
+        return self.status
+
+    @property
+    def status_label(self) -> str:
+        return MIGRATION_STATUSES.get(self.status, self.status)
+
+    @property
+    def still_writes_to_old(self) -> bool:
+        """Migré, mais le service écrit encore à l'ancienne adresse (autre compte, newsletter oubliée…)."""
+        return bool(self.status == "migrated" and self.old_last_seen and self.new_first_seen
+                    and self.old_last_seen > self.new_first_seen + timedelta(days=1))
+
+    @property
+    def is_account(self) -> bool:
+        return (self.old_account_count or 0) > 0
+
+
 class KV(Base):
     """Petit stockage clé/valeur (état IMAP, date de dernière mise à jour…)."""
     __tablename__ = "kv"
@@ -293,6 +358,7 @@ MIGRATIONS = [
     ("events", "message_id", "VARCHAR(500)"),
     ("privacy_cases", "overdue_notified_at", "DATETIME"),
     ("mailboxes", "linked_settings", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("mailboxes", "migration_role", "VARCHAR(10)"),
 ]
 
 

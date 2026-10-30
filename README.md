@@ -28,6 +28,7 @@
 | **Compléments** | Vous ajoutez une adresse e-mail, un téléphone ou une ancienne adresse au profil après l'envoi ? Oubliez-moi repère les courtiers qui ne l'ont pas reçue et leur envoie un complément sous la même référence. |
 | **Protection de vos comptes** | Les organismes chez qui vous avez peut-être un vrai compte (instituts de panels, outils de prospection professionnels, cashback et affiliation, avis clients) sont signalés avant l'envoi, pour que vous puissiez les exclure. |
 | **Dossiers RGPD** | Pour les autres droits (accès, rectification, portabilité…) auprès de n'importe quel organisme : suivi des délais (un mois, prolongeable de deux), assistant de rédaction et export des preuves. Les dossiers en retard apparaissent dans « À traiter » et sur le tableau de bord, et sont notifiés une fois par échéance. |
+| **Migration vers Proton** | Liste des services qui écrivent à vos anciennes adresses Gmail ou Hotmail, création de leur alias Proton Pass en un clic (API SimpleLogin) et suivi jusqu'à ce que chacun écrive à son alias. |
 | **Export CSV** | L'historique complet, utile comme preuve. |
 
 <p align="center"><img src="docs/a-traiter.png" width="49%"> <img src="docs/demande.png" width="49%"></p>
@@ -147,6 +148,26 @@ Pour chaque expéditeur :
 - **Garder** : pour les lettres que vous voulez continuer à recevoir.
 
 Un expéditeur qui écrit encore après s'être désinscrit est signalé ; ceux qui figurent dans le catalogue de courtiers aussi.
+
+## Migrer ses comptes vers Proton (alias)
+
+Page **Migration des comptes** : la liste des services qui écrivent encore à vos anciennes adresses (Gmail, Hotmail…), et où en est leur passage à un alias Proton.
+
+1. **Inventaire** : choisissez les boîtes « à quitter » et lancez l'inventaire. Oubliez-moi lit deux ans d'en-têtes (expéditeur, objet, date, destinataire, jamais le contenu) et regroupe les services par domaine. Ceux qui envoient des e-mails de compte (mot de passe, sécurité, commande, facture) passent en premier. Les personnes qui vous écrivent depuis une messagerie grand public sont ignorées, comme les courtiers à qui vous avez envoyé une demande.
+2. **Alias Proton Pass** : les alias de Proton Pass sont partagés avec SimpleLogin. Créez une clé d'API sur [SimpleLogin › Paramètres](https://app.simplelogin.io/dashboard/setting) (connexion avec votre compte Proton) et collez-la dans la page. Oubliez-moi relie alors chaque alias au service qui lui écrit, repère les comptes déjà migrés, et crée en un clic l'alias d'un service (préfixe = nom du service), visible ensuite dans Proton Pass. La clé est conservée chiffrée.
+3. **Suivi** : un compte passe « Migré » dès que le service écrit à son alias. Il est signalé s'il écrit encore à l'ancienne adresse (autre compte, newsletter oubliée). Vous pouvez aussi marquer un compte migré à la main, « à abandonner » ou « pas un compte ». Les nouveaux e-mails et l'activité des alias sont vérifiés chaque nuit.
+
+**Boîte Proton (facultatif)** : avec une offre Proton payante, Proton Mail Bridge permet aussi de lire la boîte Proton. Le service est prévu dans `docker-compose.yml` (image communautaire `shenxn/protonmail-bridge`, aucun port publié) :
+
+```bash
+docker compose --profile proton run --rm protonmail-bridge init
+#   dans le Bridge : login  (adresse, mot de passe, code 2FA)
+#                    info   (identifiant et mot de passe IMAP à reporter dans Oubliez-moi)
+#                    exit
+docker compose --profile proton up -d
+```
+
+Puis **Boîtes mail › Ajouter une boîte › Proton Mail** : serveur `protonmail-bridge`, port `143`, STARTTLS, avec l'identifiant et le mot de passe affichés par `info`. Ce n'est pas votre mot de passe Proton.
 
 ## Sécurité et sauvegardes
 

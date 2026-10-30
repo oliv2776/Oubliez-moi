@@ -23,7 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, exposures, search as search_routes
+from . import case_assistant, case_management, exposures, migration_routes, search as search_routes
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -81,7 +81,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = web.templates  # environnement Jinja partagé : les filtres ci-dessous servent à toutes les pages
-for _module in (search_routes, case_management, case_assistant, exposures):
+for _module in (search_routes, case_management, case_assistant, exposures, migration_routes):
     app.include_router(_module.router)
 
 PUBLIC_PATHS = ("/login", "/healthz")

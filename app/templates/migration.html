@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Migration des comptes{% endblock %}
+{% block content %}
+{% set back_url = '/migration?filter=' ~ filter ~ ('&kind=' ~ kind if kind else '') ~ ('&q=' ~ q|urlencode if q else '') %}
+<div class="page-head">
+  <div>
+    <h1>Migration des comptes</h1>
+    <p class="muted" style="margin:0">Les services qui écrivent encore à vos anciennes adresses, et leur passage à un alias Proton. Seuls les en-têtes des e-mails sont lus.</p>
+  </div>
+  {% if started and sl_configured %}
+  <form method="post" action="/migration/sync" class="inline"><button class="btn" {{ 'disabled' if running }}>Vérifier les alias</button></form>
+  {% endif %}
+</div>
+
+<div class="banner info" id="mig-live" {{ '' if running else 'hidden' }}>Inventaire en cours<span id="mig-progress">{% if progress %} : {{ progress|join(' · ') }}{% endif %}</span>. Les comptes apparaissent au fur et à mesure.</div>
+
+{% macro roles_table() %}
+<table class="mig-roles">
+  {% for b in boxes %}
+  <tr>
+    <td><strong>{{ b.label }}</strong><div class="small muted">{{ b.address }}</div></td>
+    <td class="num">
+      <select name="role_{{ b.id }}" aria-label="Rôle de {{ b.label }}">
+        {% set r = role_of(b) %}
+        <option value="old" {{ 'selected' if r == 'old' }}>Adresse à quitter</option>
+        <option value="new" {{ 'selected' if r == 'new' }}>Nouvelle adresse (Proton)</option>
+        <option value="none" {{ 'selected' if r == 'none' }}>Ne pas utiliser</option>
+      </select>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endmacro %}
+
+{% macro simplelogin_form() %}
+<form method="post" action="/migration/simplelogin" autocomplete="off">
+  <label for="api_key">Clé d'API SimpleLogin {% if sl_configured %}<span class="hint">— enregistrée (chiffrée) ; laissez vide pour la conserver</span>{% endif %}</label>
+  <input id="api_key" type="password" name="api_key" autocomplete="new-password" placeholder="{{ '••••••••••••' if sl_configured else '' }}">
+  {% if sl_unreadable %}<p class="small" style="color:var(--bad)">La clé enregistrée est illisible avec la clé de chiffrement actuelle : saisissez-la de nouveau.</p>{% endif %}
+  <div class="actions" style="margin-top:.7rem">
+    <button class="btn {{ '' if sl_configured else 'primary' }}">{{ 'Tester et lire mes alias' if sl_configured else 'Enregistrer et lire mes alias' }}</button>
+    {% if sl_configured %}<button class="btn sm link" name="clear" value="1">Effacer la clé</button>{% endif %}
+  </div>
+</form>
+{% endmacro %}
+
+{% if not started %}
+<div class="grid c2">
+  <section class="card">
+    <h2>Les boîtes à inventorier</h2>
+    <form method="post" action="/migration/start">
+      {% if boxes %}{{ roles_table() }}{% else %}<p class="muted">Ajoutez d'abord vos boîtes Gmail, Hotmail et Proton dans <a href="/mailboxes">Boîtes mail</a>.</p>{% endif %}
+      <p class="small muted">Oubliez-moi lit deux ans d'en-têtes dans les boîtes à quitter (expéditeur, objet, date, destinataire) et retient les services, regroupés par domaine. Les personnes qui vous écrivent depuis une messagerie grand public (Gmail, Hotmail, Orange…) sont ignorées. La boîte Proton, si elle est connectée, montre quels services écrivent déjà à vos alias.</p>
+      <button class="btn primary" {{ 'disabled' if not boxes }}>Inventorier mes comptes</button>
+    </form>
+  </section>
+  <section class="card" id="reglages">
+    <h2>Vos alias Proton Pass</h2>
+    <p class="small muted">Les alias de Proton Pass sont partagés avec SimpleLogin. Avec une clé d'API SimpleLogin, Oubliez-moi relie chaque alias au service qui lui écrit, repère les comptes déjà migrés et crée en un clic l'alias d'un service (visible ensuite dans Proton Pass).</p>
+    <p class="small">Clé à créer sur <a href="{{ sl_settings_url }}" target="_blank" rel="noopener noreferrer">SimpleLogin › Paramètres › Clé d'API</a>, en vous connectant avec votre compte Proton.</p>
+    {{ simplelogin_form() }}
+  </section>
+</div>
+{% else %}
+
+<div class="grid k4" style="margin-bottom:1rem">
+  <div class="kpi warn"><div class="v">{{ counts.get('todo', 0) }}</div><div class="l">À migrer</div></div>
+  <div class="kpi"><div class="v">{{ counts.get('alias', 0) }}</div><div class="l">Alias prêt, adresse à changer</div></div>
+  <div class="kpi accent"><div class="v">{{ counts.get('migrated', 0) }}</div><div class="l">Migrés</div></div>
+  <div class="kpi"><div class="v">{{ counts.get('abandoned', 0) }}</div><div class="l">À abandonner</div></div>
+</div>
+
+<nav class="chips" aria-label="Filtrer">
+  {% for key, label, n in chips %}
+  <a class="chip {{ 'active' if filter == key }}" href="/migration?filter={{ key }}{{ '&kind=' ~ kind if kind }}{{ '&q=' ~ q|urlencode if q }}">{{ label }} <span class="n">{{ n }}</span></a>
+  {% endfor %}
+</nav>
+<form class="filters" method="get">
+  <input type="hidden" name="filter" value="{{ filter }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Service, domaine, alias…">
+  <label class="check" style="margin:0"><input type="checkbox" name="kind" value="account" {{ 'checked' if kind == 'account' }} onchange="this.form.submit()"> Comptes seulement <span class="hint">— sans les lettres d'information</span></label>
+  <button class="btn">Filtrer</button>
+</form>
+
+<div class="card">
+{% if accounts %}
+<table class="mig">
+  <tr><th>Service</th><th class="hide-sm">Ancienne adresse</th><th>Alias</th><th>Statut</th><th></th></tr>
+  {% for a in accounts %}
+  <tr id="compte-{{ a.id }}">
+    <td>
+      <strong>{{ a.name or a.domain }}</strong>
+      <div class="small muted">{{ a.domain }} <span class="tag">{{ 'compte' if a.is_account else "lettre d'information" if a.old_count else 'via alias' }}</span></div>
+      {% if a.last_subject %}<div class="small muted mig-subject" translate="no">{{ a.last_subject[:90] }}</div>{% endif %}
+    </td>
+    <td class="small hide-sm">
+      {% if a.old_last_seen %}dernier e-mail le {{ a.old_last_seen|d }}<div class="muted">{{ a.old_address }}{% if a.old_count > 1 %} · {{ a.old_count }} e-mails{% endif %}</div>
+      {% else %}<span class="muted">aucun e-mail</span>{% endif %}
+    </td>
+    <td class="small">
+      {% if a.alias %}
+        <span class="mig-alias" translate="no">{{ a.alias }}</span>
+        <button type="button" class="btn sm link" data-copy="{{ a.alias }}">Copier</button>
+        {% if a.alias_source == 'guessed' %}
+        <div class="mig-guess">Alias probable, d'après son nom :
+          <form method="post" action="/migration/{{ a.id }}/alias/confirm" class="inline"><input type="hidden" name="next" value="{{ back_url }}"><button class="btn sm link">c'est le bon</button></form> ·
+          <form method="post" action="/migration/{{ a.id }}/alias" class="inline"><input type="hidden" name="next" value="{{ back_url }}"><input type="hidden" name="alias" value=""><button class="btn sm link">non</button></form>
+        </div>
+        {% endif %}
+      {% elif a.status not in ('abandoned', 'ignored') %}
+        {% if sl_configured %}
+        <form method="post" action="/migration/{{ a.id }}/alias/create" class="inline"><input type="hidden" name="next" value="{{ back_url }}"><button class="btn sm primary">Créer l'alias</button></form>
+        {% endif %}
+        <details class="mig-manual">
+          <summary class="small">{{ 'ou saisir un alias' if sl_configured else 'Saisir un alias' }}</summary>
+          <form method="post" action="/migration/{{ a.id }}/alias" class="mig-alias-form"><input type="hidden" name="next" value="{{ back_url }}">
+            <input type="email" name="alias" placeholder="service.xyz@passmail.net" required aria-label="Alias pour {{ a.domain }}"><button class="btn sm">OK</button></form>
+        </details>
+      {% else %}<span class="muted">—</span>{% endif %}
+    </td>
+    <td>
+      <span class="badge m-{{ a.status }}">{{ a.status_label }}</span>
+      {% if a.status == 'alias' %}<div class="small muted">Changez l'adresse e-mail du compte sur <a href="https://{{ a.domain }}" target="_blank" rel="noopener noreferrer nofollow">{{ a.domain }}</a></div>
+      {% elif a.status == 'migrated' and a.new_first_seen %}<div class="small muted">écrit à l'alias depuis le {{ a.new_first_seen|d }}</div>{% endif %}
+      {% if a.still_writes_to_old %}<div class="small" style="color:var(--warn)">écrit encore à l'ancienne adresse (le {{ a.old_last_seen|d }})</div>{% endif %}
+    </td>
+    <td class="num">
+      <details class="menu">
+        <summary class="btn sm" aria-label="Actions pour {{ a.domain }}">Actions</summary>
+        <div class="menu-list">
+          {% for value, label in [('migrated', 'Marquer comme migré'), ('abandoned', 'À abandonner'), ('ignored', "Ce n'est pas un compte")] %}
+          {% if a.user_status != value %}
+          <form method="post" action="/migration/{{ a.id }}/status"><input type="hidden" name="next" value="{{ back_url }}"><button name="status" value="{{ value }}">{{ label }}</button></form>
+          {% endif %}
+          {% endfor %}
+          {% if a.user_status %}<form method="post" action="/migration/{{ a.id }}/status"><input type="hidden" name="next" value="{{ back_url }}"><button name="status" value="">Statut automatique</button></form>{% endif %}
+          {% if a.alias and a.alias_source != 'guessed' %}<form method="post" action="/migration/{{ a.id }}/alias"><input type="hidden" name="next" value="{{ back_url }}"><input type="hidden" name="alias" value=""><button>Retirer l'alias</button></form>{% endif %}
+        </div>
+      </details>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% elif running %}
+<p class="empty">L'inventaire est en cours : les premiers comptes arrivent.</p>
+{% else %}
+<p class="empty">Rien dans cette catégorie.</p>
+{% endif %}
+</div>
+
+<details class="card" id="reglages" style="margin-top:1rem">
+  <summary><strong>Réglages de la migration</strong></summary>
+  <div class="grid c2" style="margin-top:.8rem">
+    <form method="post" action="/migration/roles">
+      <h3>Rôle des boîtes</h3>
+      {{ roles_table() }}
+      <div class="actions" style="margin-top:.7rem"><button class="btn sm">Enregistrer</button></div>
+      <p class="small muted">Les nouveaux e-mails sont inventoriés chaque nuit. Pour la boîte Proton, il faut <a href="/mailboxes/new">l'ajouter via Proton Mail Bridge</a>.</p>
+    </form>
+    <div>
+      <h3>Alias Proton Pass (SimpleLogin)</h3>
+      <p class="small muted">Clé à créer sur <a href="{{ sl_settings_url }}" target="_blank" rel="noopener noreferrer">SimpleLogin › Paramètres › Clé d'API</a>.</p>
+      {{ simplelogin_form() }}
+    </div>
+  </div>
+  <form method="post" action="/migration/reset" style="margin-top:1rem" onsubmit="return confirm('Effacer l\'inventaire et vos choix ? Vos alias ne seront pas touchés.')">
+    <button class="btn sm danger">Recommencer l'inventaire</button>
+    <span class="small muted">Efface la liste et vos choix dans Oubliez-moi ; rien n'est modifié dans vos boîtes ni dans Proton Pass.</span>
+  </form>
+</details>
+{% endif %}
+
+<script>
+(function () {
+  // Copier un alias : presse-papiers si disponible (HTTPS), sinon méthode classique, sinon sélection du texte.
+  function fallback(text) {
+    const area = document.createElement("textarea");
+    area.value = text; area.setAttribute("readonly", ""); area.style.position = "fixed"; area.style.opacity = "0";
+    document.body.appendChild(area); area.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; } finally { area.remove(); }
+    return ok;
+  }
+  async function copy(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* refusé : méthode classique */ }
+    }
+    return fallback(text);
+  }
+  document.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", async () => {
+    const label = btn.textContent;
+    if (await copy(btn.dataset.copy)) {
+      btn.textContent = "Copié";
+    } else {
+      const span = btn.parentElement.querySelector(".mig-alias");
+      if (span) { const range = document.createRange(); range.selectNodeContents(span); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+      btn.textContent = "Sélectionné : Ctrl+C";
+    }
+    setTimeout(() => { btn.textContent = label; }, 1800);
+  }));
+  // Suivi de l'inventaire en cours
+  const live = document.getElementById("mig-live");
+  if (live && !live.hidden) {
+    const tick = async () => {
+      try {
+        const st = await (await fetch("/migration/status")).json();
+        if (!st.running) { location.reload(); return; }
+        document.getElementById("mig-progress").textContent = st.progress.length ? " : " + st.progress.join(" · ") : "";
+      } catch (e) { /* réessai au prochain tour */ }
+      setTimeout(tick, 3000);
+    };
+    setTimeout(tick, 3000);
+  }
+})();
+</script>
+{% endblock %}

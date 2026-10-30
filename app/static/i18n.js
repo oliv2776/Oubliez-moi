@@ -52,7 +52,16 @@
     "Autres droits RGPD":"Other GDPR rights","Aller au contenu":"Skip to content","Fermer le menu":"Close menu",
     "Navigation principale":"Main navigation","Langue":"Language","Boîte des demandes":"Requests mailbox",
     "Pas encore analysée : rien n'est lu tant que vous ne lancez pas l'analyse.":"Not analysed yet: nothing is read until you start the analysis.",
-    "L'ajouter à la liste":"Add it to the list","Aussi la boîte qui relève les réponses des courtiers":"Also the mailbox that collects data broker replies"
+    "L'ajouter à la liste":"Add it to the list","Aussi la boîte qui relève les réponses des courtiers":"Also the mailbox that collects data broker replies",
+    "Migration des comptes":"Account migration","Inventorier mes comptes":"Scan my accounts","Les boîtes à inventorier":"Mailboxes to scan",
+    "Adresse à quitter":"Address to leave","Nouvelle adresse (Proton)":"New address (Proton)","Ne pas utiliser":"Don't use",
+    "Vos alias Proton Pass":"Your Proton Pass aliases","Vérifier les alias":"Check aliases","À migrer":"To migrate",
+    "Alias prêt, adresse à changer":"Alias ready, address to change","Alias prêt":"Alias ready","Migrés":"Migrated","Migré":"Migrated",
+    "À abandonner":"To abandon","Pas des comptes":"Not accounts","Pas un compte":"Not an account","Comptes seulement":"Accounts only",
+    "Créer l'alias":"Create alias","Saisir un alias":"Enter an alias","Copier":"Copy","Marquer comme migré":"Mark as migrated",
+    "Ce n'est pas un compte":"Not an account","Statut automatique":"Automatic status","Retirer l'alias":"Remove alias",
+    "Réglages de la migration":"Migration settings","Rôle des boîtes":"Mailbox roles","Recommencer l'inventaire":"Restart the scan",
+    "Ancienne adresse":"Old address","Service":"Service"
   };
   // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
   // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées
