@@ -42,6 +42,10 @@ ACTIONS = {
                 "Ouvrez le lien de son message, remplissez le formulaire avec l'aide « Formulaire » plus bas, puis cliquez "
                 "« C'est fait, j'attends leur réponse ».",
                 "Vérifiez que le lien mène bien au site du courtier avant d'y saisir vos informations."),
+    "confirm_from_address": ("Le courtier veut une confirmation écrite envoyée depuis l'autre adresse de votre demande, "
+                             "pour vérifier qu'elle est bien à vous. Utilisez le bouton « Envoyer la confirmation » "
+                             "ci-dessous, ou envoyez ce texte vous-même depuis cette adresse, puis cliquez « C'est fait, "
+                             "j'attends leur réponse ».", ""),
     "device_id": ("Le courtier ne connaît que des identifiants publicitaires (cookie, téléphone) et vous les réclame. "
                   "Inutile de les lui envoyer : réinitialisez-les une fois pour tous les courtiers (voir « Marche à suivre "
                   "commune » ci-dessous), puis clôturez la demande.",

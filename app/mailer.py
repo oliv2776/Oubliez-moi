@@ -60,15 +60,16 @@ class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
         return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
 
 def build_message(to: str, subject: str, body: str, from_name: str, reply_to: str | None = None,
-                  in_reply_to: str | None = None) -> EmailMessage:
+                  in_reply_to: str | None = None, from_addr: str | None = None) -> EmailMessage:
     msg = EmailMessage()
-    msg["From"] = formataddr((from_name, settings.smtp_from))
+    sender = from_addr or settings.smtp_from
+    msg["From"] = formataddr((from_name, sender))
     msg["To"] = to
-    if reply_to and reply_to.lower() != settings.smtp_from.lower():
+    if reply_to and reply_to.lower() != sender.lower():
         msg["Reply-To"] = reply_to
     msg["Subject"] = subject
     msg["Date"] = formatdate(localtime=True)
-    domain = settings.smtp_from.split("@")[-1] if "@" in settings.smtp_from else None
+    domain = sender.split("@")[-1] if "@" in sender else None
     msg["Message-ID"] = make_msgid(domain=domain)
     if in_reply_to:
         msg["In-Reply-To"] = in_reply_to
@@ -293,6 +294,14 @@ CONFIRM_RE = _P(
 VERIFY_RE = _P(
     r"verify your identity", r"identity verification", r"v[ée]rifier votre identit[ée]", r"confirmer votre identit[ée]",
 )
+# Le courtier demande d'écrire depuis une autre adresse (celle dont on demande aussi l'effacement).
+_EMAIL = r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+"
+CONFIRM_FROM_RE = _P(
+    r"(send|reply|write|respond|e-?mail us|confirm)[^.\n]{0,80}\bfrom (the |that |this |your )?(e-?mail )?(address )?(concerned|in question|" + _EMAIL + ")",
+    r"(confirm|confirmation)[^.\n]{0,60}(directly )?from (the )?(e-?mail )?(address )?" + _EMAIL,
+    r"(depuis|[àa] partir de) (l'adresse|cette adresse|l'adresse e-?mail|l'adresse [ée]lectronique)( e-?mail)? (concern[ée]e|en question|" + _EMAIL + ")",
+    r"von (der|dieser|ihrer) (betreffenden |genannten )?e-?mail-?adresse (aus )?(schreiben|senden|best[äa]tigen)",
+)
 # Le courtier n'accepte que son formulaire / portail, ou cette adresse n'est pas lue.
 WEBFORM_RE = _P(
     r"fill (in|out) (the|our|this) (web ?|online ?)?form", r"use our (web ?|online ?|privacy )?(form|portal)", r"submit (your request )?(via|through) our",
@@ -419,6 +428,7 @@ KIND_LABELS = {
     "residence_question": "question sur le pays de résidence",
     "ack": "accusé de réception",
     "webform": "formulaire ou portail exigé",
+    "confirm_from_address": "confirmation depuis une autre adresse demandée",
     "device_id": "identifiant publicitaire demandé",
     "delivery_issue": "incident de distribution temporaire",
     "reply": "réponse à examiner",
@@ -491,6 +501,7 @@ def classify(m: ParsedMail) -> Classification:
                 return Classification(kind, hit.group(0))
             vetoed = vetoed or hit.group(0)
     for kind, rx in (
+        ("confirm_from_address", CONFIRM_FROM_RE),
         ("id_request", ID_RE),
         ("confirm_link", CONFIRM_RE),
         ("device_id", DEVICE_RE),
@@ -523,6 +534,16 @@ _BOUNCED_TO_RE = re.compile(
     r"(?i)(?:failed to these recipients or groups:\s*|your message to |n'est pas parvenu [àa] |could not be delivered to |"
     r"wasn't delivered to |konnte nicht an |delivery to the following recipients? failed[^\n]*\s*)<?([\w.+'-]+@[\w.-]+\w)"
 )
+
+
+def emails_in(text: str) -> list[str]:
+    """Adresses e-mail citées dans un texte, en minuscules, dans l'ordre et sans doublon."""
+    out: list[str] = []
+    for a in re.findall(_EMAIL, text or ""):
+        a = a.lower().strip(".")
+        if a not in out:
+            out.append(a)
+    return out
 
 
 def bounced_recipients(text: str) -> set[str]:

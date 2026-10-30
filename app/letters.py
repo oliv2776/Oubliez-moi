@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import datetime
 
 from . import phones
@@ -12,6 +13,23 @@ def letter_language(profile: Profile, broker: Broker) -> str:
     if profile.language in ("fr", "en"):
         return profile.language
     return "fr" if "fr" in (broker.countries or []) else "en"
+
+
+def without_accents(text: str) -> str:
+    """« Deschênes » -> « Deschenes » (beaucoup de bases ne stockent pas les accents)."""
+    return "".join(c for c in unicodedata.normalize("NFKD", text or "") if not unicodedata.combining(c))
+
+
+def name_variants(profile: Profile) -> list[str]:
+    """Autres noms, plus l'orthographe sans accents du nom et des autres noms quand elle diffère."""
+    names = [n for n in (profile.other_names or []) if n and n.strip()]
+    known = {n.strip().lower() for n in [profile.full_name, *names]}
+    for n in [profile.full_name, *names]:
+        plain = without_accents(n).strip()
+        if plain and plain.lower() not in known:
+            names.append(plain)
+            known.add(plain.lower())
+    return names
 
 
 def _identity_block(profile: Profile, lang: str) -> str:
@@ -27,7 +45,7 @@ def _identity_block(profile: Profile, lang: str) -> str:
         if values:
             lines.append(f"- {label}{sep}" + " ; ".join(values))
 
-    add(labels[1], profile.other_names)
+    add(labels[1], name_variants(profile))
     add(labels[2], profile.emails)
     add(labels[3], [phones.parse(t).for_letter for t in (profile.phones or [])])
     add(labels[4], profile.addresses)
@@ -339,7 +357,7 @@ def form_fields(req: Request) -> list[tuple[str, str]]:
     parts = p.full_name.split()
     if len(parts) >= 2:
         out += [("Prénom", parts[0]), ("Nom de famille", " ".join(parts[1:]))]
-    for name in p.other_names or []:
+    for name in name_variants(p):
         out.append(("Autre nom", name))
     for i, email in enumerate(p.emails or []):
         out.append(("E-mail" if i == 0 else "Autre e-mail", email))
@@ -414,3 +432,33 @@ def cnil_complaint_text(req: Request) -> str:
         p.full_name,
     ]
     return "\n".join(lines)
+
+
+def confirm_from_letter(req: Request, address: str, their_subject: str | None = None) -> tuple[str, str]:
+    """Courte confirmation, envoyée depuis une autre adresse du profil, que cette adresse est bien la vôtre."""
+    ref, profile = req.reference, req.profile
+    if req.language == "fr":
+        subject = _re_subject(their_subject, f"Confirmation – Réf. {ref}")
+        body = f"""Madame, Monsieur,
+
+Je confirme que l'adresse e-mail {address} m'appartient et que je souhaite exercer, pour cette adresse également, mes droits d'effacement (article 17 du RGPD) et d'opposition (article 21 du RGPD), conformément à ma demande réf. {ref}.
+
+Je vous écris depuis cette adresse, comme vous me l'avez demandé.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{_signature(profile)}
+"""
+    else:
+        subject = _re_subject(their_subject, f"Confirmation – Ref. {ref}")
+        body = f"""Dear Sir or Madam,
+
+I confirm that the email address {address} belongs to me and that I wish to exercise my rights to erasure (Article 17 GDPR) and to object (Article 21 GDPR) in relation to this address as well, as set out in my request ref. {ref}.
+
+As you asked, I am writing to you from this address.
+
+Yours faithfully,
+
+{_signature(profile)}
+"""
+    return subject, body
