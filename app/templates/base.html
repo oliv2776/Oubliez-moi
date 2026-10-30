@@ -13,6 +13,7 @@
 {% if request.session.get('user') %}
 <header class="top"><div class="inner">
   <a class="brand" href="/"><span class="dot"></span><span class="t">Oubliez-moi</span></a>
+  <form class="nav-search" action="/search" method="get" role="search"><input type="search" name="q" placeholder="Rechercher…" aria-label="Recherche globale"><button class="btn sm" aria-label="Rechercher">⌕</button></form>
   <nav class="main">
     <a href="/" class="{{ 'active' if path == '/' }}">Tableau de bord</a>
     <a href="/profiles" class="{{ 'active' if path.startswith('/profiles') }}">Profils</a>
