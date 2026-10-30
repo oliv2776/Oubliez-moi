@@ -25,7 +25,7 @@
   function fit(f) {
     try {
       const d = f.contentDocument; if (!d || !d.body) return;
-      const set = () => { f.style.height = (d.documentElement.scrollHeight + 2) + "px"; };
+      const set = () => { f.style.height = (d.body.scrollHeight + 4) + "px"; };
       set();
       if (!f._ro) { f._ro = new ResizeObserver(set); f._ro.observe(d.body); }
     } catch (e) { f.style.height = "480px"; }

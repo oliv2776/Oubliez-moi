@@ -54,6 +54,7 @@ def start() -> None:
     scheduler.add_job(_safe(service.check_deadlines), "interval", hours=1, id="deadlines")
     scheduler.add_job(_safe(daily), "cron", hour=4, minute=17, id="daily")
     scheduler.add_job(_safe(maybe_update_brokers), "cron", hour=4, minute=43, id="brokers")
+    scheduler.add_job(_safe(service.send_digest), "cron", hour=8, minute=7, id="digest")
     scheduler.start()
     log.info("Planificateur démarré : 1 e-mail toutes les %ss, relève IMAP toutes les %s min", interval, settings.imap_poll_minutes)
 

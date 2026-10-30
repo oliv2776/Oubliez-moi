@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Dossier de réclamation – {{ r.broker.name }} – {{ r.reference }}</title>
+<style>
+  :root { color-scheme: light; }
+  body { font: 11pt/1.5 Georgia, "Times New Roman", serif; color: #111; max-width: 820px; margin: 0 auto; padding: 32px 28px 60px; background: #fff; }
+  h1 { font-size: 19pt; margin: 0 0 4px; }
+  h2 { font-size: 13pt; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #999; }
+  h3 { font-size: 11pt; margin: 18px 0 4px; }
+  .sub { color: #555; margin: 0 0 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid #ddd; }
+  th { width: 28%; color: #444; font-weight: normal; }
+  .chrono td:first-child { white-space: nowrap; width: 1%; }
+  pre { white-space: pre-wrap; font: 9.5pt/1.45 ui-monospace, Menlo, Consolas, monospace; background: #f7f7f5; border: 1px solid #e3e3e0; padding: 10px 12px; margin: 4px 0 0; }
+  .piece { page-break-inside: avoid; }
+  .meta { color: #555; font-size: 9.5pt; }
+  .toolbar { position: sticky; top: 0; background: #fff; padding: 8px 0 14px; margin-bottom: 8px; border-bottom: 1px solid #eee; display: flex; gap: 10px; align-items: center; font: 10pt system-ui, sans-serif; }
+  .toolbar button, .toolbar a { font: 600 10pt system-ui, sans-serif; padding: 7px 14px; border-radius: 7px; border: 1px solid #23524a; background: #23524a; color: #fff; cursor: pointer; text-decoration: none; }
+  .toolbar a { background: #fff; color: #23524a; }
+  @media print { .toolbar { display: none; } body { padding: 0; } h2 { page-break-after: avoid; } }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+  <a href="/requests/{{ r.id }}">← Retour à la demande</a>
+  <span style="color:#666">Joignez ce PDF à votre plainte sur cnil.fr</span>
+</div>
+
+<h1>Dossier de réclamation</h1>
+<p class="sub">Exercice du droit à l'effacement et du droit d'opposition (RGPD, art. 17 et 21) — référence {{ r.reference }} — établi le {{ now.strftime('%d/%m/%Y') }}</p>
+
+<h2>1. Parties</h2>
+<table>
+  <tr><th>Personne concernée</th><td>{{ r.profile.full_name }}<br>{{ r.profile.emails|join(', ') }}</td></tr>
+  <tr><th>Organisme mis en cause</th><td><strong>{{ r.broker.name }}</strong>{% if r.broker.postal_address %}<br>{{ r.broker.postal_address|replace('\n', ', ') }}{% endif %}</td></tr>
+  <tr><th>Contact protection des données</th><td>{{ r.broker.email or r.broker.webform or '—' }}</td></tr>
+  <tr><th>Situation actuelle</th><td>{{ STATUS.get(r.status, r.status) }}</td></tr>
+</table>
+
+<h2>2. Exposé des faits</h2>
+<pre style="font-family:Georgia,serif;font-size:10.5pt;background:none;border:0;padding:0">{{ complaint }}</pre>
+
+<h2>3. Chronologie</h2>
+<table class="chrono">
+  {% for e in r.events if e.kind != 'info' or 'Prolongation' in e.summary %}
+  <tr><td>{{ e.at|dt }}</td><td>{{ e.summary }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>4. Pièces : courriers envoyés</h2>
+{% for e in letters_sent %}
+{% set h, text = split(e.body or '') %}
+<div class="piece">
+  <h3>Pièce {{ loop.index }} — {{ e.summary }}</h3>
+  <p class="meta">{{ e.at|dt }}{% if h.get('Objet') %} · Objet : {{ h.get('Objet') }}{% endif %}</p>
+  <pre>{{ text }}</pre>
+</div>
+{% else %}
+<p>Aucun courrier envoyé par e-mail.</p>
+{% endfor %}
+
+<h2>5. Pièces : réponses reçues</h2>
+{% for e in replies %}
+{% set h, text = split(e.body or '') %}
+<div class="piece">
+  <h3>Réponse {{ loop.index }} — {{ h.get('De', '') }}</h3>
+  <p class="meta">{{ e.at|dt }}{% if h.get('Objet') %} · Objet : {{ h.get('Objet') }}{% endif %}</p>
+  <pre>{{ text }}</pre>
+</div>
+{% else %}
+<p>Aucune réponse reçue de l'organisme.</p>
+{% endfor %}
+</body>
+</html>

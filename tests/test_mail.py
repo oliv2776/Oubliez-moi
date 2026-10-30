@@ -26,9 +26,38 @@ def test_classify_no_data_en():
     assert mailer.classify(m).kind == "completed_no_data"
 
 
-def test_classify_verification_wins():
+def test_classify_id_request():
     m = mailer.parse_mail(_raw("Request", "To proceed, please verify your identity by sending a copy of your ID."))
-    assert mailer.classify(m).kind == "needs_action"
+    assert mailer.classify(m).kind == "id_request"
+    m = mailer.parse_mail(_raw("Demande", "Merci de nous transmettre une copie de votre pièce d'identité."))
+    assert mailer.classify(m).kind == "id_request"
+
+
+def test_classify_new_kinds():
+    cases = {
+        "Please confirm your request by clicking the link below: https://privacy.acme.com/confirm?t=1": "confirm_link",
+        "Cliquez sur le lien ci-dessous pour confirmer votre demande.": "confirm_link",
+        "Please use our online form at https://acme.com/privacy to submit your request.": "needs_action",
+        "Due to the number of requests, we need to extend the response period by an additional two months.": "extension",
+        "Nous devons prolonger le délai de traitement de deux mois supplémentaires.": "extension",
+        "We are unable to delete your data as we process it on the basis of our legitimate interest.": "legit_refusal",
+        "We cannot comply with your request.": "refusal",
+        "Could you please confirm your country of residence?": "residence_question",
+        "Nous accusons réception de votre demande.": "ack",
+        "Your data has been deleted. If you have questions, please verify your identity with us.": "completed_deleted",
+    }
+    for text, kind in cases.items():
+        assert mailer.classify(mailer.parse_mail(_raw("Re", text))).kind == kind, text
+
+
+def test_links_extracted():
+    m = EmailMessage()
+    m["From"] = "dpo@acme.com"
+    m["Subject"] = "x"
+    m.set_content("Voir https://acme.com/a.")
+    m.add_alternative('<p><a href="https://privacy.acme.com/confirm?t=ab&amp;x=1">Confirm my request</a></p>', subtype="html")
+    links = mailer.parse_mail(bytes(m)).links
+    assert ("https://privacy.acme.com/confirm?t=ab&x=1", "Confirm my request") in links
 
 
 def test_classify_ack():

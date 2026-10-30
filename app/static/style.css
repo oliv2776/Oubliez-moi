@@ -129,6 +129,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 .timeline li::before { content: ""; position: absolute; left: -7px; top: 1rem; width: 12px; height: 12px; border-radius: 50%; background: var(--panel); border: 2px solid var(--muted); }
 .timeline li.k-sent::before, .timeline li.k-reminder::before { border-color: var(--info); }
 .timeline li.k-reply::before { border-color: var(--warn); background: var(--warn); }
+.timeline li.k-auto_reply::before, .timeline li.k-formal_notice::before { border-color: var(--accent); background: var(--accent); }
+.timeline li.k-confirm::before { border-color: var(--ok); background: var(--ok); }
 .timeline li.k-error::before { border-color: var(--bad); }
 .timeline li.k-status::before { border-color: var(--accent); }
 details summary { cursor: pointer; color: var(--accent); font-size: .85rem; }
@@ -187,7 +189,7 @@ table.copytable tr.copied td.mono { color: var(--muted); }
 .mail-from { font-weight: 600; font-size: .9rem; overflow-wrap: anywhere; }
 .mail-meta { color: var(--muted); font-size: .82rem; }
 .mail-subject { color: var(--ink); }
-.mail-frame { display: block; width: 100%; height: 160px; border: 0; background: #fff; }
+.mail-frame { display: block; width: 100%; height: 80px; border: 0; background: #fff; }
 .mail-foot { font-size: .75rem; color: var(--muted); padding: .35rem .9rem; border-top: 1px solid var(--line); background: var(--bg); }
 .mail-body { padding: .8rem 1rem; font-size: .92rem; overflow-wrap: anywhere; }
 .mail-body p { margin: 0 0 .75rem; }
@@ -224,3 +226,5 @@ kbd { font: 600 .7rem ui-monospace, Menlo, monospace; padding: .05rem .3rem; bor
   .triage-list { position: static; max-height: 38vh; }
   .kbd-hint, kbd { display: none; }
 }
+
+.ai-note { background: var(--info-soft); color: var(--info); border-radius: 8px; padding: .55rem .8rem; font-size: .88rem; margin-bottom: .6rem; }

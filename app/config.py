@@ -55,6 +55,31 @@ class Settings:
         default_factory=lambda: [f.strip() for f in _str("IMAP_FOLDERS", "INBOX").split(",") if f.strip()]
     )
     imap_poll_minutes: int = field(default_factory=lambda: _int("IMAP_POLL_MINUTES", 10))
+    # Rangement des e-mails des courtiers dans la boîte : off | move | label (libellé Gmail)
+    imap_file_mode: str = field(default_factory=lambda: _str("IMAP_FILE_MODE", "off").lower())
+    imap_file_folder: str = field(default_factory=lambda: _str("IMAP_FILE_FOLDER", "Oubliez-moi"))
+    imap_mark_read: bool = field(default_factory=lambda: _bool("IMAP_MARK_READ", False))
+    imap_file_own_copies: bool = field(default_factory=lambda: _bool("IMAP_FILE_OWN_COPIES", True))
+
+    # Automatismes
+    auto_replies: bool = field(default_factory=lambda: _bool("AUTO_REPLIES", True))
+    auto_formal_notice: bool = field(default_factory=lambda: _bool("AUTO_FORMAL_NOTICE", True))
+    formal_notice_wait_days: int = field(default_factory=lambda: _int("FORMAL_NOTICE_WAIT_DAYS", 15))
+    auto_confirm_links: bool = field(default_factory=lambda: _bool("AUTO_CONFIRM_LINKS", True))
+    auto_supplements: bool = field(default_factory=lambda: _bool("AUTO_SUPPLEMENTS", True))
+    residence_country: str = field(default_factory=lambda: _str("RESIDENCE_COUNTRY", "France"))
+
+    # IA locale (Ollama) pour les réponses ambiguës
+    llm_url: str = field(default_factory=lambda: _str("LLM_URL"))
+    llm_model: str = field(default_factory=lambda: _str("LLM_MODEL", "qwen2.5:7b"))
+
+    # Notifications
+    app_url: str = field(default_factory=lambda: _str("APP_URL"))
+    notify_ntfy_url: str = field(default_factory=lambda: _str("NOTIFY_NTFY_URL"))
+    notify_ntfy_token: str = field(default_factory=lambda: _str("NOTIFY_NTFY_TOKEN"))
+    notify_gotify_url: str = field(default_factory=lambda: _str("NOTIFY_GOTIFY_URL"))
+    notify_gotify_token: str = field(default_factory=lambda: _str("NOTIFY_GOTIFY_TOKEN"))
+    notify_email_digest: bool = field(default_factory=lambda: _bool("NOTIFY_EMAIL_DIGEST", False))
 
     # Comportement
     dry_run: bool = field(default_factory=lambda: _bool("DRY_RUN", True))
@@ -92,6 +117,14 @@ class Settings:
         return bool(self.smtp_host and self.smtp_from)
 
     @property
+    def llm_enabled(self) -> bool:
+        return bool(self.llm_url and self.llm_model)
+
+    @property
+    def notify_enabled(self) -> bool:
+        return bool(self.notify_ntfy_url or (self.notify_gotify_url and self.notify_gotify_token))
+
+    @property
     def imap_login(self) -> tuple[str, str]:
         """Identifiants IMAP ; à défaut, ceux du SMTP (cas le plus courant : même compte)."""
         return (self.imap_user or self.smtp_user, self.imap_password or self.smtp_password)
@@ -120,8 +153,25 @@ EDITABLE: dict[str, type] = {
     "imap_password": str,
     "imap_folders": list,
     "imap_poll_minutes": int,
+    "imap_file_mode": str,
+    "imap_file_folder": str,
+    "imap_mark_read": bool,
+    "imap_file_own_copies": bool,
+    "auto_replies": bool,
+    "auto_formal_notice": bool,
+    "auto_confirm_links": bool,
+    "auto_supplements": bool,
+    "residence_country": str,
+    "llm_url": str,
+    "llm_model": str,
+    "app_url": str,
+    "notify_ntfy_url": str,
+    "notify_ntfy_token": str,
+    "notify_gotify_url": str,
+    "notify_gotify_token": str,
+    "notify_email_digest": bool,
 }
-SECRET_KEYS = {"smtp_password", "imap_password"}
+SECRET_KEYS = {"smtp_password", "imap_password", "notify_ntfy_token", "notify_gotify_token"}
 
 
 settings = Settings()

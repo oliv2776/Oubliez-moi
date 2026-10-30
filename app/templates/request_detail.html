@@ -45,8 +45,10 @@
           <div>{{ e.summary }}</div>
           {% if e.kind == 'reply' and e.id == latest_reply %}
             {{ mail_view(e) }}
-          {% elif e.kind in ('reply', 'sent', 'reminder', 'supplement') and e.body %}
+          {% elif e.kind in ('reply', 'sent', 'reminder', 'supplement', 'auto_reply', 'formal_notice') and e.body %}
             <details><summary>{{ 'Afficher le message' if e.kind == 'reply' else 'Afficher le courrier envoyé' }}</summary>{{ mail_view(e) }}</details>
+          {% elif e.kind in ('confirm', 'info') and e.body and e.body.startswith('http') %}
+            <div class="small"><a href="{{ e.body|url }}" target="_blank" rel="noopener noreferrer nofollow">{{ e.body[:120] }}</a></div>
           {% elif e.body %}
             <details><summary>Afficher le détail</summary><pre>{{ e.body }}</pre></details>
           {% endif %}
@@ -96,6 +98,7 @@
     {% if complaint %}
     <div class="card">
       <h2>Saisir la CNIL</h2>
+      <p><a class="btn sm primary" href="/requests/{{ r.id }}/dossier" target="_blank">Dossier complet à joindre (PDF)</a></p>
       <p class="small muted">Le courtier n'a pas répondu ou a refusé. Vous pouvez déposer une plainte en ligne sur <a href="https://www.cnil.fr/fr/adresser-une-plainte" target="_blank" rel="noopener noreferrer">cnil.fr/fr/adresser-une-plainte</a>. Texte prêt à coller (joignez l'historique ci-contre) :</p>
       <pre>{{ complaint }}</pre>
     </div>

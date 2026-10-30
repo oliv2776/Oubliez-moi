@@ -12,7 +12,12 @@
 | **Demandes juridiquement solides** | Effacement (art. 17), opposition à la prospection (art. 21), notification aux destinataires (art. 19) et délai d'un mois (art. 12.3). En français pour les courtiers français, en anglais sinon. |
 | **Envoi lissé** | 30 e-mails par heure par défaut, pour ne pas être considéré comme du spam par votre fournisseur. |
 | **Relève automatique des réponses** | Via IMAP en lecture seule. Chaque e-mail porte une référence unique (`OUBLI-XXXXXX`) qui permet de rattacher les réponses. Elles sont classées automatiquement (données supprimées, aucune donnée, justificatif demandé, accusé de réception, non-distribution) en français, anglais et allemand. |
-| **Relances et CNIL** | Une relance part automatiquement à l'expiration du délai légal. Sans réponse 15 jours plus tard, la demande passe « sans réponse » et Oubliez-moi prépare le texte de la plainte à la CNIL. |
+| **Relances, mise en demeure et CNIL** | Une relance part automatiquement à l'expiration du délai légal, puis une mise en demeure. Sans réponse, la demande passe « sans réponse » et Oubliez-moi prépare un dossier de réclamation complet à imprimer en PDF (exposé des faits, chronologie, courriers et réponses) pour la CNIL. |
+| **Réponses automatiques** | Pièce d'identité exigée, refus au nom de l'« intérêt légitime », question sur le pays de résidence : Oubliez-moi répond seul avec le bon argument juridique (une fois par motif, trois réponses au maximum par courtier). Les prolongations de délai sont prises en compte. |
+| **Liens de confirmation** | Les liens « confirmez votre demande » sont ouverts automatiquement (désactivable) : seulement sur le domaine du courtier ou une plateforme RGPD connue, jamais un lien d'annulation ni un lien de désinscription ou une adresse du réseau local. |
+| **IA locale (facultatif)** | Un modèle qui tourne chez vous avec Ollama classe et résume les réponses que les mots-clés ne comprennent pas. Rien n'est envoyé à un service externe. |
+| **Boîte mail rangée** | Les réponses des courtiers sont déplacées dans un dossier (ou libellées sur Gmail) et peuvent être marquées comme lues. |
+| **Notifications** | ntfy, Gotify ou récapitulatif quotidien par e-mail, uniquement quand une décision vous attend. |
 | **Renvoi périodique** | Comme Incogni : 90 jours après une suppression confirmée, la demande est renvoyée, parce que les courtiers recollectent les données. |
 | **Plusieurs profils** | Pour vous et vos proches (avec leur accord). |
 | **Page « À traiter »** | Les réponses à examiner, les actions requises, les délais dépassés et les échecs, dans une boîte de traitement : liste à gauche, message à droite, une décision en un clic (ou une touche du clavier) et passage automatique au suivant. |
@@ -76,6 +81,21 @@ Les réglages saisis dans l'interface sont enregistrés dans la base (volume Doc
 Vous pouvez aussi lancer les demandes en simulation pour voir le déroulé : rien ne part. Au passage en envoi réel, les demandes simulées sont automatiquement remises en file et envoyées pour de bon.
 
 Ensuite, passez de temps en temps sur **À traiter**. Tout le reste est automatique.
+
+## IA locale avec Ollama (facultatif)
+
+Le service Ollama est déjà prévu dans `docker-compose.yml`, désactivé par défaut. Pour l'activer :
+
+```bash
+docker compose --profile ia up -d
+docker compose exec ollama ollama pull qwen2.5:7b
+```
+
+Dans **Réglages → Automatismes**, indiquez l'adresse `http://ollama:11434` et le modèle `qwen2.5:7b`, puis cliquez sur « Enregistrer et tester le modèle ». Comptez environ 5 Go de mémoire vive pour `qwen2.5:7b`, environ 2,5 Go pour `qwen2.5:3b` (deux fois plus rapide, classement un peu moins fin). Sans carte graphique, une analyse prend de quelques secondes à une ou deux minutes, ce qui est sans importance ici : seules les réponses ambiguës sont analysées, quelques-unes par semaine.
+
+Le service est bridé pour ne pas gêner le reste du serveur : 4 cœurs au plus, priorité basse, 8 Go de mémoire maximum, et le modèle est déchargé de la mémoire après 5 minutes d'inactivité. Ajustez `cpus` et `mem_limit` dans `docker-compose.yml` si besoin. Le modèle n'est consulté que pour les réponses que les mots-clés ne savent pas classer, et rien ne quitte votre serveur.
+
+Si Ollama tourne déjà ailleurs sur votre réseau, indiquez simplement son adresse (par exemple `http://192.168.1.20:11434`).
 
 ## Reverse proxy HTTPS
 

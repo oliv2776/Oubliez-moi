@@ -3,6 +3,7 @@ from datetime import timedelta
 from sqlalchemy import select
 
 from app import service
+from app.config import settings
 from app.db import COMPLETED, SENT, Broker, Profile, Request, SessionLocal, utcnow
 
 
@@ -36,6 +37,7 @@ def test_new_email_triggers_supplement(client):
         db.commit()
 
     # Ajout d'une adresse via le formulaire ; le téléphone est ressaisi sous une autre forme (pas un nouveau numéro)
+    settings.auto_supplements = False  # mode manuel : bouton « Envoyer un complément »
     r = client.post(f"/profiles/{pid}", data={"full_name": "Supp Lément", "emails": "ancien@exemple.fr\nnouvelle@exemple.fr",
                                               "phones": "+33 6 11 22 33 44"}, follow_redirects=True)
     assert "pas reçu les nouvelles informations" in r.text
@@ -49,7 +51,8 @@ def test_new_email_triggers_supplement(client):
     client.post(f"/profiles/{pid}/supplement")
     # Les premiers envois en file passent avant les compléments : on vide la file d'abord.
     results = [service.send_tick() for _ in range(60)]
-    assert sum("complément" in (r or "") for r in results) == 3
+    sent = [r for r in results if "complément" in (r or "")]
+    assert len(sent) == 3, sent
     with SessionLocal() as db:
         reqs = [db.get(Request, i) for i in ids]
         assert not any(r.supplement_pending for r in reqs)
@@ -57,3 +60,13 @@ def test_new_email_triggers_supplement(client):
         body = [e for e in reqs[1].events if e.kind == "supplement"][0].body
         assert "nouvelle@exemple.fr" in body and reqs[1].reference in body
         assert service.supplement_candidates(db, db.get(Profile, pid)) == []
+    settings.auto_supplements = True
+
+
+def test_supplements_queued_automatically(client):
+    pid, ids = _profile_with_sent_requests(2)
+    r = client.post(f"/profiles/{pid}", data={"full_name": "Supp Lément", "emails": "ancien@exemple.fr\nauto@exemple.fr",
+                                              "phones": "06 11 22 33 44"}, follow_redirects=True)
+    assert "recevront automatiquement un complément" in r.text
+    with SessionLocal() as db:
+        assert all(db.get(Request, i).supplement_pending for i in ids)

@@ -26,7 +26,8 @@ class SendError(Exception):
 
 # ---------------------------------------------------------------- SMTP ----
 
-def build_message(to: str, subject: str, body: str, from_name: str, reply_to: str | None = None) -> EmailMessage:
+def build_message(to: str, subject: str, body: str, from_name: str, reply_to: str | None = None,
+                  in_reply_to: str | None = None) -> EmailMessage:
     msg = EmailMessage()
     msg["From"] = formataddr((from_name, settings.smtp_from))
     msg["To"] = to
@@ -36,6 +37,9 @@ def build_message(to: str, subject: str, body: str, from_name: str, reply_to: st
     msg["Date"] = formatdate(localtime=True)
     domain = settings.smtp_from.split("@")[-1] if "@" in settings.smtp_from else None
     msg["Message-ID"] = make_msgid(domain=domain)
+    if in_reply_to:
+        msg["In-Reply-To"] = in_reply_to
+        msg["References"] = in_reply_to
     msg.set_content(body)
     return msg
 
@@ -87,6 +91,8 @@ class ParsedMail:
     is_auto: bool = False
     date: str = ""
     html: str = ""
+    reply_to: str = ""
+    links: list[tuple[str, str]] = field(default_factory=list)  # (url, texte du lien)
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -98,6 +104,26 @@ def html_to_text(s: str) -> str:
     s = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</tr>", "\n", s)
     s = html.unescape(_TAG_RE.sub(" ", s))
     return re.sub(r"[ \t]+", " ", re.sub(r"\n\s*\n+", "\n\n", s)).strip()
+
+
+_HREF_RE = re.compile(r"<a\b[^>]*?href\s*=\s*[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", re.I | re.S)
+_TEXT_URL_RE = re.compile(r"https?://[^\s<>\"')\]]+")
+
+
+def extract_links(html_body: str, text: str) -> list[tuple[str, str]]:
+    """Liens (url, texte) trouvés dans le message, sans doublon."""
+    seen, out = set(), []
+    for href, label in _HREF_RE.findall(html_body or ""):
+        href = html.unescape(href.strip())
+        if href.lower().startswith(("http://", "https://")) and href not in seen:
+            seen.add(href)
+            out.append((href, html_to_text(label)[:200]))
+    for url in _TEXT_URL_RE.findall(text or ""):
+        url = url.rstrip(".,;:!?")
+        if url not in seen:
+            seen.add(url)
+            out.append((url, ""))
+    return out[:100]
 
 
 def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
@@ -133,6 +159,11 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
             html_body = part.get_content()
     except (LookupError, UnicodeError, KeyError):
         pass
+    reply_to = ""
+    rt = getaddresses([str(msg.get("Reply-To", ""))])
+    rt = [a for _, a in rt if "@" in a]
+    if rt:
+        reply_to = rt[0].lower()
     ctype = msg.get_content_type()
     auto_sub = str(msg.get("Auto-Submitted", "no")).lower()
     sender = from_addr.lower()
@@ -152,6 +183,8 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         is_auto=auto_sub not in ("", "no") or bool(msg.get("X-Autoreply")) or bool(msg.get("X-Autorespond")),
         date=str(msg.get("Date", "")),
         html=html_body,
+        reply_to=reply_to,
+        links=extract_links(html_body, "\n".join(texts)),
     )
 
 
@@ -159,12 +192,21 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
 
 _P = lambda *pats: re.compile("|".join(pats), re.I)  # noqa: E731
 
+ID_RE = _P(
+    r"cop(y|ies) of (your |a |an )?(valid )?(government[- ]issued )?(photo )?(id\b|identity|passport|driv)", r"proof of (your )?identity",
+    r"photo id", r"identity document", r"pi[eè]ce d'identit[eé]", r"justificatif d'identit[eé]", r"copie de (votre |la )?(carte|passeport)",
+    r"identit[äa]tsnachweis", r"ausweiskopie", r"kopie (ihres|des) (personal)?ausweis",
+)
+CONFIRM_RE = _P(
+    r"confirm (your |the )?(e-?mail|request|address|identity) by clicking", r"(click|tap) (on )?(the|this) (following |below )?(link|button) to (confirm|verify|validate)",
+    r"please (confirm|verify) (your |the )?(e-?mail|request|address)", r"verification link", r"confirmation link",
+    r"cliquez sur le lien (ci-dessous |suivant )?pour (confirmer|valider|v[ée]rifier)", r"confirmer votre (demande|adresse)", r"valider votre (demande|adresse)",
+    r"lien de (confirmation|validation|v[ée]rification)", r"best[äa]tigen sie (ihre|die) (anfrage|e-?mail)", r"best[äa]tigungslink",
+)
 VERIFY_RE = _P(
-    r"verify your identity", r"identity verification", r"proof of (your )?identity", r"copy of (your |a )?(id\b|passport|identity)",
-    r"pi[eè]ce d'identit[eé]", r"justificatif d'identit[eé]", r"v[eé]rifier votre identit[eé]", r"confirmer votre identit[eé]",
-    r"confirm your (e-?mail|request|identity)", r"click (on )?the (following |below )?link", r"cliquez sur le lien",
-    r"confirmer votre demande", r"fill (in|out) (the|our) (web ?)?form", r"remplir (le|notre) formulaire",
-    r"identit[äa]tsnachweis", r"ausweiskopie", r"personalausweis",
+    r"verify your identity", r"identity verification", r"v[ée]rifier votre identit[ée]", r"confirmer votre identit[ée]",
+    r"fill (in|out) (the|our) (web ?|online ?)?form", r"use our (web ?|online ?|privacy )?(form|portal)", r"submit (your request )?(via|through) our",
+    r"remplir (le|notre) formulaire", r"utiliser notre formulaire", r"via notre formulaire",
 )
 NO_DATA_RE = _P(
     r"no (personal )?(data|information|records?) (about|on|relating to|regarding|associated with|linked to) you",
@@ -181,16 +223,46 @@ DELETED_RE = _P(
     r"suppression (a [ée]t[ée] )?effectu[ée]e", r"(liste|fichier) (d'opposition|repoussoir|de blocage)",
     r"wurden? (vollst[äa]ndig |erfolgreich )?gel[öo]scht", r"haben (ihre daten )?gel[öo]scht", r"(sperrliste|werbesperre)",
 )
+EXTENSION_RE = _P(
+    r"(extend|extension of) (the |our |this )?(response |time ?|deadline|period)", r"(additional|further|another) (two|2) months",
+    r"deux mois suppl[ée]mentaires", r"prolong(er|ation) (le|du|de notre) d[ée]lai", r"d[ée]lai suppl[ée]mentaire",
+    r"fristverl[äa]ngerung", r"weitere(n)? (zwei|2) monate",
+)
+LEGIT_RE = _P(r"legitimate interests?", r"int[ée]r[êe]ts? l[ée]gitimes?", r"berechtigte[sn]? interesse")
+REFUSAL_RE = _P(
+    r"unable to (comply|delete|fulfil|fulfill|honou?r)", r"(cannot|can't|will not|won't) (comply|delete|erase|fulfil)", r"not able to (delete|erase|comply)",
+    r"(ne pouvons|ne sommes pas en mesure de) (pas )?(donner suite|supprimer|proc[ée]der|faire droit)", r"refusons", r"rejet[ée]e?",
+    r"k[öo]nnen .{0,40}nicht (l[öo]schen|nachkommen|entsprechen)",
+)
+RESIDENCE_RE = _P(
+    r"(country|state) of residence", r"which country (do )?you (live|reside)", r"where (do )?you (live|reside)", r"are you (a )?(resident|located) in",
+    r"pays de r[ée]sidence", r"dans quel pays (r[ée]sidez|habitez)", r"wohnsitzland", r"in welchem land (wohnen|leben)",
+)
 ACK_RE = _P(
-    r"accus[ée] de r[ée]ception", r"automatic reply", r"auto(matic)?[- ]?reply", r"out of (the )?office", r"r[ée]ponse automatique",
+    r"accus[ée] de r[ée]ception", r"accusons r[ée]ception", r"automatic reply", r"auto(matic)?[- ]?reply", r"out of (the )?office", r"r[ée]ponse automatique",
     r"we (have )?received your (request|message|e-?mail)", r"nous avons (bien )?re[çc]u votre", r"thank you for (contacting|your (request|message|e-?mail))",
     r"ticket (number|#|no)", r"request (number|#|id)", r"eingangsbest[äa]tigung", r"automatische antwort", r"abwesenheit",
 )
 
+KIND_LABELS = {
+    "bounce": "adresse invalide",
+    "id_request": "demande de pièce d'identité",
+    "confirm_link": "lien de confirmation à cliquer",
+    "needs_action": "action demandée",
+    "completed_no_data": "aucune donnée détenue",
+    "completed_deleted": "données supprimées",
+    "extension": "prolongation du délai",
+    "legit_refusal": "refus au nom de l'intérêt légitime",
+    "refusal": "refus probable",
+    "residence_question": "question sur le pays de résidence",
+    "ack": "accusé de réception",
+    "reply": "réponse à examiner",
+}
+
 
 @dataclass
 class Classification:
-    kind: str  # bounce, needs_action, completed_no_data, completed_deleted, ack, reply
+    kind: str
     reason: str = ""
 
 
@@ -198,14 +270,27 @@ def classify(m: ParsedMail) -> Classification:
     text = f"{m.subject}\n{m.text}"[:20000]
     if m.is_bounce:
         return Classification("bounce", "message de non-distribution")
+    # Ordre important : les confirmations de suppression priment sur le reste.
     for kind, rx in (
-        ("needs_action", VERIFY_RE),
         ("completed_no_data", NO_DATA_RE),
         ("completed_deleted", DELETED_RE),
+        ("id_request", ID_RE),
+        ("confirm_link", CONFIRM_RE),
+        ("needs_action", VERIFY_RE),
+        ("extension", EXTENSION_RE),
     ):
         hit = rx.search(text)
         if hit:
             return Classification(kind, hit.group(0))
+    refusal = REFUSAL_RE.search(text)
+    legit = LEGIT_RE.search(text)
+    if legit and refusal:
+        return Classification("legit_refusal", legit.group(0))
+    if refusal:
+        return Classification("refusal", refusal.group(0))
+    hit = RESIDENCE_RE.search(text)
+    if hit:
+        return Classification("residence_question", hit.group(0))
     hit = ACK_RE.search(text)
     if hit or m.is_auto:
         return Classification("ack", hit.group(0) if hit else "en-tête de réponse automatique")
@@ -252,6 +337,8 @@ def _imap_connect() -> imaplib.IMAP4:
 
 
 def _quote_folder(name: str) -> str:
+    """Nom de dossier prêt pour une commande IMAP : encodé en UTF-7 modifié (accents) puis entre guillemets."""
+    name = imap_utf7(name)
     return '"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
@@ -279,6 +366,66 @@ def fetch_new_messages(folder: str, last_uidvalidity: str | None, last_uid: int,
                 if raw:
                     out.append((uid, raw))
         return uidvalidity, out
+    finally:
+        try:
+            conn.logout()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def imap_utf7(name: str) -> str:
+    """Encode un nom de dossier en UTF-7 modifié (RFC 3501), ex. « Désinscriptions »."""
+    out, buf = [], []
+
+    def flush():
+        if buf:
+            import base64
+            b = base64.b64encode("".join(buf).encode("utf-16-be")).decode().rstrip("=").replace("/", ",")
+            out.append("&" + b + "-")
+            buf.clear()
+
+    for ch in name:
+        if 0x20 <= ord(ch) <= 0x7E:
+            flush()
+            out.append("&-" if ch == "&" else ch)
+        else:
+            buf.append(ch)
+    flush()
+    return "".join(out)
+
+
+def file_messages(folder: str, uids: list[int], mode: str, target: str, mark_read: bool) -> str:
+    """Range des messages : déplacement vers un dossier, ou libellé Gmail (le message reste dans la boîte)."""
+    if not uids or mode == "off":
+        return ""
+    conn = _imap_connect()
+    try:
+        typ, _ = conn.select(_quote_folder(folder))  # lecture-écriture
+        if typ != "OK":
+            raise RuntimeError(f"Dossier IMAP introuvable : {folder}")
+        caps = {c.upper() for c in (conn.capabilities or ())}
+        gmail = "X-GM-EXT-1" in caps
+        box = _quote_folder(target)
+        conn.create(box)  # échoue sans conséquence si le dossier existe déjà
+        uid_set = ",".join(str(u) for u in uids)
+        if mark_read:
+            conn.uid("STORE", uid_set, "+FLAGS", "(\\Seen)")
+        if mode == "label":
+            if gmail:
+                typ, data = conn.uid("STORE", uid_set, "+X-GM-LABELS", f"({box})")
+                return f"{len(uids)} message(s) libellé(s) « {target} »" if typ == "OK" else f"libellé refusé : {data}"
+            mode = "move"  # les libellés n'existent que chez Gmail : on déplace
+        if "MOVE" in caps:
+            typ, data = conn.uid("MOVE", uid_set, box)
+        else:
+            typ, data = conn.uid("COPY", uid_set, box)
+            if typ == "OK":
+                conn.uid("STORE", uid_set, "+FLAGS", "(\\Deleted)")
+                if "UIDPLUS" in caps:
+                    conn.uid("EXPUNGE", uid_set)
+        if typ != "OK":
+            raise RuntimeError(f"Déplacement refusé par le serveur : {data}")
+        return f"{len(uids)} message(s) rangé(s) dans « {target} »"
     finally:
         try:
             conn.logout()

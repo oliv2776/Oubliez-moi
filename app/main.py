@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, brokers as broker_catalog, letters, mailer, mailview, phones, scheduler, service, settings_store
+from . import __version__, brokers as broker_catalog, letters, llm, mailer, mailview, notify, phones, scheduler, service, settings_store
 from .config import settings
 from .db import (
     FAILED,
@@ -310,7 +310,11 @@ def profile_update(
     db.commit()
     _warn_phones(request, invalid)
     n = len(service.supplement_candidates(db, p))
-    if n:
+    if n and settings.auto_supplements:
+        n = service.queue_supplements(db, p)
+        flash(request, f"Profil mis à jour. {n} courtier(s) déjà contacté(s) recevront automatiquement un complément "
+                       "avec les nouvelles informations.")
+    elif n:
         flash(request, f"Profil mis à jour. {n} courtier(s) déjà contacté(s) n'ont pas reçu les nouvelles informations : "
                        "vous pouvez leur envoyer un complément ci-dessous.", "info")
     else:
@@ -402,6 +406,19 @@ def _safe_next(url: str | None) -> str | None:
     if url and url.startswith("/") and not url.startswith("//") and "\\" not in url:
         return url
     return None
+
+
+@app.get("/requests/{rid}/dossier", response_class=HTMLResponse)
+def request_dossier(request: HttpRequest, rid: int, db: Session = Depends(get_db)):
+    """Dossier de réclamation imprimable (Enregistrer en PDF depuis le navigateur)."""
+    r = _get(db, Request, rid)
+    letters_sent = [e for e in r.events if e.kind in ("sent", "reminder", "supplement", "auto_reply", "formal_notice")]
+    replies = [e for e in r.events if e.kind == "reply"]
+    return templates.TemplateResponse(request, "dossier.html", {
+        "request": request, "r": r, "letters_sent": letters_sent, "replies": replies,
+        "complaint": letters.cnil_complaint_text(r), "now": datetime.now(TZ), "split": mailview.split_headers,
+        "STATUS": STATUS_LABELS,
+    })
 
 
 @app.get("/events/{eid}/view", response_class=HTMLResponse)
@@ -499,6 +516,9 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["latest_reply"] = replies[-1] if replies else None
         ctx["latest_sent"] = sends[-1] if sends else None
         ctx["form_help"] = _form_help(r)
+        infos = [e for e in r.events if e.kind in ("info", "confirm")]
+        ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.summary.startswith("Analyse IA")), None)
+        ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
     return render(request, "tasks.html", db, **ctx)
 
@@ -650,11 +670,11 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
     return render(
         request, "settings.html", db,
         imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"),
-        overridden=settings_store.overridden_keys(),
+        overridden=settings_store.overridden_keys(), file_status=(kv_get(db, "imap_file_status") or "").split("|", 2),
     )
 
 
-TABS = ("general", "compte", "releve", "auto")
+TABS = ("general", "compte", "releve", "automatismes", "notifications", "auto")
 
 
 def _tab_url(form) -> str:
@@ -725,6 +745,34 @@ async def test_imap(request: HttpRequest):
             flash(request, "Réglages enregistrés. " + mailer.test_imap())
         except Exception as e:  # noqa: BLE001
             flash(request, f"Erreur IMAP : {e}", "error")
+    return back(_tab_url(form))
+
+
+@app.post("/settings/test-llm")
+async def test_llm(request: HttpRequest):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
+    if not settings.llm_enabled:
+        flash(request, "Indiquez l'adresse d'Ollama et le nom du modèle.", "error")
+    else:
+        try:
+            flash(request, "Réglages enregistrés. " + llm.test())
+        except Exception as e:  # noqa: BLE001
+            flash(request, f"IA locale : {e}", "error")
+    return back(_tab_url(form))
+
+
+@app.post("/settings/test-notify")
+async def test_notify(request: HttpRequest):
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
+    if not settings.notify_enabled:
+        flash(request, "Configurez ntfy ou Gotify.", "error")
+    else:
+        errors = notify.push("Oubliez-moi : test", "Les notifications fonctionnent. Vous serez prévenu quand une décision vous attend.")
+        flash(request, "Réglages enregistrés. " + ("Notification de test envoyée." if not errors else " ; ".join(errors)), "error" if errors else "ok")
     return back(_tab_url(form))
 
 

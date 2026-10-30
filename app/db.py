@@ -158,6 +158,7 @@ class Event(Base):
     summary: Mapped[str] = mapped_column(String(500))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     html: Mapped[str | None] = mapped_column(Text, nullable=True)  # partie HTML brute d'une réponse reçue
+    message_id: Mapped[str | None] = mapped_column(String(500), nullable=True, index=True)  # Message-ID d'une réponse reçue
 
     request: Mapped[Request] = relationship(back_populates="events")
 
@@ -188,6 +189,7 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 MIGRATIONS = [
     ("requests", "supplement_pending", "BOOLEAN NOT NULL DEFAULT 0"),
     ("events", "html", "TEXT"),
+    ("events", "message_id", "VARCHAR(500)"),
 ]
 
 
@@ -198,6 +200,7 @@ def init_db() -> None:
             cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
             if column not in cols:
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+        conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_events_message_id ON events (message_id)")
 
 
 def kv_get(db, key: str, default: str | None = None) -> str | None:

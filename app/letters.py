@@ -131,6 +131,157 @@ Yours faithfully,
     return subject, body
 
 
+def _re_subject(their_subject: str | None, fallback: str) -> str:
+    subj = (their_subject or "").strip()
+    if not subj:
+        return fallback
+    return subj if subj.lower().startswith(("re:", "re :", "aw:", "tr:")) else f"Re: {subj}"
+
+
+def auto_reply_letter(req: Request, kind: str, their_subject: str | None = None) -> tuple[str, str]:
+    """Réponses automatiques aux situations courantes. kind : id_request | legit_refusal | residence_question."""
+    from .config import settings
+
+    p, b, ref = req.profile, req.broker, req.reference
+    sent = req.sent_at.strftime("%d/%m/%Y") if req.sent_at else "?"
+    fr = req.language == "fr"
+    sig = _signature(p)
+    if kind == "id_request":
+        if fr:
+            subject = _re_subject(their_subject, f"Demande d'effacement – justificatif d'identité – Réf. {ref}")
+            body = f"""Madame, Monsieur,
+
+Vous me demandez un justificatif d'identité pour traiter ma demande d'effacement du {sent} (réf. {ref}).
+
+L'article 12, paragraphe 6, du RGPD ne vous permet de demander des informations supplémentaires que si vous avez des doutes raisonnables sur mon identité. Le Comité européen de la protection des données rappelle qu'une copie de pièce d'identité ne doit pas être exigée de manière systématique et qu'elle est disproportionnée lorsque l'identité peut être vérifiée par d'autres moyens (lignes directrices 01/2022, points 70 à 78) ; la CNIL ne l'admet qu'en cas de doute raisonnable.
+
+Je vous écris depuis une adresse e-mail et avec des informations qui figurent dans vos fichiers : c'est précisément ce qui vous permet de retrouver mes données. Si vous estimez malgré tout avoir un doute raisonnable, merci de m'en indiquer le motif ; vous pouvez par exemple m'envoyer un lien ou un code de confirmation à l'adresse concernée.
+
+Je vous remercie de traiter ma demande sans autre délai. Le délai d'un mois prévu par l'article 12, paragraphe 3, continue de courir.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{sig}
+"""
+        else:
+            subject = _re_subject(their_subject, f"Erasure request – proof of identity – Ref. {ref}")
+            body = f"""Dear Sir or Madam,
+
+You have asked me for proof of identity in order to process my erasure request of {sent} (ref. {ref}).
+
+Under Article 12(6) GDPR, you may only request additional information where you have reasonable doubts about my identity. The European Data Protection Board stresses that a copy of an identity document should not be required systematically and is disproportionate where identity can be verified by other means (Guidelines 01/2022, paragraphs 70 to 78).
+
+I am writing from an email address, and with details, that appear in your records: this is precisely what allows you to locate my data. Should you nevertheless have a reasonable doubt, please explain its grounds; you may for instance send a confirmation link or code to the address concerned.
+
+Please process my request without further delay. The one-month deadline set by Article 12(3) GDPR continues to run.
+
+Yours faithfully,
+
+{sig}
+"""
+    elif kind == "legit_refusal":
+        if fr:
+            subject = _re_subject(their_subject, f"Contestation de votre refus – Réf. {ref}")
+            body = f"""Madame, Monsieur,
+
+Vous refusez de donner suite à ma demande du {sent} (réf. {ref}) en invoquant votre intérêt légitime.
+
+Je vous rappelle que je me suis opposé au traitement de mes données à des fins de prospection. En application de l'article 21, paragraphes 2 et 3, du RGPD, cette opposition est absolue : l'intérêt légitime ne peut pas lui être opposé, et mes données ne doivent plus être traitées à ces fins. L'article 17, paragraphe 1, point c), impose alors leur effacement.
+
+Je maintiens donc ma demande d'effacement et vous demande de me confirmer son exécution dans un délai d'un mois. À défaut, je saisirai la CNIL en joignant nos échanges.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{sig}
+"""
+        else:
+            subject = _re_subject(their_subject, f"Objection to your refusal – Ref. {ref}")
+            body = f"""Dear Sir or Madam,
+
+You have declined my request of {sent} (ref. {ref}) on the basis of your legitimate interests.
+
+I would remind you that I objected to the processing of my personal data for direct marketing purposes. Under Article 21(2) and (3) GDPR this objection is absolute: legitimate interests cannot override it, and my data must no longer be processed for such purposes. Article 17(1)(c) GDPR then requires its erasure.
+
+I therefore maintain my erasure request and ask you to confirm that it has been carried out within one month. Failing that, I will lodge a complaint with the supervisory authority, enclosing our correspondence.
+
+Yours faithfully,
+
+{sig}
+"""
+    elif kind == "residence_question":
+        country = settings.residence_country or "France"
+        if fr:
+            subject = _re_subject(their_subject, f"Pays de résidence – Réf. {ref}")
+            body = f"""Madame, Monsieur,
+
+En réponse à votre question : je réside en {country}, dans l'Union européenne. Le RGPD s'applique donc à ma demande d'effacement du {sent} (réf. {ref}), que je vous remercie de traiter dans le délai prévu par son article 12, paragraphe 3.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{sig}
+"""
+        else:
+            subject = _re_subject(their_subject, f"Country of residence – Ref. {ref}")
+            body = f"""Dear Sir or Madam,
+
+In answer to your question: I reside in {country}, in the European Union. The GDPR therefore applies to my erasure request of {sent} (ref. {ref}), which I ask you to process within the deadline set by Article 12(3).
+
+Yours faithfully,
+
+{sig}
+"""
+    else:
+        raise ValueError(kind)
+    return subject, body
+
+
+def formal_notice_letter(req: Request) -> tuple[str, str]:
+    """Mise en demeure, après la relance restée sans réponse."""
+    from .config import settings
+
+    p, b, ref = req.profile, req.broker, req.reference
+    sent = req.sent_at.strftime("%d/%m/%Y") if req.sent_at else "?"
+    rem = req.last_reminder_at.strftime("%d/%m/%Y") if req.last_reminder_at else "?"
+    days = settings.formal_notice_wait_days
+    _, original = erasure_letter(p, b, ref, req.language)
+    quoted = "\n".join("> " + line for line in original.splitlines())
+    if req.language == "fr":
+        subject = f"Mise en demeure – Demande d'effacement (article 17 du RGPD) – Réf. {ref}"
+        body = f"""Madame, Monsieur,
+
+Le {sent}, je vous ai adressé une demande d'effacement de mes données personnelles, assortie d'une opposition à la prospection (articles 17 et 21 du RGPD). Je vous ai relancé le {rem}. Je n'ai reçu à ce jour aucune réponse, en méconnaissance de l'article 12, paragraphe 3, du RGPD.
+
+Par la présente, je vous mets en demeure de procéder à l'effacement de l'ensemble de mes données, de cesser tout traitement à des fins de prospection et de m'en confirmer l'exécution par écrit dans un délai de {days} jours.
+
+À défaut, je déposerai sans autre avis une réclamation auprès de la Commission nationale de l'informatique et des libertés (CNIL), en joignant l'ensemble de nos échanges.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{_signature(p)}
+
+--- Demande initiale du {sent} (réf. {ref}) ---
+{quoted}
+"""
+    else:
+        subject = f"Formal notice – Request for erasure (Article 17 GDPR) – Ref. {ref}"
+        body = f"""Dear Sir or Madam,
+
+On {sent}, I sent you a request for the erasure of my personal data, together with an objection to direct marketing (Articles 17 and 21 GDPR). I sent you a reminder on {rem}. To date I have received no response, in breach of Article 12(3) GDPR.
+
+I hereby give you formal notice to erase all of my personal data, to cease any processing for direct marketing purposes, and to confirm this in writing within {days} days.
+
+Failing that, I will without further notice lodge a complaint with the supervisory authority, the French Commission nationale de l'informatique et des libertés (CNIL), enclosing all of our correspondence.
+
+Yours faithfully,
+
+{_signature(p)}
+
+--- Original request of {sent} (ref. {ref}) ---
+{quoted}
+"""
+    return subject, body
+
+
 def supplement_letter(req: Request, missing: list[tuple[str, str]]) -> tuple[str, str]:
     """Courrier complémentaire : nouveaux identifiants à inclure dans la demande initiale."""
     labels = {"emails": ("Adresse e-mail", "Email address"), "phones": ("Téléphone", "Phone number"),

@@ -106,6 +106,13 @@ def test_full_flow(client):
         assert t.reminder_count == 1 and t.status == SENT
         t.due_at = utcnow() - timedelta(days=1)
         db.commit()
+    assert service.check_deadlines() == 0  # pas encore : la mise en demeure doit partir d'abord
+    assert "mise en demeure" in service.send_tick()
+    with SessionLocal() as db:
+        t = db.get(Request, tid)
+        assert t.reminder_count == 2 and any(e.kind == "formal_notice" and ("Mise en demeure" in e.body or "Formal notice" in e.body) for e in t.events)
+        t.due_at = utcnow() - timedelta(days=1)
+        db.commit()
     assert service.check_deadlines() >= 1
     with SessionLocal() as db:
         assert db.get(Request, tid).status == OVERDUE

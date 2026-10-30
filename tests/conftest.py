@@ -27,3 +27,16 @@ def client():
         r = c.post("/login", data={"username": "admin", "password": "test-password"}, follow_redirects=False)
         assert r.status_code == 303 and r.headers["location"] == "/"
         yield c
+
+
+@pytest.fixture(autouse=True)
+def clean_requests():
+    """Chaque test démarre sans profil ni demande (le catalogue de courtiers est conservé)."""
+    from app.db import Event, Profile, Request, SessionLocal
+
+    with SessionLocal() as db:
+        db.query(Event).delete()
+        db.query(Request).delete()
+        db.query(Profile).delete()
+        db.commit()
+    yield

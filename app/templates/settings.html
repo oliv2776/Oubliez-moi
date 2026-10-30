@@ -16,7 +16,9 @@
   <button type="button" role="tab" id="t-general" aria-controls="panel-general" aria-selected="true">Général</button>
   <button type="button" role="tab" id="t-compte" aria-controls="panel-compte" aria-selected="false"><span class="dot {{ smtp_dot }}"></span>Compte e-mail</button>
   <button type="button" role="tab" id="t-releve" aria-controls="panel-releve" aria-selected="false"><span class="dot {{ imap_dot }}"></span>Relève des réponses</button>
-  <button type="button" role="tab" id="t-auto" aria-controls="panel-auto" aria-selected="false">Automatisations</button>
+  <button type="button" role="tab" id="t-automatismes" aria-controls="panel-automatismes" aria-selected="false">Automatismes</button>
+  <button type="button" role="tab" id="t-notifications" aria-controls="panel-notifications" aria-selected="false"><span class="dot {{ 'ok' if settings.notify_enabled or settings.notify_email_digest else '' }}"></span>Notifications</button>
+  <button type="button" role="tab" id="t-auto" aria-controls="panel-auto" aria-selected="false">Délais et données</button>
 </div>
 
 <form method="post" action="/settings" autocomplete="off" id="settings-form">
@@ -92,7 +94,7 @@
 <section role="tabpanel" id="panel-releve" aria-labelledby="t-releve" class="panel-narrow" hidden>
   <div class="card">
     <h2>Relève des réponses (IMAP)</h2>
-    <p class="small muted">Facultatif mais recommandé : les réponses des courtiers sont rattachées à leur demande et classées automatiquement. La boîte est ouverte en lecture seule : rien n'est marqué comme lu ni déplacé. Laissez le serveur vide pour désactiver la relève.</p>
+    <p class="small muted">Facultatif mais recommandé : les réponses des courtiers sont rattachées à leur demande et classées automatiquement. Sans rangement (ci-dessous), la boîte est ouverte en lecture seule : rien n'est marqué comme lu ni déplacé. Laissez le serveur vide pour désactiver la relève.</p>
     <label for="imap_host">Serveur</label>
     <input id="imap_host" type="text" name="imap_host" value="{{ settings.imap_host }}" placeholder="imap.exemple.fr">
     <div class="row2">
@@ -120,6 +122,25 @@
   </div>
 
   <div class="card">
+    <h2>Ranger les e-mails des courtiers</h2>
+    <p class="small muted">Pour garder votre boîte propre : les réponses des courtiers (et vos copies des demandes) sont rangées automatiquement après avoir été lues par Oubliez-moi.</p>
+    <label for="imap_file_mode">Rangement</label>
+    <select id="imap_file_mode" name="imap_file_mode">
+      <option value="off" {{ 'selected' if settings.imap_file_mode == 'off' }}>Ne rien toucher (lecture seule)</option>
+      <option value="move" {{ 'selected' if settings.imap_file_mode == 'move' }}>Déplacer dans un dossier (sort de la boîte de réception)</option>
+      <option value="label" {{ 'selected' if settings.imap_file_mode == 'label' }}>Ajouter un libellé, sans déplacer (Gmail uniquement)</option>
+    </select>
+    <label for="imap_file_folder">Nom du dossier ou du libellé</label>
+    <input id="imap_file_folder" type="text" name="imap_file_folder" value="{{ settings.imap_file_folder }}" placeholder="Oubliez-moi">
+    <p class="small muted" style="margin-top:.4rem">Créé automatiquement s'il n'existe pas. Sur Gmail, « Déplacer » archive le message avec ce libellé ; avec un autre fournisseur, « Ajouter un libellé » déplace.</p>
+    <label class="check"><input type="checkbox" name="imap_mark_read" value="true" {{ 'checked' if settings.imap_mark_read }}> Marquer aussi ces e-mails comme lus</label>
+    <label class="check"><input type="checkbox" name="imap_file_own_copies" value="true" {{ 'checked' if settings.imap_file_own_copies }}> Ranger aussi les copies de mes demandes (option « Cci à moi-même »)</label>
+    {% if file_status and file_status|length == 3 %}
+    <p class="small {{ 'muted' if file_status[1] == 'ok' else '' }}" style="margin-top:.6rem{{ ';color:var(--bad)' if file_status[1] != 'ok' }}">Dernier rangement ({{ file_status[0]|isodt }}) : {{ file_status[2] }}</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
     <div class="actions">
       <button class="btn" formaction="/settings/test-imap">Enregistrer et tester la connexion</button>
       <button class="btn" formaction="/settings/poll">Enregistrer et relever maintenant</button>
@@ -128,10 +149,81 @@
   </div>
 </section>
 
+<!-- Automatismes -->
+<section role="tabpanel" id="panel-automatismes" aria-labelledby="t-automatismes" class="panel-narrow" hidden>
+  <div class="card">
+    <h2>Réponses automatiques</h2>
+    <p class="small muted">Oubliez-moi répond seul aux situations courantes, une seule fois par motif et par courtier (trois réponses au maximum, pour éviter tout dialogue sans fin avec un robot).</p>
+    <label class="check"><input type="checkbox" name="auto_replies" value="true" {{ 'checked' if settings.auto_replies }}> Répondre automatiquement</label>
+    <ul class="small" style="margin:.4rem 0 0">
+      <li><strong>Pièce d'identité exigée</strong> : rappel que le RGPD ne le permet qu'en cas de doute raisonnable (art. 12.6) et que votre adresse suffit à vous identifier.</li>
+      <li><strong>Refus au nom de l'« intérêt légitime »</strong> : rappel que l'opposition à la prospection est absolue (art. 21.2 et 21.3) et maintien de la demande.</li>
+      <li><strong>Question sur le pays de résidence</strong> : réponse avec le pays ci-dessous.</li>
+      <li><strong>Prolongation annoncée</strong> : l'échéance est simplement repoussée (deux mois de plus au maximum).</li>
+    </ul>
+    <label for="residence_country">Pays de résidence indiqué dans les réponses</label>
+    <input id="residence_country" type="text" name="residence_country" value="{{ settings.residence_country }}" style="max-width:260px">
+  </div>
+  <div class="card">
+    <h2>Escalade</h2>
+    <label class="check"><input type="checkbox" name="auto_formal_notice" value="true" {{ 'checked' if settings.auto_formal_notice }}> Envoyer une mise en demeure si la relance reste sans réponse</label>
+    <p class="small muted" style="margin-top:.4rem">Déroulé : demande → relance après {{ settings.response_days }} jours → {{ 'mise en demeure ' ~ settings.reminder_wait_days ~ ' jours plus tard → ' if settings.auto_formal_notice else '' }}« sans réponse » {{ settings.formal_notice_wait_days if settings.auto_formal_notice else settings.reminder_wait_days }} jours après, avec un dossier CNIL prêt à imprimer en PDF et une notification.</p>
+  </div>
+  <div class="card">
+    <h2>Liens de confirmation</h2>
+    <label class="check"><input type="checkbox" name="auto_confirm_links" value="true" {{ 'checked' if settings.auto_confirm_links }}> Ouvrir automatiquement les liens « confirmez votre demande »</label>
+    <p class="small muted" style="margin-top:.4rem">Seulement les liens du domaine du courtier ou d'une plateforme RGPD connue (OneTrust, TrustArc, Transcend…), jamais un lien de désinscription ou de connexion, ni une adresse de votre réseau local. Une simple visite de la page : si elle demande de cliquer sur un bouton, la demande reste dans « À traiter » avec le lien.</p>
+  </div>
+  <div class="card">
+    <h2>Compléments</h2>
+    <label class="check"><input type="checkbox" name="auto_supplements" value="true" {{ 'checked' if settings.auto_supplements }}> Envoyer automatiquement un complément quand j'ajoute une information à un profil</label>
+  </div>
+  <div class="card">
+    <h2>IA locale pour les réponses ambiguës <span class="tag">facultatif</span></h2>
+    <p class="small muted">Quand les mots-clés ne suffisent pas, un modèle qui tourne chez vous avec <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a> lit la réponse, la classe et la résume. Il n'est utilisé que si sa confiance atteint 70 %. Rien n'est envoyé à un service externe.</p>
+    <label for="llm_url">Adresse d'Ollama <span class="hint">— vide = désactivé ; ex. http://ollama:11434 ou http://172.17.0.1:11434</span></label>
+    <input id="llm_url" type="text" name="llm_url" value="{{ settings.llm_url }}" placeholder="http://ollama:11434">
+    <label for="llm_model">Modèle</label>
+    <input id="llm_model" type="text" name="llm_model" value="{{ settings.llm_model }}" style="max-width:260px">
+    <p class="small muted" style="margin-top:.4rem">Par exemple <code>qwen2.5:7b</code> (bon en français, ~5 Go de RAM) ou <code>llama3.1:8b</code>, à installer avec <code>ollama pull</code>.</p>
+    <div class="actions" style="margin-top:.8rem"><button class="btn sm" formaction="/settings/test-llm">Enregistrer et tester le modèle</button></div>
+  </div>
+</section>
+
+<!-- Notifications -->
+<section role="tabpanel" id="panel-notifications" aria-labelledby="t-notifications" class="panel-narrow" hidden>
+  <div class="card">
+    <h2>Être prévenu</h2>
+    <p class="small muted">Une notification n'est envoyée que lorsqu'une décision vous attend : nouvelle réponse à examiner, action requise, échec d'envoi, délai dépassé.</p>
+    <label for="app_url">Adresse de l'interface <span class="hint">— pour que la notification ouvre directement la bonne page</span></label>
+    <input id="app_url" type="text" name="app_url" value="{{ settings.app_url }}" placeholder="http://10.10.1.10:27480">
+  </div>
+  <div class="card">
+    <h2>ntfy</h2>
+    <p class="small muted">Application mobile gratuite. Utilisez un sujet difficile à deviner, ou votre propre serveur ntfy.</p>
+    <label for="notify_ntfy_url">Adresse du sujet</label>
+    <input id="notify_ntfy_url" type="text" name="notify_ntfy_url" value="{{ settings.notify_ntfy_url }}" placeholder="https://ntfy.sh/oubliez-moi-7f3k2x">
+    <label for="notify_ntfy_token">Jeton d'accès <span class="hint">— facultatif{{ ' ; enregistré, laissez vide pour le conserver' if settings.notify_ntfy_token }}</span></label>
+    <input id="notify_ntfy_token" type="password" name="notify_ntfy_token" value="" autocomplete="new-password" placeholder="{{ '••••••••' if settings.notify_ntfy_token }}">
+  </div>
+  <div class="card">
+    <h2>Gotify</h2>
+    <label for="notify_gotify_url">Adresse du serveur</label>
+    <input id="notify_gotify_url" type="text" name="notify_gotify_url" value="{{ settings.notify_gotify_url }}" placeholder="https://gotify.mondomaine.fr">
+    <label for="notify_gotify_token">Jeton de l'application {% if settings.notify_gotify_token %}<span class="hint">— enregistré ; laissez vide pour le conserver</span>{% endif %}</label>
+    <input id="notify_gotify_token" type="password" name="notify_gotify_token" value="" autocomplete="new-password" placeholder="{{ '••••••••' if settings.notify_gotify_token }}">
+  </div>
+  <div class="card">
+    <h2>Récapitulatif par e-mail</h2>
+    <label class="check"><input type="checkbox" name="notify_email_digest" value="true" {{ 'checked' if settings.notify_email_digest }}> Recevoir chaque matin, à {{ settings.smtp_from or 'mon adresse' }}, la liste de ce qui attend une décision (rien n'est envoyé s'il n'y a rien à faire)</label>
+  </div>
+  <div class="card"><div class="actions"><button class="btn" formaction="/settings/test-notify">Enregistrer et envoyer une notification de test</button></div></div>
+</section>
+
 <!-- Automatisations -->
 <section role="tabpanel" id="panel-auto" aria-labelledby="t-auto" class="panel-narrow" hidden>
   <div class="card">
-    <h2>Délais et automatisations</h2>
+    <h2>Délais</h2>
     <p class="small muted">Ces réglages se modifient dans le fichier <code>.env</code> du serveur, puis <code>docker compose up -d</code>.</p>
     <dl class="kv small">
       <dt>Délai de réponse</dt><dd>{{ settings.response_days }} jours (RGPD art. 12.3 : un mois) — <code>RESPONSE_DAYS</code></dd>

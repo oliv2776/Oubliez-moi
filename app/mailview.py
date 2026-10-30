@@ -124,6 +124,15 @@ def _paragraphs(lines: list[str]) -> str:
     return "".join(out)
 
 
+def strip_quoted(text: str) -> str:
+    """Retire le message cité (notre demande d'origine) d'une réponse en texte brut."""
+    lines = (text or "").replace("\r\n", "\n").split("\n")
+    for i, line in enumerate(lines):
+        if i > 0 and _QUOTE_START.match(line):
+            return "\n".join(lines[:i]).strip()
+    return (text or "").strip()
+
+
 def text_to_html(text: str, collapse_quote: bool = True) -> str:
     """Texte brut -> HTML : paragraphes, liens cliquables, citations repliées."""
     lines = (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")

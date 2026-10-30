@@ -10,7 +10,7 @@ from sqlalchemy import String, cast, func, or_, select, true
 from sqlalchemy.orm import Session, selectinload
 
 from . import brokers as broker_catalog
-from . import letters, mailer, phones
+from . import confirm, letters, llm, mailer, mailview, notify, phones
 from .config import settings
 from .db import (
     COMPLETED,
@@ -24,6 +24,7 @@ from .db import (
     SENT,
     STATUS_LABELS,
     Broker,
+    Event,
     Profile,
     Request,
     SessionLocal,
@@ -59,6 +60,10 @@ def sync_brokers(db: Session, records: list[dict]) -> dict:
             updated += 1
             if not b.enabled_overridden:
                 b.enabled = broker_catalog.is_default_enabled(rec, countries)
+            if rec.get("email") and b.email and rec["email"].lower() != b.email.lower():
+                # Nouvelle adresse : on renvoie les demandes qui avaient échoué vers l'ancienne.
+                for r in db.scalars(select(Request).where(Request.broker_id == b.id, Request.status == FAILED)):
+                    set_status(db, r, QUEUED, f"Nouvelle adresse dans le catalogue ({rec['email']}) : demande renvoyée")
         for key in ("name", "email", "webform", "web", "postal_address", "countries", "categories", "needs_id", "quality", "source"):
             setattr(b, key, rec.get(key))
     kv_set(db, "brokers_synced_at", utcnow().isoformat())
@@ -222,6 +227,26 @@ def _next_queued(db: Session) -> Request | None:
     ).first()
 
 
+def _max_letters() -> int:
+    """Nombre de courriers de suivi avant « sans réponse » : relance, puis mise en demeure."""
+    if not settings.auto_reminder:
+        return 0
+    return 2 if settings.auto_formal_notice else 1
+
+
+def send_formal_notice(db: Session, req: Request) -> bool:
+    subject, body = letters.formal_notice_letter(req)
+    if not _deliver(db, req, subject, body):
+        return False
+    now = utcnow()
+    req.reminder_count += 1
+    req.due_at = now + timedelta(days=settings.formal_notice_wait_days)
+    prefix = "[SIMULATION] " if settings.dry_run else ""
+    add_event(db, req, "formal_notice", f"{prefix}Mise en demeure envoyée à {req.broker.email}", f"Objet : {subject}\n\n{body}")
+    db.commit()
+    return True
+
+
 def _next_reminder(db: Session) -> Request | None:
     if not settings.auto_reminder:
         return None
@@ -229,7 +254,7 @@ def _next_reminder(db: Session) -> Request | None:
         select(Request)
         .join(Profile)
         .join(Broker)
-        .where(Request.status == SENT, Request.reminder_count == 0, Request.due_at < utcnow(), Profile.active.is_(True),
+        .where(Request.status == SENT, Request.reminder_count < _max_letters(), Request.due_at < utcnow(), Profile.active.is_(True),
                Broker.email.is_not(None))
         .order_by(Request.due_at)
         .limit(1)
@@ -254,8 +279,11 @@ def send_tick() -> str | None:
                 return f"{'OK' if ok else 'ERREUR'} complément {req.reference} {req.broker.name}"
             req = _next_reminder(db)
             if req:
-                ok = send_reminder(db, req)
-                return f"{'OK' if ok else 'ERREUR'} relance {req.reference} {req.broker.name}"
+                if req.reminder_count == 0:
+                    ok, what = send_reminder(db, req), "relance"
+                else:
+                    ok, what = send_formal_notice(db, req), "mise en demeure"
+                return f"{'OK' if ok else 'ERREUR'} {what} {req.reference} {req.broker.name}"
         return None
     finally:
         _send_lock.release()
@@ -380,14 +408,17 @@ def check_deadlines() -> int:
     """Passe en « sans réponse » les demandes relancées restées muettes."""
     n = 0
     with SessionLocal() as db:
+        todo_before = _todo_ids(db)
         # Sans relance possible (formulaire en ligne, relance désactivée), le délai expiré suffit.
-        cond = or_(Request.reminder_count > 0, Broker.email.is_(None)) if settings.auto_reminder else true()
+        cond = or_(Request.reminder_count >= _max_letters(), Broker.email.is_(None)) if settings.auto_reminder else true()
         q = select(Request).join(Broker).where(Request.status == SENT, Request.due_at < utcnow(), cond)
         for req in db.scalars(q):
             req.status = OVERDUE
-            add_event(db, req, "status", "Délai dépassé sans réponse : vous pouvez saisir la CNIL")
+            add_event(db, req, "status", "Délai dépassé sans réponse : vous pouvez saisir la CNIL (dossier prêt dans la demande)")
             n += 1
         db.commit()
+        if n:
+            _notify_new_todo(db, todo_before, "Délai dépassé, plainte CNIL possible")
     return n
 
 
@@ -421,41 +452,178 @@ def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
     return (open_ones or candidates or [None])[0]
 
 
+TODO_STATUSES = [NEEDS_ACTION, REPLIED, FAILED, OVERDUE]
+MAX_AUTO_REPLIES = 3
+LLM_MIN_CONFIDENCE = 0.7
+_NOREPLY_RE = re.compile(r"^(no-?reply|do-?not-?reply|ne-?pas-?repondre|mailer-daemon|postmaster|bounce)", re.I)
+
+
+def _own_addresses(db: Session) -> set[str]:
+    return {settings.smtp_from.lower()} | {e.lower() for p in db.scalars(select(Profile)) for e in (p.emails or [])}
+
+
 def process_incoming(db: Session, m: mailer.ParsedMail) -> Request | None:
-    own = {settings.smtp_from.lower()} | {e.lower() for p in db.scalars(select(Profile)) for e in (p.emails or [])}
-    if m.from_addr in own:
+    """Rattache une réponse à sa demande, la classe et réagit. Renvoie la demande concernée, ou None."""
+    if m.from_addr in _own_addresses(db):
         return None
+    # Anti-doublon : le même message peut être relevé deux fois (autre dossier, boîte réindexée…)
+    if m.message_id:
+        dup = db.scalars(select(Event).where(Event.message_id == m.message_id)).first()
+        if dup:
+            return dup.request
     req = _match_request(db, m)
     if req is None:
         return None
     if m.message_id and m.message_id in (req.message_ids or []):
         return None
-    c = mailer.classify(m) if settings.auto_classify else mailer.Classification("reply")
     req.last_reply_at = utcnow()
     sender = f"{m.from_name} <{m.from_addr}>" if m.from_name else m.from_addr
     body = f"De : {sender}\nDate : {m.date}\nObjet : {m.subject}\n\n{m.text[:15000]}"
     ev = add_event(db, req, "reply", f"Réponse reçue de {m.from_addr} : {m.subject[:200]}", body)
+    ev.message_id = (m.message_id or None)
     if m.html:
         ev.html = m.html[:500_000]
-
-    new_status = None
-    if c.kind == "bounce":
-        new_status = FAILED
-        req.last_error = "Adresse e-mail du courtier invalide (message de non-distribution)"
-    elif req.status in FINAL_STATUSES:
-        new_status = None  # une réponse tardive ne rouvre pas une demande close
-    elif c.kind == "needs_action":
-        new_status = NEEDS_ACTION
-    elif c.kind in ("completed_no_data", "completed_deleted"):
-        new_status = COMPLETED
-    elif c.kind == "ack":
-        add_event(db, req, "info", f"Accusé de réception détecté (« {c.reason} »)")
-    else:
-        new_status = REPLIED
-    if new_status and new_status != req.status:
-        set_status(db, req, new_status, f"Classement automatique : {STATUS_LABELS[new_status]}" + (f" (« {c.reason} »)" if c.reason else ""))
+    db.flush()
+    _handle_reply(db, req, m)
     db.commit()
     return req
+
+
+def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classification:
+    if not settings.auto_classify:
+        return mailer.Classification("reply")
+    c = mailer.classify(m)
+    if c.kind == "reply" and settings.llm_enabled:
+        res = llm.classify(m.subject, mailview.strip_quoted(m.text))
+        if res:
+            note = f"Analyse IA : {res['summary']}" if res["summary"] else "Analyse IA effectuée"
+            if res["ticket"]:
+                note += f" (dossier n° {res['ticket']})"
+            add_event(db, req, "info", note[:500])
+            if res["confidence"] >= LLM_MIN_CONFIDENCE:
+                return mailer.Classification(res["category"], f"IA, confiance {res['confidence']:.0%}")
+    return c
+
+
+def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
+    c = _classify(db, req, m)
+    label = mailer.KIND_LABELS.get(c.kind, c.kind)
+    why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
+
+    if c.kind == "bounce":
+        req.last_error = "Adresse e-mail du courtier invalide (message de non-distribution)"
+        set_status(db, req, FAILED, why)
+        return
+    if req.status in FINAL_STATUSES:
+        return  # une réponse tardive ne rouvre pas une demande close
+    if c.kind in ("completed_no_data", "completed_deleted"):
+        set_status(db, req, COMPLETED, why)
+    elif c.kind == "ack":
+        add_event(db, req, "info", f"Accusé de réception détecté (« {c.reason} »)")
+    elif c.kind == "extension":
+        base = req.sent_at or utcnow()
+        new_due = max(req.due_at or utcnow(), base + timedelta(days=settings.response_days + 60))
+        req.due_at = new_due
+        if req.status != SENT:
+            set_status(db, req, SENT, why)
+        add_event(db, req, "info", f"Prolongation annoncée (RGPD art. 12.3 : deux mois de plus au maximum) : nouvelle échéance le {new_due:%d/%m/%Y}")
+    elif c.kind in ("id_request", "legit_refusal", "residence_question"):
+        if settings.auto_replies and _can_auto_reply(req, c.kind) and _send_auto_reply(db, req, c.kind, m):
+            if c.kind == "legit_refusal":
+                req.due_at = utcnow() + timedelta(days=settings.response_days)
+            if req.status != SENT:
+                set_status(db, req, SENT, why + " — réponse automatique envoyée")
+        else:
+            set_status(db, req, NEEDS_ACTION if c.kind == "id_request" else REPLIED, why)
+    elif c.kind == "confirm_link":
+        links = confirm.candidate_links(m.links, req.broker.email, req.broker.web)
+        if settings.auto_confirm_links and links:
+            res = confirm.click(links[0])
+            add_event(db, req, "confirm", f"Lien de confirmation ouvert automatiquement : {res.detail}", res.url)
+            if res.ok:
+                now = utcnow()
+                req.due_at = now + timedelta(days=settings.response_days)
+                req.reminder_count = 0
+                set_status(db, req, SENT, why + " — confirmé automatiquement")
+                return
+        elif links:
+            add_event(db, req, "info", "Lien de confirmation à ouvrir", links[0])
+        set_status(db, req, NEEDS_ACTION, why)
+    elif c.kind == "needs_action":
+        set_status(db, req, NEEDS_ACTION, why)
+    else:  # refus probable, réponse non reconnue
+        set_status(db, req, REPLIED, why)
+
+
+def _can_auto_reply(req: Request, kind: str) -> bool:
+    """Garde-fou anti-boucle : une seule réponse automatique par motif, trois au maximum par demande."""
+    autos = [e for e in req.events if e.kind == "auto_reply"]
+    label = mailer.KIND_LABELS[kind]
+    return len(autos) < MAX_AUTO_REPLIES and not any(label in e.summary for e in autos)
+
+
+def _send_auto_reply(db: Session, req: Request, kind: str, m: mailer.ParsedMail) -> bool:
+    to = m.reply_to or m.from_addr
+    # On ne répond qu'au domaine du courtier (ou d'une plateforme RGPD connue) : un message falsifié
+    # ne doit pas pouvoir détourner une réponse, qui contient vos coordonnées, vers une autre adresse.
+    allowed = {d for d in (mailer.registered_domain((req.broker.email or "").split("@")[-1]),
+                           mailer.registered_domain(req.broker.web or "")) if d} | confirm.PRIVACY_PLATFORMS
+    if not to or _NOREPLY_RE.match(to.split("@")[0]) or mailer.registered_domain(to.split("@")[-1]) not in allowed:
+        to = req.broker.email
+    if not to:
+        return False
+    subject, body = letters.auto_reply_letter(req, kind, m.subject)
+    msg = mailer.build_message(to, subject, body, from_name=req.profile.full_name, in_reply_to=m.message_id or None)
+    try:
+        mailer.send_message(msg)
+    except mailer.SendError as e:
+        add_event(db, req, "error", f"Réponse automatique non envoyée : {e}")
+        return False
+    req.message_ids = [*(req.message_ids or []), msg["Message-ID"]]
+    prefix = "[SIMULATION] " if settings.dry_run else ""
+    add_event(db, req, "auto_reply", f"{prefix}Réponse automatique envoyée à {to} ({mailer.KIND_LABELS[kind]})",
+              f"Objet : {subject}\n\n{body}")
+    return True
+
+
+def _todo_ids(db: Session) -> set[int]:
+    return set(db.scalars(select(Request.id).where(Request.status.in_(TODO_STATUSES))))
+
+
+def _notify_new_todo(db: Session, before: set[int], context: str) -> None:
+    if not settings.notify_enabled:
+        return
+    new_ids = _todo_ids(db) - before
+    if not new_ids:
+        return
+    reqs = db.scalars(select(Request).where(Request.id.in_(new_ids))).all()
+    names = ", ".join(sorted({r.broker.name for r in reqs})[:4]) + ("…" if len(reqs) > 4 else "")
+    notify.push(f"Oubliez-moi : {len(reqs)} élément(s) à traiter", f"{context} : {names}")
+
+
+def send_digest() -> str | None:
+    """Récapitulatif quotidien par e-mail de ce qui attend une décision."""
+    if not settings.notify_email_digest or not settings.smtp_configured:
+        return None
+    with SessionLocal() as db:
+        today = utcnow().date().isoformat()
+        if kv_get(db, "digest_sent_on") == today:
+            return None
+        reqs = db.scalars(select(Request).where(Request.status.in_(TODO_STATUSES)).order_by(Request.status)).all()
+        if not reqs:
+            return None
+        base = settings.app_url.rstrip("/") if settings.app_url else ""
+        lines = [f"- {r.broker.name} ({r.profile.full_name}) : {STATUS_LABELS[r.status]}" + (f"\n  {base}/tasks?id={r.id}" if base else "")
+                 for r in reqs[:50]]
+        st = stats(db)
+        body = (f"Bonjour,\n\n{len(reqs)} demande(s) attendent une décision de votre part :\n\n" + "\n".join(lines)
+                + f"\n\nAu total : {st['completed']} suppression(s) confirmée(s), {st['sent']} demande(s) en attente de réponse.\n"
+                + (f"\nOuvrir Oubliez-moi : {base}/tasks\n" if base else ""))
+        msg = mailer.build_message(settings.smtp_from, f"Oubliez-moi : {len(reqs)} élément(s) à traiter", body, "Oubliez-moi")
+        mailer.send_message(msg, force=True)
+        kv_set(db, "digest_sent_on", today)
+        db.commit()
+        return f"récapitulatif envoyé ({len(reqs)} éléments)"
 
 
 def poll_imap() -> int:
@@ -468,6 +636,9 @@ def poll_imap() -> int:
             if first_sent is None:
                 return 0
             since = (first_sent - timedelta(days=1)).strftime("%d-%b-%Y")
+            own = _own_addresses(db)
+            todo_before = _todo_ids(db)
+            filing = settings.imap_file_mode != "off" and settings.imap_file_folder
             for folder in settings.imap_folders:
                 key = f"imap:{folder}"
                 state = (kv_get(db, key) or ":0").split(":")
@@ -480,18 +651,34 @@ def poll_imap() -> int:
                         raise
                     continue
                 max_uid = last_uid if validity == new_validity else 0
+                to_file = []
                 for uid, raw in msgs:
                     try:
-                        if process_incoming(db, mailer.parse_mail(raw, str(uid))):
+                        m = mailer.parse_mail(raw, str(uid))
+                        req = process_incoming(db, m)
+                        if req:
                             matched += 1
+                        own_copy = settings.imap_file_own_copies and m.from_addr in own and mailer.find_references(m)
+                        if req or own_copy:
+                            to_file.append(uid)
                     except Exception:  # noqa: BLE001 - un message mal formé ne doit pas bloquer la relève
                         log.exception("Message IMAP %s ignoré", uid)
                         db.rollback()
                     max_uid = max(max_uid, uid)
                 kv_set(db, key, f"{new_validity}:{max_uid}")
                 db.commit()
+                if filing and to_file and folder != settings.imap_file_folder:
+                    try:
+                        msg = mailer.file_messages(folder, to_file, settings.imap_file_mode, settings.imap_file_folder, settings.imap_mark_read)
+                        log.info("IMAP : %s", msg)
+                        kv_set(db, "imap_file_status", f"{utcnow().isoformat()}|ok|{msg}")
+                    except Exception as e:  # noqa: BLE001
+                        log.warning("Rangement IMAP impossible : %s", e)
+                        kv_set(db, "imap_file_status", f"{utcnow().isoformat()}|error|{e}")
+                    db.commit()
             kv_set(db, "imap_polled_at", utcnow().isoformat())
             db.commit()
+            _notify_new_todo(db, todo_before, "Nouvelles réponses de courtiers")
     finally:
         _imap_lock.release()
     if matched:

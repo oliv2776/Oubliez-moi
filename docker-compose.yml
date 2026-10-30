@@ -13,5 +13,26 @@ services:
     volumes:
       - oubliez-moi-data:/data
 
+  # IA locale facultative, pour classer les réponses ambiguës.
+  # Démarrage : docker compose --profile ia up -d
+  # Modèle    : docker compose exec ollama ollama pull qwen2.5:7b
+  # Puis, dans Réglages → Automatismes : adresse http://ollama:11434, modèle qwen2.5:7b.
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    profiles: ["ia"]
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "5m"          # modèle déchargé de la RAM après 5 min sans usage
+      OLLAMA_NUM_PARALLEL: "1"         # une seule analyse à la fois
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    # Garde-fous pour ne pas ralentir les autres conteneurs du serveur :
+    cpus: "4"                          # au plus 4 cœurs
+    cpu_shares: 256                    # priorité basse quand le processeur est disputé
+    mem_limit: 8g
+    volumes:
+      - ollama-data:/root/.ollama
+
 volumes:
   oubliez-moi-data:
+  ollama-data:

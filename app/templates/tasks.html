@@ -96,9 +96,19 @@
       {% include "_formhelp.html" %}
     {% endif %}
 
+    {% if confirm_link and r.status == 'needs_action' %}
+    <div class="card">
+      <h3>Lien de confirmation</h3>
+      <p class="small">{{ confirm_link.summary }}</p>
+      <p><a class="btn sm primary" href="{{ confirm_link.body|url }}" target="_blank" rel="noopener noreferrer nofollow">Ouvrir le lien ↗</a>
+         <span class="small muted">puis revenez cliquer « C'est fait, j'attends leur réponse »</span></p>
+    </div>
+    {% endif %}
+
     {% if latest_reply %}
     <div class="card">
       <h3>Dernière réponse</h3>
+      {% if ai_note %}<div class="ai-note">{{ ai_note }}</div>{% endif %}
       {{ mail_view(latest_reply) }}
       {% set n_replies = r.events|selectattr('kind', 'equalto', 'reply')|list|length %}
       {% if n_replies > 1 %}<p class="small"><a href="/requests/{{ r.id }}">{{ n_replies - 1 }} autre(s) message(s) dans la fiche complète</a></p>{% endif %}
@@ -110,7 +120,10 @@
       <h3>Plainte à la CNIL</h3>
       <p class="small muted">Déposez-la sur <a href="https://www.cnil.fr/fr/adresser-une-plainte" target="_blank" rel="noopener noreferrer">cnil.fr/fr/adresser-une-plainte</a>, en joignant votre demande et la relance. Texte prêt à coller :</p>
       <pre>{{ complaint }}</pre>
-      <button type="button" class="btn sm copy" data-copy="{{ complaint }}">Copier le texte</button>
+      <div class="actions">
+        <button type="button" class="btn sm copy" data-copy="{{ complaint }}">Copier le texte</button>
+        <a class="btn sm primary" href="/requests/{{ r.id }}/dossier" target="_blank">Dossier complet à joindre (PDF)</a>
+      </div>
     </div>
     {% endif %}
 
