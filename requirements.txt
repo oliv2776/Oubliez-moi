@@ -9,3 +9,4 @@ tzdata==2026.6
 phonenumbers==9.0.42
 nh3==0.3.7
 cryptography==50.0.2
+tldextract>=5.3,<6
