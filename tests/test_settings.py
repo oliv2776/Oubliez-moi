@@ -68,8 +68,6 @@ def test_reset_to_env(client):
 
 
 def test_unreadable_encrypted_secret_is_preserved_and_reported(client):
-    from app import crypto
-
     old_password, old_dry_run = settings.smtp_password, settings.dry_run
     try:
         settings.smtp_password = ""
