@@ -44,8 +44,6 @@
   </div>
 
   <div id="auth-oauth" hidden>
-    <label for="oauth_client_id">Identifiant d'application Microsoft (client ID) *</label>
-    <input id="oauth_client_id" type="text" name="oauth_client_id" value="{{ (mb.oauth_client_id or '') if mb else '' }}" placeholder="00000000-0000-0000-0000-000000000000">
     <label for="oauth_tenant">Type de compte</label>
     <select id="oauth_tenant" name="oauth_tenant">
       {% set t = mb.oauth_tenant if mb else 'consumers' %}
@@ -53,16 +51,25 @@
       <option value="organizations" {{ 'selected' if t == 'organizations' }}>Compte professionnel ou scolaire (Microsoft 365)</option>
       <option value="common" {{ 'selected' if t == 'common' }}>Les deux</option>
     </select>
+    {% set own_id = (mb.oauth_client_id or '') if mb else '' %}
+    {% if ms_default %}
+    <p class="small muted" style="margin-top:.6rem">Sur la page de Microsoft, l'application « Oubliez-moi » sera signalée comme non vérifiée : c'est normal pour un logiciel auto-hébergé.</p>
+    <details style="margin-top:.4rem" {{ 'open' if own_id }}>
+      <summary class="small">Utiliser votre propre identifiant d'application (facultatif)</summary>
+    {% endif %}
+    <label for="oauth_client_id">Identifiant d'application Microsoft (client ID){{ '' if ms_default else ' *' }}</label>
+    <input id="oauth_client_id" type="text" name="oauth_client_id" value="{{ own_id }}" placeholder="00000000-0000-0000-0000-000000000000">
     <details style="margin-top:.6rem">
       <summary>Comment obtenir un identifiant d'application ?</summary>
       <ol class="small">
-        <li>Microsoft exige une application déclarée dans un annuaire <strong>Microsoft Entra</strong> (celui de votre entreprise, ou un annuaire créé avec un compte Azure).</li>
-        <li>Sur <a href="https://entra.microsoft.com" target="_blank" rel="noopener noreferrer">entra.microsoft.com</a> → <em>Applications</em> → <em>Inscriptions d'applications</em> → <em>Nouvelle inscription</em>.</li>
+        <li>Il faut un annuaire <strong>Microsoft Entra</strong> : celui de votre entreprise, ou celui que crée un compte Azure gratuit (azure.microsoft.com/free ; téléphone et carte bancaire demandés pour vérifier l'identité, rien n'est facturé). Avec un simple compte Hotmail, le portail Entra répond « le compte n'existe pas dans le client Microsoft Services ».</li>
+        <li>Sur <a href="https://entra.microsoft.com" target="_blank" rel="noopener noreferrer">entra.microsoft.com</a>, dans cet annuaire : <em>Inscriptions d'applications</em> → <em>Nouvelle inscription</em>.</li>
         <li>Types de comptes : <em>comptes de n'importe quel annuaire et comptes Microsoft personnels</em>. Pas d'URI de redirection.</li>
-        <li>Dans <em>Authentification</em>, activez <em>Autoriser les flux clients publics</em>.</li>
+        <li>Dans <em>Authentification</em>, activez <em>Autoriser les flux clients publics</em>. Dans <em>Autorisations d'API</em>, ajoutez <em>IMAP.AccessAsUser.All</em> et <em>offline_access</em> (Microsoft Graph, déléguées).</li>
         <li>Copiez l'<em>ID d'application (client)</em> ici, enregistrez, puis cliquez sur « Connecter le compte Microsoft ».</li>
       </ol>
     </details>
+    {% if ms_default %}</details>{% endif %}
     {% if mb and mb.auth == 'oauth_ms' %}
     <div class="oauth-box" id="oauth">
       {% if mb.secret_enc %}<p class="small"><span class="badge s-completed">Connecté</span> Le jeton d'accès est conservé chiffré.</p>{% else %}<p class="small"><span class="badge s-needs_action">Pas encore connecté</span></p>{% endif %}

@@ -667,12 +667,14 @@ def mailboxes_page(request: HttpRequest, status: str = "new", mailbox: int | Non
 
 @app.get("/mailboxes/new", response_class=HTMLResponse)
 def mailbox_new(request: HttpRequest, db: Session = Depends(get_db)):
-    return render(request, "mailbox_form.html", db, mb=None, PROVIDERS=mailboxes.PROVIDERS)
+    return render(request, "mailbox_form.html", db, mb=None, PROVIDERS=mailboxes.PROVIDERS,
+                  ms_default=bool(oauth_ms.default_client_id()))
 
 
 @app.get("/mailboxes/{mid}/edit", response_class=HTMLResponse)
 def mailbox_edit(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
-    return render(request, "mailbox_form.html", db, mb=_get(db, Mailbox, mid), PROVIDERS=mailboxes.PROVIDERS)
+    return render(request, "mailbox_form.html", db, mb=_get(db, Mailbox, mid), PROVIDERS=mailboxes.PROVIDERS,
+                  ms_default=bool(oauth_ms.default_client_id()))
 
 
 def _fill_analysis_options(mb: Mailbox, form: dict, default_folders: list[str]) -> None:
@@ -710,7 +712,7 @@ def _fill_mailbox(mb: Mailbox, form: dict) -> list[str]:
         errors.append("Indiquez l'adresse e-mail de la boîte")
     if not mb.host:
         errors.append("Indiquez le serveur IMAP")
-    if mb.auth == "oauth_ms" and not mb.oauth_client_id:
+    if mb.auth == "oauth_ms" and not oauth_ms.client_id_for(mb.oauth_client_id):
         errors.append("Indiquez l'identifiant d'application Microsoft (client ID)")
     return errors
 
@@ -813,7 +815,7 @@ def mailboxes_status(db: Session = Depends(get_db)):
 def mailbox_oauth_start(mid: int, db: Session = Depends(get_db)):
     mb = _get(db, Mailbox, mid)
     try:
-        flow = oauth_ms.start(mb.id, mb.oauth_client_id or "", mb.oauth_tenant)
+        flow = oauth_ms.start(mb.id, oauth_ms.client_id_for(mb.oauth_client_id), mb.oauth_tenant)
     except oauth_ms.OAuthError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     return JSONResponse({"user_code": flow["user_code"], "uri": flow["uri"], "interval": flow["interval"]})

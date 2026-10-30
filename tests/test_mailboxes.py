@@ -1,3 +1,4 @@
+import html
 import json
 import threading
 import time
@@ -256,3 +257,44 @@ def test_one_click_redirects_are_not_followed():
     handler = mailboxes._NoRedirect()
     request = urllib.request.Request("https://unsubscribe.example/u")
     assert handler.redirect_request(request, None, 302, "Found", {}, "http://127.0.0.1/admin") is None
+
+
+def test_hotmail_uses_project_identifier_when_none_given(client, monkeypatch):
+    """Avec l'identifiant du projet, ajouter une boîte Hotmail ne demande aucun champ technique."""
+    srv = HTTPServer(("127.0.0.1", 0), _MS)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    monkeypatch.setattr(oauth_ms, "AUTHORITY", f"http://127.0.0.1:{srv.server_port}")
+    monkeypatch.setattr(oauth_ms, "ALLOW_PRIVATE", True)
+    monkeypatch.setattr(oauth_ms, "PROJECT_CLIENT_ID", "projet-oubliez-moi")
+    monkeypatch.delenv("MS_CLIENT_ID", raising=False)
+    sent = []
+    real_post = oauth_ms._post
+    monkeypatch.setattr(oauth_ms, "_post", lambda url, data: sent.append(data.get("client_id")) or real_post(url, data))
+    try:
+        form = client.get("/mailboxes/new").text
+        assert "Utiliser votre propre identifiant d'application (facultatif)" in form
+        r = client.post("/mailboxes", data={"provider": "outlook", "address": "projet@hotmail.fr", "oauth_tenant": "consumers",
+                                            "folders": "INBOX", "months": "12"}, follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"].endswith("#oauth")
+        with SessionLocal() as db:
+            mb = db.scalars(select(Mailbox).where(Mailbox.address == "projet@hotmail.fr")).one()
+            assert mb.oauth_client_id is None  # rien d'enregistré : l'identifiant du projet s'applique
+            mid = mb.id
+        assert client.post(f"/mailboxes/{mid}/oauth/start").json()["user_code"] == "ABCD-EFGH"
+        assert sent == ["projet-oubliez-moi"]
+        monkeypatch.setenv("MS_CLIENT_ID", "mon-application")  # .env prioritaire sur le projet
+        assert oauth_ms.client_id_for(None) == "mon-application" and oauth_ms.client_id_for("propre") == "propre"
+    finally:
+        srv.shutdown()
+        with SessionLocal() as db:
+            db.query(Mailbox).filter(Mailbox.address == "projet@hotmail.fr").delete()
+            db.commit()
+
+
+def test_hotmail_requires_identifier_without_project_default(client, monkeypatch):
+    monkeypatch.setattr(oauth_ms, "PROJECT_CLIENT_ID", "")
+    monkeypatch.delenv("MS_CLIENT_ID", raising=False)
+    assert "Utiliser votre propre identifiant" not in client.get("/mailboxes/new").text
+    r = client.post("/mailboxes", data={"provider": "outlook", "address": "sansid@hotmail.fr", "folders": "INBOX"},
+                    follow_redirects=True)
+    assert "Indiquez l'identifiant d'application Microsoft" in html.unescape(r.text)

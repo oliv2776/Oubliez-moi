@@ -135,7 +135,7 @@ Rubrique **Boîtes mail**, indépendante des demandes aux courtiers. Ajoutez aut
 | Gmail | `imap.gmail.com`, mot de passe d'application Google |
 | iCloud | `imap.mail.me.com`, mot de passe pour app |
 | Proton Mail | Via [Proton Mail Bridge](https://proton.me/mail/bridge) (offre payante), par exemple en conteneur (`shenxn/protonmail-bridge`) ; adresse du Bridge, port 1143, STARTTLS, certificat non vérifié (auto-signé), identifiants affichés par la commande `info` du Bridge |
-| Hotmail / Outlook.com | Microsoft n'accepte plus de mot de passe en IMAP depuis septembre 2024. Connexion OAuth par code : il faut un identifiant d'application déclaré dans un annuaire Microsoft Entra (celui d'une organisation, ou un annuaire créé avec un compte Azure), avec les « flux clients publics » autorisés. Microsoft ne permet plus de créer cette application depuis un simple compte personnel. |
+| Hotmail / Outlook.com | Microsoft n'accepte plus de mot de passe en IMAP depuis septembre 2024. Après l'ajout de la boîte, cliquez sur « Connecter le compte Microsoft » et saisissez le code affiché sur microsoft.com/devicelogin : Oubliez-moi utilise l'identifiant d'application du projet, comme Apple Mail ou Thunderbird utilisent le leur. Pour utiliser le vôtre (fork, Microsoft 365 d'entreprise), indiquez-le dans la boîte ou dans `MS_CLIENT_ID` ; la marche à suivre est rappelée dans le formulaire. |
 | Autre | Tout serveur IMAP |
 
 Oubliez-moi lit uniquement les **en-têtes** (expéditeur, objet, date, liens de désinscription) : un message compte comme envoi en masse s'il porte un en-tête `List-Unsubscribe`, `List-Id` ou `Precedence: bulk`. La première analyse remonte jusqu'à 12 mois (réglable), les suivantes ne lisent que les nouveaux messages, chaque nuit.
