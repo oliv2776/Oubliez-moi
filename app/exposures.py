@@ -68,7 +68,7 @@ def broker_domain_sources(broker: Broker) -> dict[str, str]:
 def discover_candidates(db: Session) -> int:
     """Ajoute des propositions sur correspondance exacte de domaine enregistrable."""
     senders = db.scalars(select(Sender.domain).distinct()).all()
-    brokers = db.scalars(select(Broker).where(Broker.enabled.is_(True))).all()
+    brokers = db.scalars(select(Broker)).all()
     existing = {
         (link.sender_domain, link.broker_id)
         for link in db.scalars(select(ExposureLink)).all()
