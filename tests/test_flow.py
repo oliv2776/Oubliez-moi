@@ -139,3 +139,47 @@ def test_letters_en():
     assert letters.letter_language(p, b) == "en"
     subject, body = letters.erasure_letter(p, b, "OUBLI-AAAAAA", "en")
     assert "Article 17" in subject and "Acme Data" in body and "jane@x.com" in body
+
+
+def test_reference_from_unrelated_domain_is_not_attached(client):
+    from email.message import EmailMessage
+    from app import mailer, service
+
+    with SessionLocal() as db:
+        broker = Broker(slug="custom-trusted", name="Trusted Broker", email="privacy@trusted.example",
+                        web="https://trusted.example", countries=["fr"], categories=["custom"], source="custom")
+        profile = Profile(full_name="Test User", emails=["user@example.net"], phones=[], addresses=[], other_names=[])
+        db.add_all([broker, profile])
+        db.flush()
+        req = Request(profile_id=profile.id, broker_id=broker.id, reference="OUBLI-ABC123", status=SENT,
+                      sent_at=utcnow(), message_ids=["<original@trusted.example>"])
+        db.add(req)
+        db.commit()
+        raw = EmailMessage()
+        raw["From"] = "attacker@evil.example"
+        raw["Subject"] = "Re: OUBLI-ABC123"
+        raw["Message-ID"] = "<forged@evil.example>"
+        raw.set_content("Your data has been deleted.")
+        assert service.process_incoming(db, mailer.parse_mail(bytes(raw))) is None
+        assert db.get(Request, req.id).status == SENT
+
+
+def test_deleting_custom_broker_archives_and_preserves_history(client):
+    with SessionLocal() as db:
+        broker = Broker(slug="custom-archive-test", name="Archive Test", email="privacy@archive.example",
+                        countries=["fr"], categories=["custom"], source="custom", enabled=True)
+        profile = Profile(full_name="Archive User", emails=["user@example.net"], phones=[], addresses=[], other_names=[])
+        db.add_all([broker, profile])
+        db.flush()
+        req = Request(profile_id=profile.id, broker_id=broker.id, reference="OUBLI-ARC123", status=SENT)
+        db.add(req)
+        db.commit()
+        broker_id, request_id = broker.id, req.id
+
+    response = client.post(f"/brokers/{broker_id}/delete", follow_redirects=False)
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        broker = db.get(Broker, broker_id)
+        req = db.get(Request, request_id)
+        assert broker is not None and broker.enabled is False
+        assert req is not None and req.broker_id == broker_id
