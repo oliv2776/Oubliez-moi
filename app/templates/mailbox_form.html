@@ -137,7 +137,7 @@
     $("oauth-flow").hidden = false; $("oauth-code").textContent = data.user_code;
     $("oauth-uri").href = data.uri; $("oauth-uri").textContent = data.uri.replace("https://", "");
     const tick = async () => {
-      const st = (await (await fetch("/mailboxes/{{ mb.id if mb else 0 }}/oauth/poll")).json()).state;
+      const st = (await (await fetch("/mailboxes/{{ mb.id if mb else 0 }}/oauth/poll", { method: "POST" })).json()).state;
       if (st === "pending") return setTimeout(tick, (data.interval || 5) * 1000);
       if (st === "ok") return location.href = "/mailboxes?mailbox={{ mb.id if mb else 0 }}";
       $("oauth-state").textContent = st === "expired" ? "Code expiré : recommencez." : st === "denied" ? "Connexion refusée." : "Erreur : " + st.replace("error:", "");
