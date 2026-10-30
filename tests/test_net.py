@@ -1,4 +1,5 @@
 import socket
+import urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 
@@ -75,7 +76,7 @@ def test_safe_urlopen_resolves_only_once_before_connecting(monkeypatch):
 
     monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
     monkeypatch.setattr(socket, "create_connection", fake_create_connection)
-    with pytest.raises(Exception):
+    with pytest.raises(urllib.error.URLError):
         safe_urlopen("http://rebind.example/resource")
 
     assert calls == [("rebind.example", 80)]
