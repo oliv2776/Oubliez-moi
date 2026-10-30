@@ -21,6 +21,7 @@ import urllib.error
 import urllib.request
 
 from .config import settings
+from .net import safe_urlopen
 
 log = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ def _post(path: str, payload: dict, timeout: int) -> dict:
     req = urllib.request.Request(
         settings.llm_url.rstrip("/") + path, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with safe_urlopen(req, timeout=timeout, allow_private=True) as resp:
         return json.loads(resp.read())
 
 
@@ -208,7 +209,7 @@ def installed_models(max_age: float = 20.0) -> list[str] | None:
         return _installed_cache["names"]
     sizes = {}
     try:
-        with urllib.request.urlopen(settings.llm_url.rstrip("/") + "/api/tags", timeout=3) as resp:
+        with safe_urlopen(settings.llm_url.rstrip("/") + "/api/tags", timeout=3, allow_private=True) as resp:
             models = json.loads(resp.read()).get("models", [])
         names = sorted(m["name"] for m in models)
         sizes = {m["name"]: int(m.get("size") or 0) for m in models}
@@ -245,7 +246,7 @@ def delete_model(name: str) -> None:
                                  data=json.dumps({"model": name, "name": name}).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with safe_urlopen(req, timeout=60, allow_private=True) as resp:
             resp.read()
     except urllib.error.HTTPError as e:
         raise ValueError("Ollama ne connaît pas ce modèle" if e.code == 404 else f"Ollama a répondu {e.code}") from e
@@ -268,7 +269,7 @@ def _pull_worker(name: str) -> None:
                                  data=json.dumps({"model": name, "stream": True}).encode(),
                                  headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=60 * 60) as resp:
+        with safe_urlopen(req, timeout=60 * 60, allow_private=True) as resp:
             for raw in resp:
                 line = json.loads(raw.decode() or "{}")
                 if line.get("error"):

@@ -28,6 +28,7 @@ from sqlalchemy import select
 from . import confirm, crypto, oauth_ms
 from .db import Broker, Mailbox, Sender, SessionLocal, utcnow
 from .mailer import _quote_folder, registered_domain
+from .net import create_pinned_socket, safe_urlopen
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +62,17 @@ class MailboxError(Exception):
     pass
 
 
+class _PinnedIMAP4(imaplib.IMAP4):
+    def _create_socket(self, timeout):
+        return create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+
+
+class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
+    def _create_socket(self, timeout):
+        sock = create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+        return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
+
+
 # ------------------------------------------------------------- Connexion ----
 
 def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
@@ -72,7 +84,12 @@ def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
 
 
 def _secret(mb: Mailbox) -> str:
-    return crypto.decrypt(mb.secret_enc)
+    try:
+        return crypto.decrypt(mb.secret_enc)
+    except crypto.DecryptionError as exc:
+        raise MailboxError(
+            "Secret de cette boîte illisible : restaurez la clé ENCRYPTION_KEY d'origine avant de reconnecter la boîte."
+        ) from exc
 
 
 def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
@@ -80,9 +97,9 @@ def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
         raise MailboxError("Serveur IMAP non renseigné")
     try:
         if mb.security == "ssl":
-            conn = imaplib.IMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
+            conn = _PinnedIMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
         else:
-            conn = imaplib.IMAP4(mb.host, mb.port, timeout=60)
+            conn = _PinnedIMAP4(mb.host, mb.port, timeout=60)
             if mb.security == "starttls":
                 conn.starttls(ssl_context=_ssl_context(mb))
     except (OSError, imaplib.IMAP4.error) as e:
@@ -290,8 +307,7 @@ def _post_one_click(url: str) -> int:
         raise urllib.error.URLError("adresse de désinscription non publique ou non HTTPS")
     req = urllib.request.Request(url, data=b"List-Unsubscribe=One-Click", method="POST", headers={
         "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Oubliez-moi (RFC 8058)"})
-    opener = urllib.request.build_opener(_NoRedirect())
-    with opener.open(req, timeout=20) as resp:
+    with safe_urlopen(req, timeout=20, allow_private=False) as resp:
         return resp.status
 
 
@@ -310,7 +326,7 @@ def unsubscribe(s: Sender) -> tuple[str, str]:
             if s.unsub_url or s.unsub_mailto:
                 return "manual", f"désinscription en un clic refusée (HTTP {e.code}) : terminez avec le lien"
             return "failed", f"le site a répondu {e.code}"
-        except OSError as e:
+        except (OSError, ValueError) as e:
             return "failed", f"site injoignable : {getattr(e, 'reason', e)}"
     if s.unsub_url:
         return "manual", "ce site demande d'ouvrir sa page de désinscription"

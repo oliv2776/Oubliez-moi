@@ -21,6 +21,7 @@ import urllib.request
 from dataclasses import dataclass
 
 from .mailer import registered_domain
+from .net import UnsafeAddressError, safe_urlopen
 
 # Plateformes utilisées par de nombreuses entreprises pour gérer les demandes RGPD.
 PRIVACY_PLATFORMS = {
@@ -90,31 +91,22 @@ def candidate_links(links: list[tuple[str, str]], broker_email: str | None, brok
     return [u for _, u in out[:2]]
 
 
-class _SafeRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        host = urllib.parse.urlparse(newurl).hostname or ""
-        if not _is_public(host):
-            raise urllib.error.URLError(f"redirection vers une adresse interne refusée ({host})")
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
 def click(url: str) -> ClickResult:
     host = urllib.parse.urlparse(url).hostname or ""
     if not _is_public(host):
         return ClickResult(False, url, f"adresse non publique refusée ({host})")
-    opener = urllib.request.build_opener(_SafeRedirect())
     req = urllib.request.Request(url, headers={
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
     })
     try:
-        with opener.open(req, timeout=20) as resp:
+        with safe_urlopen(req, timeout=20, allow_private=ALLOW_PRIVATE) as resp:
             status = resp.status
             page = resp.read(500_000).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         return ClickResult(False, url, f"le site a répondu {e.code}")
-    except (urllib.error.URLError, OSError, ValueError) as e:
+    except (urllib.error.URLError, OSError, ValueError, UnsafeAddressError) as e:
         return ClickResult(False, url, f"lien inaccessible : {getattr(e, 'reason', e)}")
     title = re.search(r"<title[^>]*>(.*?)</title>", page, re.I | re.S)
     title = " ".join(html.unescape(title.group(1)).split())[:120] if title else ""

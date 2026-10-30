@@ -7,13 +7,15 @@ import urllib.parse
 import urllib.request
 
 from .config import settings
+from . import settings_store
+from .net import safe_urlopen
 
 log = logging.getLogger(__name__)
 
 
 def _post(url: str, data: dict, headers: dict | None = None) -> None:
     req = urllib.request.Request(url, data=json.dumps(data).encode(), headers={"Content-Type": "application/json", **(headers or {})})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    with safe_urlopen(req, timeout=20, allow_private=True) as resp:
         resp.read()
 
 
@@ -30,19 +32,25 @@ def push(title: str, message: str, path: str = "/tasks", priority: int = 3) -> l
         if click:
             body["click"] = click
         headers = {"Authorization": f"Bearer {settings.notify_ntfy_token}"} if settings.notify_ntfy_token else {}
-        try:
-            _post(base, body, headers)
-        except (OSError, ValueError) as e:
-            errors.append(f"ntfy : {e}")
-    if settings.notify_gotify_url and settings.notify_gotify_token:
+        if settings_store.secret_unavailable("notify_ntfy_token"):
+            errors.append("ntfy : jeton chiffré illisible, restaurez ENCRYPTION_KEY ou saisissez à nouveau le jeton")
+        else:
+            try:
+                _post(base, body, headers)
+            except (OSError, ValueError) as e:
+                errors.append(f"ntfy : {e}")
+    if settings.notify_gotify_url and (settings.notify_gotify_token or settings_store.secret_unavailable("notify_gotify_token")):
         body = {"title": title, "message": message, "priority": 5 if priority >= 4 else 4}
         if click:
             body["extras"] = {"client::notification": {"click": {"url": click}}}
         url = settings.notify_gotify_url.rstrip("/") + "/message?token=" + urllib.parse.quote(settings.notify_gotify_token)
-        try:
-            _post(url, body)
-        except (OSError, ValueError) as e:
-            errors.append(f"Gotify : {e}")
+        if settings_store.secret_unavailable("notify_gotify_token"):
+            errors.append("Gotify : jeton chiffré illisible, restaurez ENCRYPTION_KEY ou saisissez à nouveau le jeton")
+        else:
+            try:
+                _post(url, body)
+            except (OSError, ValueError) as e:
+                errors.append(f"Gotify : {e}")
     for e in errors:
         log.warning("Notification non envoyée — %s", e)
     return errors

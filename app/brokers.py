@@ -16,6 +16,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from .net import safe_urlopen
+
 log = logging.getLogger(__name__)
 
 DATENANFRAGEN_ZIP_URL = "https://github.com/datenanfragen/data/archive/refs/heads/master.zip"
@@ -130,7 +132,7 @@ def parse_zip(data: bytes) -> list[dict]:
 
 def fetch_remote(url: str = DATENANFRAGEN_ZIP_URL, timeout: int = 120) -> list[dict]:
     req = urllib.request.Request(url, headers={"User-Agent": "oubliez-moi-selfhosted"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with safe_urlopen(req, timeout=timeout, allow_private=False) as resp:
         data = resp.read()
     return parse_zip(data)
 

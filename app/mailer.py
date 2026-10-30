@@ -14,6 +14,7 @@ from email.policy import default as default_policy
 from email.utils import formataddr, getaddresses, make_msgid, formatdate
 
 from .config import settings
+from .net import create_pinned_socket
 
 log = logging.getLogger(__name__)
 
@@ -25,6 +26,27 @@ class SendError(Exception):
 
 
 # ---------------------------------------------------------------- SMTP ----
+
+class _PinnedSMTP(smtplib.SMTP):
+    def _get_socket(self, host, port, timeout):
+        return create_pinned_socket(host, port, timeout, self.source_address, allow_private=True)
+
+
+class _PinnedSMTP_SSL(smtplib.SMTP_SSL):
+    def _get_socket(self, host, port, timeout):
+        sock = create_pinned_socket(host, port, timeout, self.source_address, allow_private=True)
+        return self.context.wrap_socket(sock, server_hostname=host)
+
+
+class _PinnedIMAP4(imaplib.IMAP4):
+    def _create_socket(self, timeout):
+        return create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+
+
+class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
+    def _create_socket(self, timeout):
+        sock = create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+        return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
 
 def build_message(to: str, subject: str, body: str, from_name: str, reply_to: str | None = None,
                   in_reply_to: str | None = None) -> EmailMessage:
@@ -52,14 +74,17 @@ def send_message(msg: EmailMessage, force: bool = False) -> None:
     if settings.dry_run and not force:
         log.info("[DRY_RUN] E-mail non envoyé à %s : %s", msg["To"], msg["Subject"])
         return
+    from . import settings_store
+    if settings_store.secret_unavailable("smtp_password") and not settings.smtp_password:
+        raise SendError("Mot de passe SMTP chiffré illisible : restaurez ENCRYPTION_KEY ou saisissez à nouveau le mot de passe dans Réglages.")
     if not settings.smtp_configured:
         raise SendError("Messagerie non configurée : renseignez le serveur SMTP et l'adresse d'expédition dans Réglages")
     ctx = ssl.create_default_context()
     try:
         if settings.smtp_security == "ssl":
-            server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=ctx, timeout=60)
+            server = _PinnedSMTP_SSL(settings.smtp_host, settings.smtp_port, context=ctx, timeout=60)
         else:
-            server = smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=60)
+            server = _PinnedSMTP(settings.smtp_host, settings.smtp_port, timeout=60)
         with server:
             server.ehlo()
             if settings.smtp_security == "starttls":
@@ -93,6 +118,7 @@ class ParsedMail:
     html: str = ""
     reply_to: str = ""
     links: list[tuple[str, str]] = field(default_factory=list)  # (url, texte du lien)
+    dmarc_pass: bool = False  # authentifié par le serveur IMAP de confiance configuré
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -167,6 +193,25 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
     ctype = msg.get_content_type()
     auto_sub = str(msg.get("Auto-Submitted", "no")).lower()
     sender = from_addr.lower()
+    # Ne faire confiance qu'à Authentication-Results émis par l'identifiant
+    # explicitement configuré ; un header fourni par l'expéditeur ne suffit pas.
+    from .config import settings
+    dmarc_pass = False
+    trusted_authserv = settings.imap_authserv_id.strip().lower()
+    if trusted_authserv:
+        trusted_results = []
+        for auth_result in msg.get_all("Authentication-Results", []):
+            value = str(auth_result).strip()
+            authserv = value.split(";", 1)[0].strip().split()[0].lower() if value else ""
+            if authserv == trusted_authserv:
+                trusted_results.append(value)
+        # Plusieurs résultats du même authserv-id peuvent signaler un header forgé
+        # conservé par le relais : dans le doute, ne pas authentifier.
+        if len(trusted_results) == 1:
+            value = trusted_results[0]
+            has_dmarc = bool(re.search(r"(?:^|;)\s*dmarc\s*=\s*pass\b", value, re.I))
+            has_aligned_mechanism = bool(re.search(r"(?:^|;)\s*(?:spf|dkim)\s*=\s*pass\b", value, re.I))
+            dmarc_pass = has_dmarc and has_aligned_mechanism
     return ParsedMail(
         uid=uid,
         from_addr=sender,
@@ -185,6 +230,7 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         html=html_body,
         reply_to=reply_to,
         links=extract_links(html_body, "\n".join(texts)),
+        dmarc_pass=dmarc_pass,
     )
 
 
@@ -343,10 +389,13 @@ def registered_domain(host: str) -> str:
 # ---------------------------------------------------------------- IMAP ----
 
 def _imap_connect() -> imaplib.IMAP4:
+    from . import settings_store
+    if settings_store.secret_unavailable("imap_password"):
+        raise RuntimeError("Mot de passe IMAP chiffré illisible : restaurez ENCRYPTION_KEY ou saisissez à nouveau le mot de passe dans Réglages.")
     if settings.imap_security == "ssl":
-        conn = imaplib.IMAP4_SSL(settings.imap_host, settings.imap_port, ssl_context=ssl.create_default_context(), timeout=60)
+        conn = _PinnedIMAP4_SSL(settings.imap_host, settings.imap_port, ssl_context=ssl.create_default_context(), timeout=60)
     else:
-        conn = imaplib.IMAP4(settings.imap_host, settings.imap_port, timeout=60)
+        conn = _PinnedIMAP4(settings.imap_host, settings.imap_port, timeout=60)
         if settings.imap_security == "starttls":
             conn.starttls(ssl_context=ssl.create_default_context())
     conn.login(*settings.imap_login)

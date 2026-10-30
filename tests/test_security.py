@@ -48,7 +48,9 @@ def test_crypto_roundtrip_and_wrong_key():
     from cryptography.fernet import Fernet
     other = "enc:v1:" + Fernet(Fernet.generate_key()).encrypt(b"x").decode()
     before = crypto.decrypt_errors
-    assert crypto.decrypt(other) == "" and crypto.decrypt_errors == before + 1
+    with pytest.raises(crypto.DecryptionError):
+        crypto.decrypt(other)
+    assert crypto.decrypt_errors == before + 1
 
 
 @pytest.fixture()
@@ -58,6 +60,91 @@ def backup_dir():
     settings.backup_dir = d
     yield d
     settings.backup_dir = old
+
+
+def test_authentication_results_requires_trusted_authserv_and_dmarc_pass():
+    from email.message import EmailMessage
+    from app import mailer
+    from app.config import settings
+    previous = settings.imap_authserv_id
+    settings.imap_authserv_id = "mx.test"
+    try:
+        forged = EmailMessage()
+        forged["From"] = "privacy@example.org"
+        forged["Authentication-Results"] = "evil.example; spf=pass; dkim=pass; dmarc=pass"
+        forged.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(forged)).dmarc_pass is False
+
+        authenticated = EmailMessage()
+        authenticated["From"] = "privacy@example.org"
+        authenticated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        authenticated.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(authenticated)).dmarc_pass is True
+
+        duplicated = EmailMessage()
+        duplicated["From"] = "privacy@example.org"
+        duplicated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        duplicated["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        duplicated.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(duplicated)).dmarc_pass is False
+
+        failed = EmailMessage()
+        failed["From"] = "privacy@example.org"
+        failed["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        failed.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(failed)).dmarc_pass is False
+    finally:
+        settings.imap_authserv_id = previous
+
+
+def test_wrong_key_does_not_overwrite_secret_settings(client):
+    from cryptography.fernet import Fernet
+    from app import mailer
+    from email.message import EmailMessage
+    with SessionLocal() as db:
+        row = db.get(KV, "cfg:smtp_password")
+        old_raw = row.value if row else None
+        db.merge(KV(key="cfg:smtp_password", value=json.dumps("enc:v1:" + Fernet(Fernet.generate_key()).encrypt(b"secret").decode())))
+        db.commit()
+    previous = settings.smtp_password
+    try:
+        settings_store.apply_overrides()
+        assert settings.smtp_password == previous
+        with SessionLocal() as db:
+            assert json.loads(db.get(KV, "cfg:smtp_password").value).startswith("enc:v1:")
+        settings.smtp_password = ""
+        msg = EmailMessage()
+        msg["To"] = "privacy@example.org"
+        msg["Subject"] = "test"
+        msg.set_content("test")
+        with pytest.raises(mailer.SendError, match="Mot de passe SMTP chiffré illisible"):
+            mailer.send_message(msg, force=True)
+    finally:
+        with SessionLocal() as db:
+            if old_raw is None:
+                db.delete(db.get(KV, "cfg:smtp_password"))
+            else:
+                db.merge(KV(key="cfg:smtp_password", value=old_raw))
+            db.commit()
+        settings.smtp_password = previous
+        settings_store.DECRYPTION_FAILURES.discard("smtp_password")
+
+
+def test_csrf_rejects_missing_origin():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", data={"username": "admin", "password": "test-password"})
+        assert response.status_code == 403
+
+
+def test_csrf_rejects_cross_origin_post():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", headers={"Origin": "https://attacker.example"},
+                             data={"username": "admin", "password": "test-password"})
+        assert response.status_code == 403
 
 
 def test_backup_encrypted_restore_and_rotation(client, backup_dir):
