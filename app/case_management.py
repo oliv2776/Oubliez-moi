@@ -9,6 +9,7 @@ from sqlalchemy import ForeignKey, String, Text, DateTime, Integer, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session, selectinload
 
 from . import __version__
+from .config import settings
 from .db import Base, Profile, SessionLocal, utcnow
 from .main_templates import templates
 
@@ -132,7 +133,7 @@ def _render(request: Request, name: str, db: Session, **context):
         ExistingRequest.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
     )) or 0
     return templates.TemplateResponse(request, name, {
-        **context, "request": request, "settings": __import__("app.config", fromlist=["settings"]).settings,
+        **context, "request": request, "settings": settings,
         "version": __version__, "nav_todo": todo, "flashes": request.session.pop("flash", []),
         "CASE_TYPES": CASE_TYPES, "CASE_STATUSES": CASE_STATUSES,
     })
@@ -245,6 +246,8 @@ def case_note(request: Request, case_id: int, summary: str = Form(...), body: st
 @router.post("/privacy-cases/{case_id}/extend")
 def case_extend(request: Request, case_id: int, note: str = Form(""), db: Session = Depends(get_db)):
     case = _get(db, PrivacyCase, case_id)
+    if case.status not in {"sent", "acknowledged", "in_progress"}:
+        raise HTTPException(400, "Seule une demande en cours peut être prolongée.")
     if not case.sent_at or not case.deadline_at:
         raise HTTPException(400, "La demande doit d’abord être marquée comme envoyée.")
     if case.extended_deadline_at:
