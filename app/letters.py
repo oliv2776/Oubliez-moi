@@ -95,7 +95,7 @@ Yours faithfully,
 
 
 def reminder_letter(req: Request, original_body: str) -> tuple[str, str]:
-    profile, broker, ref = req.profile, req.broker, req.reference
+    profile, ref = req.profile, req.reference
     sent = req.sent_at.strftime("%d/%m/%Y") if req.sent_at else "?"
     quoted = "\n".join("> " + line for line in original_body.splitlines())
     if req.language == "fr":
@@ -142,7 +142,7 @@ def auto_reply_letter(req: Request, kind: str, their_subject: str | None = None)
     """Réponses automatiques aux situations courantes. kind : id_request | legit_refusal | residence_question."""
     from .config import settings
 
-    p, b, ref = req.profile, req.broker, req.reference
+    p, ref = req.profile, req.reference
     sent = req.sent_at.strftime("%d/%m/%Y") if req.sent_at else "?"
     fr = req.language == "fr"
     sig = _signature(p)

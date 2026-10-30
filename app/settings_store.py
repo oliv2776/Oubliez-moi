@@ -139,6 +139,10 @@ def save_from_form(form: dict) -> list[str]:
         errors.append("Le débit doit être compris entre 1 et 3600 e-mails par heure")
     if "imap_poll_minutes" in values and not 1 <= values["imap_poll_minutes"] <= 1440:
         errors.append("La fréquence de relève doit être comprise entre 1 et 1440 minutes")
+    if "imap_authserv_id" in values:
+        values["imap_authserv_id"] = values["imap_authserv_id"].strip().lower()
+        if values["imap_authserv_id"] and not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", values["imap_authserv_id"]):
+            errors.append("Identifiant du serveur d'authentification invalide (ex. mx.google.com)")
     if values.get("imap_host") and not values.get("imap_folders", settings.imap_folders):
         values["imap_folders"] = ["INBOX"]
     if errors:
@@ -152,6 +156,18 @@ def save_from_form(form: dict) -> list[str]:
                 DECRYPTION_FAILURES.discard(key)
         db.commit()
     return []
+
+
+def set_value(key: str, value) -> None:
+    """Enregistre un seul réglage (sans passer par un formulaire complet)."""
+    if key not in EDITABLE:
+        raise KeyError(key)
+    with SessionLocal() as db:
+        kv_set(db, PREFIX + key, _dump(key, value))
+        db.commit()
+    setattr(settings, key, value)
+    if key in SECRET_KEYS:
+        DECRYPTION_FAILURES.discard(key)
 
 
 def reset_to_env() -> None:

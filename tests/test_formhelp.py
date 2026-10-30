@@ -62,7 +62,7 @@ def test_disabled_broker_queued_request_is_not_sent(client):
         b = db.scalars(select(Broker).where(Broker.slug == "zoominfo")).one()
         db.add(p)
         db.commit()
-        r = service._create_request(db, p, b, cycle=1)
+        service._create_request(db, p, b, cycle=1)
         b.enabled = False
         db.commit()
         assert service._next_queued(db) is None or service._next_queued(db).broker.enabled

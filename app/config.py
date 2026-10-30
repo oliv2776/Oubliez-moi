@@ -169,6 +169,7 @@ EDITABLE: dict[str, type] = {
     "imap_file_folder": str,
     "imap_mark_read": bool,
     "imap_file_own_copies": bool,
+    "imap_authserv_id": str,
     "auto_replies": bool,
     "auto_formal_notice": bool,
     "auto_confirm_links": bool,

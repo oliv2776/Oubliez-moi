@@ -28,7 +28,7 @@ def test_exact_domain_match_is_only_a_proposal(client):
                         domain="acme-exposure.example", name="Acme newsletter", count=3, status="new")
         db.add(sender)
         db.commit()
-        broker_id, mailbox_id = broker.id, mailbox.id
+        broker_id = broker.id
 
         assert broker_domain_sources(broker)["acme-exposure.example"] == "contact_domain"
         assert discover_candidates(db) == 1

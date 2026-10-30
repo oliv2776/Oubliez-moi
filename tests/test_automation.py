@@ -1,5 +1,7 @@
+import email.message
 import json
 import threading
+import urllib.error
 from datetime import timedelta
 from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -7,9 +9,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 from sqlalchemy import select
 
-from app import settings_store, confirm, llm, mailer, notify, service
+from app import settings_store, confirm, mailer, notify, service
 from app.config import settings
-from app.db import FAILED, NEEDS_ACTION, QUEUED, REPLIED, SENT, Broker, Event, Profile, Request, SessionLocal, utcnow
+from app.db import FAILED, NEEDS_ACTION, QUEUED, SENT, Broker, Profile, Request, SessionLocal
 
 
 def _sent_request(slug_offset=20, web=None):
@@ -138,6 +140,82 @@ def test_confirmation_link_clicked(client, local_site):
             assert db.get(Request, rid2).status == NEEDS_ACTION
     finally:
         settings.auto_confirm_links = False
+
+
+class _Redirects(BaseHTTPRequestHandler):
+    def do_GET(self):
+        routes = {
+            "/confirm?token=abc": ("302", "/done", "session=ok"),       # jeton validé → page de succès (cookie requis)
+            "/to-other": ("302", "http://tracker.example/confirm", None),
+            "/to-unsub": ("303", "/unsubscribe?all=1", None),
+            "/loop": ("302", "/loop", None),
+            "/relative": ("307", "done", "session=ok"),
+        }
+        if self.path in routes:
+            code, location, cookie = routes[self.path]
+            self.send_response(int(code))
+            self.send_header("Location", location)
+            if cookie:
+                self.send_header("Set-Cookie", f"{cookie}; Path=/")
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.end_headers()
+        if self.path == "/done" and "session=ok" in (self.headers.get("Cookie") or ""):
+            body = "<title>Merci</title><p>Your request has been confirmed.</p>"
+        else:
+            body = "<title>Session expirée</title><p>Session expired.</p>"
+        self.wfile.write(body.encode())
+
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture
+def redirect_site():
+    srv = HTTPServer(("127.0.0.1", 0), _Redirects)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    confirm.ALLOW_PRIVATE = True
+    yield f"http://127.0.0.1:{srv.server_port}"
+    confirm.ALLOW_PRIVATE = False
+    srv.shutdown()
+
+
+def test_confirmation_link_follows_safe_redirects(redirect_site):
+    domains = {"broker.example"}
+    res = confirm.click(f"{redirect_site}/confirm?token=abc", domains)
+    assert res.ok and "après 1 redirection" in res.detail and "Merci" in res.detail
+    assert confirm.click(f"{redirect_site}/relative", domains).ok  # Location relative + 307
+
+
+def test_confirmation_redirect_guards(redirect_site):
+    domains = {"broker.example"}
+    res = confirm.click(f"{redirect_site}/to-other", domains)
+    assert not res.ok and "hors du domaine" in res.detail and "tracker.example" in res.detail
+    res = confirm.click(f"{redirect_site}/to-unsub", domains)
+    assert not res.ok and "pas une confirmation" in res.detail
+    res = confirm.click(f"{redirect_site}/loop", domains)
+    assert not res.ok and "trop de redirections" in res.detail
+
+
+def test_confirmation_redirect_to_private_address_refused(monkeypatch):
+    """Une redirection vers le réseau local est refusée même si le premier saut était public."""
+    seen = []
+
+    def fake_public(host):
+        seen.append(host)
+        return host != "192.168.1.1"
+
+    def fake_open(req, **kw):
+        headers = email.message.Message()
+        headers["Location"] = "http://192.168.1.1/admin"
+        raise urllib.error.HTTPError(req.full_url, 302, "Found", headers, None)
+
+    monkeypatch.setattr(confirm, "_is_public", fake_public)
+    monkeypatch.setattr(confirm, "safe_urlopen", fake_open)
+    res = confirm.click("https://broker.example/confirm?t=1")
+    assert not res.ok and "non publique" in res.detail and seen == ["broker.example", "192.168.1.1"]
 
 
 def test_ssrf_protection():
@@ -400,4 +478,14 @@ def test_unverified_ticket_sender_cannot_confirm_deletion(client):
     with SessionLocal() as db:
         req = db.get(Request, rid)
         assert req.status != "completed"
-        assert any("Réponse non vérifiée" in e.summary for e in req.events)
+        assert any("Réponse non vérifiée" in e.summary and "pas celui du courtier" in e.summary for e in req.events)
+
+
+def test_unverified_reason_when_authserv_not_configured(client, monkeypatch):
+    monkeypatch.setattr(settings, "imap_authserv_id", "")
+    rid = _sent_request(35)
+    _reply(rid, "Your data has been deleted successfully.")
+    with SessionLocal() as db:
+        req = db.get(Request, rid)
+        assert req.status != "completed"
+        assert any("identifiant du serveur de messagerie non réglé" in e.summary for e in req.events)

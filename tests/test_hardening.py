@@ -9,7 +9,8 @@ def test_security_headers_and_private_pages_are_not_cached(client):
     assert response.status_code == 200
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
-    assert response.headers["Referrer-Policy"] == "no-referrer"
+    # same-origin : aucun Referer vers l’extérieur, mais Origin reste envoyé (sinon la protection CSRF bloque tout POST)
+    assert response.headers["Referrer-Policy"] == "same-origin"
     assert response.headers["Permissions-Policy"] == "camera=(), microphone=(), geolocation=()"
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["Pragma"] == "no-cache"

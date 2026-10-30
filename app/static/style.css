@@ -257,10 +257,13 @@ table.senders td { vertical-align: middle; }
 .nav-search .btn { padding: .3rem .55rem; }
 .global-search-page { display: flex; gap: .6rem; max-width: 760px; margin: 0 0 1rem; }
 .global-search-page input { flex: 1; min-width: 0; }
+/* Neuf entrées de menu ne tiennent pas à côté de la recherche dans 1200 px : le menu passe
+   sur sa propre ligne, sinon « Réglages » et les suivants étaient masqués hors champ. */
+header.top .inner { height: auto; min-height: 58px; flex-wrap: wrap; row-gap: .1rem; padding-top: .5rem; padding-bottom: .35rem; }
+header.top .nav-search { margin-right: auto; }
+nav.main { order: 3; flex: 1 1 100%; margin: 0 -.7rem; }
 @media (max-width: 900px) {
-  header.top .inner { height: auto; min-height: 58px; flex-wrap: wrap; padding-top: .55rem; padding-bottom: .55rem; }
-  .nav-search { order: 3; flex: 1 1 100%; }
-  nav.main { order: 2; }
+  .nav-search { order: 4; flex: 1 1 100%; }
 }
 @media (max-width: 560px) {
   .global-search-page { flex-direction: column; }

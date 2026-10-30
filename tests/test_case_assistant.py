@@ -2,7 +2,7 @@ from zipfile import ZipFile
 from io import BytesIO
 
 from app.case_assistant import build_draft
-from app.case_management import CaseEvent, Organization, PrivacyCase
+from app.case_management import Organization, PrivacyCase
 from app.db import Profile, SessionLocal
 
 

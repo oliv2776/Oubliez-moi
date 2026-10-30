@@ -13,6 +13,23 @@
   {% endfor %}
 </nav>
 
+{% if late_cases or soon_cases %}
+<div class="card" style="margin-bottom:1rem">
+  <h2 style="margin-top:0">Dossiers RGPD</h2>
+  <table>
+    {% for c in late_cases %}
+    <tr><td><a href="/privacy-cases/{{ c.id }}"><strong>{{ c.organization.name }}</strong></a><div class="small muted">{{ c.type_label }}{% if c.subject %} · {{ c.subject }}{% endif %}</div></td>
+        <td class="small" style="color:var(--bad)">Échéance dépassée le {{ c.effective_deadline|d }}</td>
+        <td class="num"><a class="btn sm" href="/privacy-cases/{{ c.id }}/assistant?kind=followup">Préparer une relance</a></td></tr>
+    {% endfor %}
+    {% for c in soon_cases %}
+    <tr><td><a href="/privacy-cases/{{ c.id }}"><strong>{{ c.organization.name }}</strong></a><div class="small muted">{{ c.type_label }}{% if c.subject %} · {{ c.subject }}{% endif %}</div></td>
+        <td class="small muted">Échéance le {{ c.effective_deadline|d }}</td><td></td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
 {% if not items %}
 <div class="card empty">
   <h2>Rien à traiter 🎉</h2>

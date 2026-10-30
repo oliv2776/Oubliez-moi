@@ -7,16 +7,12 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from . import __version__
-from .config import settings
-from .db import (
-    FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Broker, ExposureLink, Request as PrivacyRequest, Sender, SessionLocal, utcnow,
-)
+from .db import Broker, ExposureLink, Sender, utcnow
 from .mailer import registered_domain
-from .main_templates import templates
+from .web import get_db, render
 
 router = APIRouter()
 DOMAIN_RE = re.compile(r"^(?=.{1,200}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
@@ -28,12 +24,6 @@ RELATION_LABELS = {
 LINK_STATUSES = {"proposed": "À vérifier", "confirmed": "Confirmé", "rejected": "Écarté"}
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def normalize_domain(value: str) -> str:
@@ -99,14 +89,7 @@ def discover_candidates(db: Session) -> int:
 
 
 def _render(request: Request, name: str, db: Session, **context):
-    todo = db.scalar(select(func.count(PrivacyRequest.id)).where(
-        PrivacyRequest.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
-    )) or 0
-    return templates.TemplateResponse(request, name, {
-        **context, "request": request, "settings": settings, "version": __version__,
-        "nav_todo": todo, "flashes": request.session.pop("flash", []),
-        "LINK_STATUSES": LINK_STATUSES, "RELATION_LABELS": RELATION_LABELS,
-    })
+    return render(request, name, db, **context, LINK_STATUSES=LINK_STATUSES, RELATION_LABELS=RELATION_LABELS)
 
 
 @router.get("/exposures", response_class=HTMLResponse)

@@ -16,7 +16,7 @@ def test_global_search_finds_profiles_brokers_requests_and_senders(client):
                         status="new")
         db.add_all([req, sender])
         db.commit()
-        profile_id, broker_id, request_id, sender_id = profile.id, broker.id, req.id, sender.id
+        broker_id, request_id, sender_id = broker.id, req.id, sender.id
 
     response = client.get("/search?q=search-example")
     assert response.status_code == 200
@@ -24,7 +24,7 @@ def test_global_search_finds_profiles_brokers_requests_and_senders(client):
     assert "Search Example News" in response.text
     assert f"/requests/{request_id}" in response.text
     assert 'href="/brokers?q=' in response.text
-    assert f"/mailboxes?status=all" in response.text
+    assert "/mailboxes?status=all" in response.text
     with SessionLocal() as db:
         db.delete(db.get(Sender, sender_id))
         mailbox_row = db.get(Mailbox, mailbox.id)
@@ -47,3 +47,13 @@ def test_global_search_is_authenticated():
         response = anonymous.get("/search", follow_redirects=False)
         assert response.status_code == 303
         assert response.headers["location"] == "/login"
+
+
+def test_global_search_treats_sql_wildcards_literally(client):
+    with SessionLocal() as db:
+        db.add_all([Profile(full_name="Jean_Dupont", emails=["j@example.fr"]), Profile(full_name="Jeanne Martin", emails=["m@example.fr"])])
+        db.commit()
+    text = client.get("/search?q=n_").text  # non échappé, « _ » accepterait « Jeanne »
+    assert "Jean_Dupont" in text and "Jeanne Martin" not in text
+    text = client.get("/search?q=%25%25").text  # « %% » ne doit pas tout renvoyer
+    assert "Jean_Dupont" not in text and "Jeanne Martin" not in text

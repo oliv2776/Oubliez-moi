@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import secrets
 import string
+from importlib import import_module
 from datetime import datetime, timezone
 
 from sqlalchemy import (
@@ -56,6 +57,7 @@ STATUS_LABELS = {
     CNIL: "Plainte CNIL déposée",
 }
 OPEN_STATUSES = {QUEUED, SENT, REPLIED, NEEDS_ACTION, OVERDUE, FAILED}
+TODO_STATUSES = [NEEDS_ACTION, REPLIED, FAILED, OVERDUE]  # ce qui attend une décision (« À traiter »)
 FINAL_STATUSES = {COMPLETED, REFUSED, CANCELLED, CNIL}
 
 
@@ -287,15 +289,17 @@ MIGRATIONS = [
     ("requests", "supplement_pending", "BOOLEAN NOT NULL DEFAULT 0"),
     ("events", "html", "TEXT"),
     ("events", "message_id", "VARCHAR(500)"),
+    ("privacy_cases", "overdue_notified_at", "DATETIME"),
 ]
 
 
 def init_db() -> None:
+    import_module(f"{__package__}.case_management")  # enregistre les tables des dossiers RGPD avant create_all
     Base.metadata.create_all(engine)
     with engine.begin() as conn:
         for table, column, ddl in MIGRATIONS:
             cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
-            if column not in cols:
+            if cols and column not in cols:  # table absente : create_all vient de la créer complète
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
         conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_events_message_id ON events (message_id)")
 

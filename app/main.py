@@ -16,14 +16,14 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, Form, HTTPException, Request as HttpRequest
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store
+from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
+from . import case_assistant, case_management, exposures, search as search_routes
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -56,12 +56,6 @@ SEED = BASE / "seed" / "brokers.json"
 TZ = ZoneInfo(settings.timezone)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @asynccontextmanager
@@ -86,40 +80,61 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
-templates = Jinja2Templates(directory=BASE / "templates")
-from . import search as search_routes  # noqa: E402
-app.include_router(search_routes.router)
+templates = web.templates  # environnement Jinja partagé : les filtres ci-dessous servent à toutes les pages
+for _module in (search_routes, case_management, case_assistant, exposures):
+    app.include_router(_module.router)
 
 PUBLIC_PATHS = ("/login", "/healthz")
 PUBLIC_PREFIXES = ("/static",)
 
 
+def _origin_of(url: str) -> tuple[str, str, int] | None:
+    """(schéma, hôte, port) d'une URL http(s), ou None si elle n'est pas exploitable."""
+    try:
+        parts = urlsplit(url)
+        if parts.scheme not in {"http", "https"} or not parts.hostname:
+            return None
+        return parts.scheme, parts.hostname.lower(), parts.port or (443 if parts.scheme == "https" else 80)
+    except ValueError:
+        return None
+
+
+def allowed_origins(request) -> set[tuple[str, str, int]]:
+    """Origines légitimes : celle de l'URL utilisée (en-tête Host) et, si définie, APP_URL.
+
+    Accepter les deux évite de se retrouver bloqué hors de l'interface quand APP_URL
+    pointe vers un nom de domaine mais que l'on passe par l'IP du réseau local.
+    Ce n'est pas un affaiblissement : une page malveillante ne peut pas choisir
+    l'en-tête Origin que le navigateur de la victime envoie.
+    """
+    out = set()
+    for url in (f"{request.url.scheme}://{request.headers.get('host', '')}", settings.app_url):
+        if url and (origin := _origin_of(url)):
+            out.add(origin)
+    return out
+
+
 class CSRFMiddleware(BaseHTTPMiddleware):
     """Bloque les requêtes mutantes cross-origin, y compris le formulaire de connexion.
 
-    Les navigateurs modernes envoient Origin sur les POST ; Referer sert de repli.
-    APP_URL fixe l'origine publique derrière un reverse proxy.
+    1. Origin (ou à défaut Referer) doit correspondre à une origine autorisée ;
+    2. si le navigateur n'envoie ni l'une ni l'autre (ou « Origin: null »),
+       l'en-tête Sec-Fetch-Site, que les scripts ne peuvent pas falsifier,
+       doit valoir « same-origin ».
     """
     async def dispatch(self, request, call_next):
         if request.method in {"GET", "HEAD", "OPTIONS", "TRACE"}:
             return await call_next(request)
-        source = request.headers.get("origin") or request.headers.get("referer")
-        if not source or request.headers.get("sec-fetch-site", "").lower() == "cross-site":
-            return JSONResponse({"detail": "Requête cross-site refusée (protection CSRF)."}, status_code=403)
-        try:
-            supplied = urlsplit(source)
-            expected_url = settings.app_url or f"{request.url.scheme}://{request.headers.get('host', '')}"
-            expected = urlsplit(expected_url)
-            supplied_port = supplied.port or (443 if supplied.scheme == "https" else 80)
-            expected_port = expected.port or (443 if expected.scheme == "https" else 80)
-            same_origin = (
-                supplied.scheme in {"http", "https"} and bool(supplied.hostname)
-                and supplied.hostname.lower() == (expected.hostname or "").lower()
-                and supplied_port == expected_port
-            )
-        except ValueError:
-            same_origin = False
-        if not same_origin:
+        fetch_site = request.headers.get("sec-fetch-site", "").lower()
+        origin = request.headers.get("origin", "")
+        source = origin if origin and origin != "null" else request.headers.get("referer", "")
+        if fetch_site == "cross-site":
+            ok = False
+        elif source:
+            ok = _origin_of(source) in allowed_origins(request)
+        else:
+            ok = fetch_site == "same-origin"
+        if not ok:
             return JSONResponse({"detail": "Origine de requête invalide (protection CSRF)."}, status_code=403)
         return await call_next(request)
 
@@ -130,7 +145,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        # « same-origin » et surtout pas « no-referrer » : avec no-referrer, les navigateurs
+        # envoient « Origin: null » sur chaque POST et la protection CSRF bloque tout.
+        # Aucun Referer n'est transmis aux sites externes.
+        response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         if not request.url.path.startswith("/static/"):
             response.headers["Cache-Control"] = "no-store"
@@ -190,19 +208,8 @@ def flash(request: HttpRequest, message: str, kind: str = "ok") -> None:
     request.session.setdefault("flash", []).append([kind, message])
 
 
-def render(request: HttpRequest, name: str, db: Session | None = None, **ctx):
-    todo = 0
-    if db is not None:
-        todo = db.scalar(select(func.count(Request.id)).where(Request.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED]))) or 0
-    ctx.update(
-        request=request,
-        settings=settings,
-        STATUS=STATUS_LABELS,
-        flashes=request.session.pop("flash", []),
-        nav_todo=todo,
-        version=__version__,
-    )
-    return templates.TemplateResponse(request, name, ctx)
+render = web.render
+get_db = web.get_db
 
 
 def back(url: str) -> RedirectResponse:
@@ -276,11 +283,13 @@ def dashboard(request: HttpRequest, db: Session = Depends(get_db)):
     upcoming = db.scalars(
         select(Request).where(Request.status == "sent", Request.due_at.is_not(None)).order_by(Request.due_at).limit(8)
     ).all()
+    late_cases, soon_cases = case_management.cases_due(db, within_days=30)
     queued = db.scalar(select(func.count(Request.id)).where(Request.status == QUEUED)) or 0
     eta_hours = round(queued / settings.send_per_hour, 1) if queued else 0
     return render(
         request, "dashboard.html", db,
         per_profile=per_profile, total=service.stats(db), events=events, upcoming=upcoming,
+        late_cases=late_cases, soon_cases=soon_cases[:5],
         queued=queued, eta_hours=eta_hours,
         brokers_enabled=db.scalar(select(func.count(Broker.id)).where(Broker.enabled.is_(True))),
         mailboxes_total=db.scalar(select(func.count(Mailbox.id))) or 0,
@@ -578,7 +587,9 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
     chips = [("", "Tout", sum(counts.values()))] + [(k, label, sum(counts.get(x, 0) for x in st)) for k, label, st in TRIAGE]
 
     r = next((x for x in items if x.id == id), None) or (items[0] if items else None)
-    ctx = {"items": items, "cat": cat, "chips": chips, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1}
+    late_cases, soon_cases = case_management.cases_due(db)
+    ctx = {"items": items, "cat": cat, "chips": chips, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1,
+           "late_cases": late_cases, "soon_cases": soon_cases}
     if r:
         i = items.index(r)
         after = items[i + 1] if i + 1 < len(items) else (items[i - 1] if i > 0 else None)
@@ -1050,6 +1061,48 @@ async def test_imap(request: HttpRequest):
         except Exception as e:  # noqa: BLE001
             flash(request, f"Erreur IMAP : {e}", "error")
     return back(_tab_url(form))
+
+
+@app.post("/settings/detect-authserv")
+async def detect_authserv(request: HttpRequest):
+    """Repère l'identifiant (authserv-id) du serveur de réception et le propose/enregistre."""
+    form = dict(await request.form())
+    if not _save_settings(request, form):
+        return back(_tab_url(form))
+    if not settings.imap_configured:
+        flash(request, "Renseignez d'abord le serveur de relève.", "error")
+        return back(_tab_url(form))
+    try:
+        res = mailer.detect_authserv_ids()
+    except Exception as e:  # noqa: BLE001
+        flash(request, f"Erreur IMAP : {e}", "error")
+        return back(_tab_url(form))
+    flash(request, *_authserv_feedback(res))
+    return back(_tab_url(form))
+
+
+def _authserv_feedback(res: dict) -> tuple[str, str]:
+    """Applique le résultat de la détection et renvoie (message, type de bandeau)."""
+    scanned, best, current = res["scanned"], res["suggestion"], settings.imap_authserv_id
+    if not scanned:
+        return "La boîte de réception est vide : impossible de détecter l'identifiant pour l'instant.", "warn"
+    if best:
+        count = dict(res["ids"])[best]
+        share = f"présent dans {count} des {scanned} derniers messages"
+        if not current:
+            settings_store.set_value("imap_authserv_id", best)
+            return (f"Identifiant détecté et enregistré : {best} ({share}). Les réponses authentifiées des courtiers "
+                    "peuvent désormais clôturer leurs demandes."), "ok"
+        if current == best:
+            return f"Le réglage « {current} » correspond bien à votre serveur ({share}).", "ok"
+        return (f"Votre serveur semble être « {best} » ({share}), mais le réglage vaut « {current} ». "
+                "Videz le champ et relancez la détection pour le remplacer."), "error"
+    if res["without_id"] >= 0.6 * scanned:
+        return ("Ce fournisseur (Outlook, Hotmail…) n'indique pas d'identifiant dans ses résultats d'authentification : "
+                "la clôture automatique n'est pas possible avec cette boîte. Les réponses restent relevées et classées, "
+                "et les décisions sensibles vous sont laissées."), "warn"
+    seen = ", ".join(f"{i} ({n})" for i, n in res["ids"]) or "aucun"
+    return f"Aucun identifiant ne domine parmi les {scanned} derniers messages. Vus : {seen}.", "warn"
 
 
 @app.post("/settings/test-llm")

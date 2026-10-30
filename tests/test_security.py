@@ -3,7 +3,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from sqlalchemy import select
 
 from app import backup, crypto, settings_store
 from app.config import settings
@@ -159,6 +158,68 @@ def test_csrf_rejects_cross_origin_post():
         response = anon.post("/login", headers={"Origin": "https://attacker.example"},
                              data={"username": "admin", "password": "test-password"})
         assert response.status_code == 403
+
+
+LOGIN = {"username": "admin", "password": "test-password"}
+
+
+def test_referrer_policy_keeps_origin_header():
+    """Avec « no-referrer », Chrome/Firefox/Safari envoient « Origin: null » sur chaque POST
+    et la protection CSRF bloque la connexion : la politique doit rester same-origin."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        assert anon.get("/login").headers["referrer-policy"] == "same-origin"
+
+
+def test_csrf_accepts_null_origin_when_browser_says_same_origin():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", headers={"Origin": "null", "Sec-Fetch-Site": "same-origin"},
+                             data=LOGIN, follow_redirects=False)
+        assert response.status_code == 303
+
+
+def test_csrf_rejects_null_origin_cross_site():
+    """Un iframe sandboxé ou une page tierce envoie Origin: null + Sec-Fetch-Site: cross-site."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        for fetch_site in ("cross-site", "same-site", ""):
+            headers = {"Origin": "null"} | ({"Sec-Fetch-Site": fetch_site} if fetch_site else {})
+            assert anon.post("/login", headers=headers, data=LOGIN).status_code == 403
+
+
+def test_csrf_rejects_cross_site_even_with_matching_referer():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", headers={"Referer": "http://testserver/login", "Sec-Fetch-Site": "cross-site"},
+                             data=LOGIN)
+        assert response.status_code == 403
+
+
+def test_csrf_rejects_other_port_on_same_host():
+    """Un autre service du NAS (même IP, autre port) est « same-site » mais pas « same-origin »."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        response = anon.post("/login", headers={"Origin": "http://testserver:8080", "Sec-Fetch-Site": "same-site"},
+                             data=LOGIN)
+        assert response.status_code == 403
+
+
+def test_csrf_accepts_host_and_app_url_origins(monkeypatch):
+    """APP_URL ne doit pas enfermer dehors l'utilisateur qui passe par l'IP locale."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setattr(settings, "app_url", "https://oubliez.exemple.fr")
+    with TestClient(app) as anon:
+        for origin in ("http://testserver", "https://oubliez.exemple.fr", "https://oubliez.exemple.fr:443"):
+            response = anon.post("/login", headers={"Origin": origin}, data=LOGIN, follow_redirects=False)
+            assert response.status_code == 303, origin
+        assert anon.post("/login", headers={"Origin": "http://oubliez.exemple.fr"}, data=LOGIN).status_code == 403
 
 
 def test_backup_encrypted_restore_and_rotation(client, backup_dir):

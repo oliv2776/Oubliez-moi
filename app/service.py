@@ -4,13 +4,13 @@ from __future__ import annotations
 import logging
 import re
 import threading
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sqlalchemy import String, cast, func, or_, select, true
 from sqlalchemy.orm import Session, selectinload
 
 from . import brokers as broker_catalog
-from . import confirm, letters, llm, mailer, mailview, notify, phones
+from . import case_management, confirm, letters, llm, mailer, mailview, notify, phones
 from .config import settings
 from .db import (
     COMPLETED,
@@ -23,6 +23,7 @@ from .db import (
     REPLIED,
     SENT,
     STATUS_LABELS,
+    TODO_STATUSES,
     Broker,
     Event,
     Profile,
@@ -419,7 +420,7 @@ def _next_supplement(db: Session) -> Request | None:
 
 
 def check_deadlines() -> int:
-    """Passe en « sans réponse » les demandes relancées restées muettes."""
+    """Passe en « sans réponse » les demandes relancées restées muettes et signale les dossiers RGPD en retard."""
     n = 0
     with SessionLocal() as db:
         todo_before = _todo_ids(db)
@@ -433,6 +434,12 @@ def check_deadlines() -> int:
         db.commit()
         if n:
             _notify_new_todo(db, todo_before, "Délai dépassé, plainte CNIL possible")
+        cases = case_management.flag_overdue_cases(db)
+        db.commit()
+        if cases and settings.notify_enabled:
+            names = ", ".join(sorted({c.organization.name for c in cases})[:4]) + ("…" if len(cases) > 4 else "")
+            notify.push(f"Oubliez-moi : {len(cases)} dossier(s) RGPD en retard",
+                        f"Échéance dépassée sans résultat confirmé : {names}", path="/tasks")
     return n
 
 
@@ -456,6 +463,15 @@ def _sender_matches_broker(req: Request, from_addr: str, dmarc_pass: bool = Fals
         ) if d
     }
     return sender_domain in expected or sender_domain in confirm.PRIVACY_PLATFORMS
+
+
+def _untrusted_reason(m: mailer.ParsedMail) -> str:
+    """Explique pourquoi une réponse n'a pas été considérée comme authentifiée."""
+    if not settings.imap_authserv_id:
+        return "identifiant du serveur de messagerie non réglé — Réglages › Relève des réponses"
+    if not m.dmarc_pass:
+        return f"authentification DMARC absente ou en échec selon {settings.imap_authserv_id}"
+    return "le domaine de l'expéditeur n'est pas celui du courtier"
 
 
 def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
@@ -489,7 +505,6 @@ def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
     return (open_ones or candidates or [None])[0]
 
 
-TODO_STATUSES = [NEEDS_ACTION, REPLIED, FAILED, OVERDUE]
 MAX_AUTO_REPLIES = 3
 LLM_MIN_CONFIDENCE = 0.7
 _NOREPLY_RE = re.compile(r"^(no-?reply|do-?not-?reply|ne-?pas-?repondre|mailer-daemon|postmaster|bounce)", re.I)
@@ -554,7 +569,8 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         # Une référence permet d'identifier le ticket, pas d'authentifier son expéditeur.
         # Ne jamais clôturer, confirmer automatiquement ou prolonger sur cette seule base.
         if c.kind in ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce"):
-            add_event(db, req, "warning", f"Réponse non vérifiée de {m.from_addr} : décision sensible non appliquée")
+            add_event(db, req, "warning", f"Réponse non vérifiée de {m.from_addr} : décision sensible non appliquée "
+                                          f"({_untrusted_reason(m)})")
             c = mailer.Classification("reply", "expéditeur non vérifié")
     label = mailer.KIND_LABELS.get(c.kind, c.kind)
     why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
@@ -587,7 +603,7 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     elif c.kind == "confirm_link":
         links = confirm.candidate_links(m.links, req.broker.email, req.broker.web)
         if settings.auto_confirm_links and links:
-            res = confirm.click(links[0])
+            res = confirm.click(links[0], confirm.broker_domains(req.broker.email, req.broker.web))
             add_event(db, req, "confirm", f"Lien de confirmation ouvert automatiquement : {res.detail}", res.url)
             if res.ok:
                 now = utcnow()
@@ -659,20 +675,28 @@ def send_digest() -> str | None:
         if kv_get(db, "digest_sent_on") == today:
             return None
         reqs = db.scalars(select(Request).where(Request.status.in_(TODO_STATUSES)).order_by(Request.status)).all()
-        if not reqs:
+        late_cases, _ = case_management.cases_due(db)
+        if not reqs and not late_cases:
             return None
         base = settings.app_url.rstrip("/") if settings.app_url else ""
         lines = [f"- {r.broker.name} ({r.profile.full_name}) : {STATUS_LABELS[r.status]}" + (f"\n  {base}/tasks?id={r.id}" if base else "")
                  for r in reqs[:50]]
+        case_lines = [f"- {c.organization.name} ({c.type_label}) : échéance du {c.effective_deadline.strftime('%d/%m/%Y')} dépassée"
+                      + (f"\n  {base}/privacy-cases/{c.id}" if base else "") for c in late_cases[:50]]
         st = stats(db)
-        body = (f"Bonjour,\n\n{len(reqs)} demande(s) attendent une décision de votre part :\n\n" + "\n".join(lines)
-                + f"\n\nAu total : {st['completed']} suppression(s) confirmée(s), {st['sent']} demande(s) en attente de réponse.\n"
-                + (f"\nOuvrir Oubliez-moi : {base}/tasks\n" if base else ""))
-        msg = mailer.build_message(settings.smtp_from, f"Oubliez-moi : {len(reqs)} élément(s) à traiter", body, "Oubliez-moi")
+        total = len(reqs) + len(late_cases)
+        body = "Bonjour,\n\n"
+        if reqs:
+            body += f"{len(reqs)} demande(s) attendent une décision de votre part :\n\n" + "\n".join(lines) + "\n\n"
+        if late_cases:
+            body += f"{len(late_cases)} dossier(s) RGPD ont dépassé leur échéance :\n\n" + "\n".join(case_lines) + "\n\n"
+        body += (f"Au total : {st['completed']} suppression(s) confirmée(s), {st['sent']} demande(s) en attente de réponse.\n"
+                 + (f"\nOuvrir Oubliez-moi : {base}/tasks\n" if base else ""))
+        msg = mailer.build_message(settings.smtp_from, f"Oubliez-moi : {total} élément(s) à traiter", body, "Oubliez-moi")
         mailer.send_message(msg, force=True)
         kv_set(db, "digest_sent_on", today)
         db.commit()
-        return f"récapitulatif envoyé ({len(reqs)} éléments)"
+        return f"récapitulatif envoyé ({total} éléments)"
 
 
 def poll_imap() -> int:

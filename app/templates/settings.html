@@ -113,6 +113,19 @@
   </div>
 
   <div class="card">
+    <h2>Authentification des réponses</h2>
+    <p class="small muted">Une réponse ne peut clôturer une demande (ou confirmer un lien, prolonger un délai…) que si votre serveur de messagerie a authentifié l'expéditeur (DMARC). Oubliez-moi ne se fie qu'aux résultats écrits par <em>votre</em> serveur, reconnu à son identifiant ci-dessous ; un en-tête ajouté par l'expéditeur est ignoré.</p>
+    {% if settings.imap_configured and not settings.imap_authserv_id %}<p class="small" style="color:var(--warn)">⚠ Non réglé : les réponses sont classées mais aucune ne clôture automatiquement une demande.</p>{% endif %}
+    <label for="imap_authserv_id">Identifiant du serveur <span class="hint">— Gmail : mx.google.com</span></label>
+    <input id="imap_authserv_id" type="text" name="imap_authserv_id" value="{{ settings.imap_authserv_id }}" autocomplete="off" spellcheck="false"
+           placeholder="{{ 'mx.google.com' if settings.imap_host.endswith(('gmail.com', 'googlemail.com')) else 'laisser vide puis « Détecter »' }}" style="max-width:320px">
+    <div class="actions" style="margin-top:.6rem">
+      <button class="btn" formaction="/settings/detect-authserv">Enregistrer et détecter automatiquement</button>
+    </div>
+    <p class="small muted" style="margin-top:.4rem">La détection lit uniquement les en-têtes des 40 derniers messages de la boîte de réception (rien n'est modifié) et retient l'identifiant présent dans la grande majorité d'entre eux.</p>
+  </div>
+
+  <div class="card">
     <h2>Identifiants</h2>
     <p class="small muted">Par défaut, la relève utilise l'identifiant et le mot de passe du compte d'envoi. Ne remplissez ces champs que s'ils sont différents.</p>
     <label for="imap_user">Identifiant IMAP</label>
