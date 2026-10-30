@@ -18,6 +18,11 @@ from .db import KV, SessionLocal, kv_set
 log = logging.getLogger(__name__)
 
 PREFIX = "cfg:"
+DECRYPTION_FAILURES: set[str] = set()
+
+
+def secret_unavailable(key: str) -> bool:
+    return key in DECRYPTION_FAILURES
 ENV_DEFAULTS = {k: getattr(settings, k) for k in EDITABLE}  # capturé avant toute surcharge
 SECURITY_CHOICES = {"starttls", "ssl", "none"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -31,6 +36,7 @@ def _dump(key: str, value) -> str:
 def apply_overrides() -> None:
     """Charge les réglages de l'interface ; chiffre au passage les secrets encore stockés en clair."""
     migrated = 0
+    DECRYPTION_FAILURES.clear()
     with SessionLocal() as db:
         rows = db.scalars(select(KV).where(KV.key.like(f"{PREFIX}%"))).all()
         for row in rows:
@@ -51,6 +57,7 @@ def apply_overrides() -> None:
                     # Ne jamais remplacer un secret chiffré illisible par une chaîne vide.
                     # On conserve la valeur d'environnement et la valeur chiffrée en base.
                     log.exception("Réglage secret %s illisible : clé de chiffrement incorrecte", key)
+                    DECRYPTION_FAILURES.add(key)
                     continue
             setattr(settings, key, value)
         if migrated:
@@ -141,6 +148,8 @@ def save_from_form(form: dict) -> list[str]:
         for key, value in values.items():
             kv_set(db, PREFIX + key, _dump(key, value))
             setattr(settings, key, value)
+            if key in SECRET_KEYS:
+                DECRYPTION_FAILURES.discard(key)
         db.commit()
     return []
 
@@ -149,5 +158,6 @@ def reset_to_env() -> None:
     with SessionLocal() as db:
         db.execute(delete(KV).where(KV.key.like(f"{PREFIX}%")))
         db.commit()
+    DECRYPTION_FAILURES.clear()
     for key, value in ENV_DEFAULTS.items():
         setattr(settings, key, value)
