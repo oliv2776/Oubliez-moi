@@ -13,7 +13,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request as HttpRequest
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
@@ -671,6 +671,8 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
         request, "settings.html", db,
         imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"),
         overridden=settings_store.overridden_keys(), file_status=(kv_get(db, "imap_file_status") or "").split("|", 2),
+        llm_models=llm.MODELS, llm_installed=llm.installed_models() if settings.llm_url else None,
+        llm_in_catalog=bool(llm.catalog_kind(settings.llm_model)),
     )
 
 
@@ -761,6 +763,32 @@ async def test_llm(request: HttpRequest):
         except Exception as e:  # noqa: BLE001
             flash(request, f"IA locale : {e}", "error")
     return back(_tab_url(form))
+
+
+@app.post("/settings/llm-pull")
+async def llm_pull(request: HttpRequest):
+    """Lance le téléchargement d'un modèle dans Ollama (en arrière-plan)."""
+    form = dict(await request.form())
+    if form.get("_settings_form"):
+        settings_store.save_from_form(form)
+    model = form.get("model") or settings.llm_model
+    try:
+        state = llm.start_pull(model)
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    return JSONResponse({"model": model, **state})
+
+
+@app.get("/settings/llm-status")
+def llm_status(model: str = ""):
+    model = model or settings.llm_model
+    installed = llm.installed_models(max_age=0 if llm.pull_status(model).get("done") else 20)
+    return JSONResponse({
+        "model": model,
+        "reachable": installed is not None,
+        "installed": llm.normalize(model) in {llm.normalize(n) for n in (installed or [])},
+        "pull": llm.pull_status(model),
+    })
 
 
 @app.post("/settings/test-notify")

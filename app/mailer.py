@@ -297,6 +297,23 @@ def classify(m: ParsedMail) -> Classification:
     return Classification("reply", "")
 
 
+_TICKET_RE = re.compile(
+    r"(?:ticket|case|request|reference|ref\.?|dossier|demande|requ[êe]te|vorgang|anfrage|aktenzeichen)"
+    r"\s*(?:number|no\.?|nr\.?|n[°ºo]|#|id|num[ée]ro|nummer)?\s*[:#]?\s*([A-Z0-9][A-Z0-9_-]{3,24})",
+    re.I,
+)
+
+
+def extract_ticket(text: str) -> str | None:
+    """Numéro de ticket ou de dossier du courtier (pas notre propre référence)."""
+    prefix = settings.reference_prefix.upper() + "-"
+    for m in _TICKET_RE.finditer(text or ""):
+        value = m.group(1)
+        if any(ch.isdigit() for ch in value) and not value.upper().startswith(prefix):
+            return value
+    return None
+
+
 def find_references(m: ParsedMail) -> set[str]:
     prefix = re.escape(settings.reference_prefix)
     return set(re.findall(rf"\b{prefix}-[A-Z0-9]{{6}}\b", f"{m.subject}\n{m.text}"))

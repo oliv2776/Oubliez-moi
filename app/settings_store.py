@@ -52,6 +52,15 @@ def _coerce(key: str, raw: str):
 
 def save_from_form(form: dict) -> list[str]:
     """Valide et enregistre les champs reçus. Renvoie la liste des erreurs (vide si OK)."""
+    form = dict(form)
+    # Choix du modèle d'IA : « Autre » → champ libre ; modèle connu → son type est imposé.
+    if form.get("llm_model") == "__custom__":
+        form["llm_model"] = form.get("llm_model_custom", "")
+    if form.get("llm_model"):
+        from .llm import catalog_kind
+        kind = catalog_kind(form["llm_model"])
+        if kind:
+            form["llm_mode"] = kind
     values, errors = {}, []
     for key, kind in EDITABLE.items():
         if kind is bool:
@@ -69,6 +78,8 @@ def save_from_form(form: dict) -> list[str]:
         except ValueError as e:
             errors.append(str(e))
 
+    if "llm_mode" in values and values["llm_mode"] not in {"decision", "chat"}:
+        errors.append("Type de modèle inconnu")
     if "imap_file_mode" in values and values["imap_file_mode"] not in {"off", "move", "label"}:
         errors.append("Mode de rangement inconnu")
     if values.get("imap_file_mode", settings.imap_file_mode) != "off" and not values.get("imap_file_folder", settings.imap_file_folder):

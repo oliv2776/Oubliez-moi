@@ -88,12 +88,22 @@ Le service Ollama est déjà prévu dans `docker-compose.yml`, désactivé par d
 
 ```bash
 docker compose --profile ia up -d
-docker compose exec ollama ollama pull qwen2.5:7b
 ```
 
-Dans **Réglages → Automatismes**, indiquez l'adresse `http://ollama:11434` et le modèle `qwen2.5:7b`, puis cliquez sur « Enregistrer et tester le modèle ». Comptez environ 5 Go de mémoire vive pour `qwen2.5:7b`, environ 2,5 Go pour `qwen2.5:3b` (deux fois plus rapide, classement un peu moins fin). Sans carte graphique, une analyse prend de quelques secondes à une ou deux minutes, ce qui est sans importance ici : seules les réponses ambiguës sont analysées, quelques-unes par semaine.
+Puis, dans **Réglages → Automatismes**, indiquez l'adresse `http://ollama:11434`, choisissez un modèle dans la liste et cliquez sur « Télécharger ce modèle » : la progression s'affiche dans la page. « Enregistrer et tester le modèle » vérifie ensuite que tout fonctionne.
 
-Le service est bridé pour ne pas gêner le reste du serveur : 4 cœurs au plus, priorité basse, 8 Go de mémoire maximum, et le modèle est déchargé de la mémoire après 5 minutes d'inactivité. Ajustez `cpus` et `mem_limit` dans `docker-compose.yml` si besoin. Le modèle n'est consulté que pour les réponses que les mots-clés ne savent pas classer, et rien ne quitte votre serveur.
+| Modèle | Type | Mémoire | Pour qui |
+|---|---|---|---|
+| **Tev1 4B** (`tev1:4b`) | décision | ~3 Go | **Recommandé** : précis et léger |
+| Nimble 9B (`nimble`) | décision | ~7 Go | Le plus précis, plus lent sur processeur |
+| Tev1 0.8B (`tev1:0.8b`) | décision | ~1 Go | Très petites machines, moins fiable |
+| Qwen2.5 3B / 7B, Qwen3 4B / 8B | conversationnel | 2,5 à 6 Go | Si vous voulez un résumé en une phrase de chaque réponse |
+
+Un **modèle de décision** choisit une catégorie dans la liste et donne une probabilité, en une seule passe : c'est plus rapide et plus fiable pour ce travail, mais il n'écrit pas de texte. Un **modèle conversationnel** classe et résume la réponse. Dans les deux cas, la décision n'est appliquée que si sa probabilité atteint 70 % ; le numéro de dossier du courtier est repéré dans le texte. Tout autre modèle Ollama peut être indiqué avec « Autre modèle… ». Les modèles de décision nécessitent Ollama 0.35 ou plus récent (`docker compose pull ollama`).
+
+Seules les réponses que les mots-clés ne savent pas classer sont analysées, quelques-unes par semaine : une analyse prend de quelques secondes à une minute sur processeur, ce qui est sans importance ici. Rien ne quitte votre serveur.
+
+Le service est bridé pour ne pas gêner le reste du serveur : 4 cœurs au plus, priorité basse, 8 Go de mémoire maximum, et le modèle est déchargé de la mémoire après 5 minutes d'inactivité. Ajustez `cpus` et `mem_limit` dans `docker-compose.yml` si besoin.
 
 Si Ollama tourne déjà ailleurs sur votre réseau, indiquez simplement son adresse (par exemple `http://192.168.1.20:11434`).
 

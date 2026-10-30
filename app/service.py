@@ -496,12 +496,17 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
     if c.kind == "reply" and settings.llm_enabled:
         res = llm.classify(m.subject, mailview.strip_quoted(m.text))
         if res:
-            note = f"Analyse IA : {res['summary']}" if res["summary"] else "Analyse IA effectuée"
-            if res["ticket"]:
-                note += f" (dossier n° {res['ticket']})"
+            label = mailer.KIND_LABELS.get(res["category"], res["category"])
+            if res["summary"]:
+                note = f"Analyse IA : {res['summary']}"
+            else:  # modèle de décision : pas de texte, on affiche la catégorie et sa probabilité
+                note = f"Analyse IA : {label} (probabilité {round(res['confidence'] * 100)} %)"
+            ticket = res["ticket"] or mailer.extract_ticket(f"{m.subject}\n{mailview.strip_quoted(m.text)}")
+            if ticket:
+                note += f" (dossier n° {ticket})"
             add_event(db, req, "info", note[:500])
             if res["confidence"] >= LLM_MIN_CONFIDENCE:
-                return mailer.Classification(res["category"], f"IA, confiance {res['confidence']:.0%}")
+                return mailer.Classification(res["category"], f"IA, probabilité {round(res['confidence'] * 100)} %")
     return c
 
 

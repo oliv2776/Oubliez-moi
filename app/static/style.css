@@ -29,6 +29,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.5; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -228,3 +229,6 @@ kbd { font: 600 .7rem ui-monospace, Menlo, monospace; padding: .05rem .3rem; bor
 }
 
 .ai-note { background: var(--info-soft); color: var(--info); border-radius: 8px; padding: .55rem .8rem; font-size: .88rem; margin-bottom: .6rem; }
+
+.llm-install { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; margin: .6rem 0 .4rem; padding: .6rem .8rem; border: 1px dashed var(--line); border-radius: 8px; }
+.llm-install .progress { flex-basis: 100%; }

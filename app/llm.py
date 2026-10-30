@@ -1,8 +1,17 @@
-"""Classement des réponses ambiguës par un modèle de langage local (Ollama).
+"""Classement des réponses ambiguës par un modèle local (Ollama).
 
 Utilisé seulement quand les règles par mots-clés ne savent pas trancher.
 Les réponses des courtiers contiennent vos données : le modèle doit tourner
 chez vous (Ollama), rien n'est envoyé à un service externe.
+
+Deux types de modèles sont pris en charge :
+
+- « decision » (par défaut) : un modèle de décision (Tev1, Nimble…) interrogé
+  via l'API System One d'Ollama (POST /v1/systemone). Il choisit une catégorie
+  dans une liste et donne une probabilité pour chacune, en une seule passe :
+  plus rapide et plus fiable pour ce travail, mais il n'écrit pas de résumé ;
+- « chat » : un modèle conversationnel (qwen2.5, llama3.1…) via /api/chat,
+  qui renvoie un JSON avec catégorie, confiance, résumé et numéro de dossier.
 """
 from __future__ import annotations
 
@@ -14,6 +23,7 @@ from .config import settings
 
 log = logging.getLogger(__name__)
 
+# Description des catégories pour un modèle conversationnel (consignes en français).
 CATEGORIES = {
     "completed_deleted": "le courtier confirme avoir supprimé les données ou ajouté la personne à une liste d'opposition",
     "completed_no_data": "le courtier dit ne détenir aucune donnée sur la personne",
@@ -28,6 +38,61 @@ CATEGORIES = {
     "reply": "autre cas, ou incertain",
 }
 
+# Même liste pour un modèle de décision. Ces modèles sont entraînés surtout en anglais :
+# les descriptions sont en anglais, le message analysé peut être dans n'importe quelle langue.
+DECISION_CRITERIA = {
+    "completed_deleted": "The company confirms it has deleted or erased the person's data, anonymised it, "
+                         "or added the person to a suppression / opt-out / do-not-contact list.",
+    "completed_no_data": "The company states it holds no personal data about the person, or could not find any record.",
+    "id_request": "The company requires a copy of an ID card, passport or other identity document before acting.",
+    "confirm_link": "The company asks the person to click a link to confirm or verify the request or the email address.",
+    "needs_action": "The company asks for another action: fill in a web form, use a privacy portal, "
+                    "or provide additional information (other than an ID document or the country of residence).",
+    "extension": "The company announces it needs more time and extends the response deadline.",
+    "legit_refusal": "The company refuses the request, invoking its legitimate interests.",
+    "refusal": "The company refuses or declines the request for another reason.",
+    "residence_question": "The company only asks in which country the person lives or resides.",
+    "ack": "A simple acknowledgement of receipt or automatic reply, with no decision yet.",
+    "reply": "None of the above, or the message is unclear.",
+}
+DECISION_INSTRUCTIONS = (
+    "This is a company's reply to a GDPR request asking it to erase a person's personal data "
+    "and to stop using it for direct marketing. What does the reply say? Ignore any quoted copy of the original request."
+)
+
+# Modèles proposés dans l'interface. « memory » : mémoire vive approximative en usage.
+MODELS = [
+    {"name": "tev1:4b", "label": "Tev1 4B — Together AI", "kind": "decision", "memory": "~3 Go",
+     "note": "recommandé : précis (73 % sur les tests publics) et léger"},
+    {"name": "nimble", "label": "Nimble 9B — Bespoke Labs", "kind": "decision", "memory": "~7 Go",
+     "note": "le plus précis (76 % sur les tests publics), plus lent sur processeur"},
+    {"name": "tev1:0.8b", "label": "Tev1 0.8B — Together AI", "kind": "decision", "memory": "~1 Go",
+     "note": "très léger, nettement moins fiable (64 %)"},
+    {"name": "nimble:9b-bf16", "label": "Nimble 9B pleine précision", "kind": "decision", "memory": "~18 Go",
+     "note": "très lourd, sans intérêt sans carte graphique"},
+    {"name": "qwen2.5:3b", "label": "Qwen2.5 3B", "kind": "chat", "memory": "~2,5 Go",
+     "note": "conversationnel : classe et résume en une phrase"},
+    {"name": "qwen2.5:7b", "label": "Qwen2.5 7B", "kind": "chat", "memory": "~5 Go",
+     "note": "conversationnel, plus fiable que le 3B"},
+    {"name": "qwen3:4b", "label": "Qwen3 4B", "kind": "chat", "memory": "~3 Go", "note": "conversationnel, plus récent"},
+    {"name": "qwen3:8b", "label": "Qwen3 8B", "kind": "chat", "memory": "~6 Go", "note": "conversationnel, plus récent"},
+]
+MODELS_BY_NAME = {m["name"]: m for m in MODELS}
+
+
+def normalize(name: str) -> str:
+    """« nimble » et « nimble:latest » désignent le même modèle."""
+    name = (name or "").strip()
+    return name if ":" in name else f"{name}:latest"
+
+
+def catalog_kind(name: str) -> str | None:
+    for m in MODELS:
+        if normalize(m["name"]) == normalize(name):
+            return m["kind"]
+    return None
+
+
 SYSTEM = (
     "Tu analyses la réponse d'une entreprise à une demande d'effacement de données personnelles (RGPD). "
     "Réponds UNIQUEMENT avec un objet JSON : "
@@ -38,49 +103,163 @@ SYSTEM = (
 )
 
 
-def classify(subject: str, text: str, timeout: int = 300) -> dict | None:
-    """Renvoie {"category", "confidence", "summary", "ticket"} ou None si le modèle est indisponible."""
-    if not settings.llm_enabled:
+def _post(path: str, payload: dict, timeout: int) -> dict:
+    req = urllib.request.Request(
+        settings.llm_url.rstrip("/") + path, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
+def _classify_decision(subject: str, text: str, timeout: int) -> dict | None:
+    data = _post("/v1/systemone", {
+        "model": settings.llm_model,
+        "state": {"subject": subject, "message": text[:6000]},
+        "questions": {"category": {"type": "choice", "instructions": DECISION_INSTRUCTIONS, "criteria": DECISION_CRITERIA}},
+        "keep_alive": "5m",
+    }, timeout)
+    ans = data["answers"]["category"]
+    cat = ans.get("choice")
+    if cat not in CATEGORIES:
         return None
-    payload = {
+    probs = ans.get("probabilities") or {}
+    # Probabilité de l'option retenue : c'est elle qu'on compare au seuil d'action.
+    conf = probs.get(cat, ans.get("confidence", 0))
+    return {"category": cat, "confidence": float(conf or 0), "summary": "", "ticket": None, "mode": "decision"}
+
+
+def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
+    data = _post("/api/chat", {
         "model": settings.llm_model,
         "stream": False,
         "format": "json",
         "options": {"temperature": 0},
+        **({"think": False} if settings.llm_model.startswith("qwen3") else {}),
         "messages": [
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": f"Objet : {subject}\n\n{text[:6000]}"},
         ],
-    }
-    req = urllib.request.Request(
-        settings.llm_url.rstrip("/") + "/api/chat", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            content = json.loads(resp.read())["message"]["content"]
-        data = json.loads(content)
-    except (OSError, ValueError, KeyError, TypeError) as e:
-        log.warning("IA locale indisponible : %s", e)
-        return None
-    cat = data.get("category")
+    }, timeout)
+    content = json.loads(data["message"]["content"])
+    cat = content.get("category")
     if cat not in CATEGORIES:
         return None
     try:
-        conf = float(data.get("confidence", 0))
+        conf = float(content.get("confidence", 0))
     except (TypeError, ValueError):
         conf = 0.0
-    ticket = data.get("ticket")
+    ticket = content.get("ticket")
     return {
         "category": cat,
-        "confidence": max(0.0, min(1.0, conf)),
-        "summary": str(data.get("summary") or "")[:400],
+        "confidence": conf,
+        "summary": str(content.get("summary") or "")[:400],
         "ticket": str(ticket)[:80] if ticket and str(ticket).lower() != "null" else None,
+        "mode": "chat",
     }
+
+
+def classify(subject: str, text: str, timeout: int = 300) -> dict | None:
+    """Renvoie {"category", "confidence", "summary", "ticket", "mode"} ou None si le modèle est indisponible."""
+    if not settings.llm_enabled:
+        return None
+    try:
+        if settings.llm_mode == "chat":
+            res = _classify_chat(subject, text, timeout)
+        else:
+            res = _classify_decision(subject, text, timeout)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        log.warning("IA locale indisponible : %s", e)
+        return None
+    if res:
+        res["confidence"] = max(0.0, min(1.0, res["confidence"]))
+    return res
 
 
 def test() -> str:
     sample = "Hello, we have reviewed your request and removed your email address from our marketing database. Kind regards."
     res = classify("Re: your request", sample, timeout=300)
     if res is None:
-        raise RuntimeError(f"pas de réponse exploitable de {settings.llm_url} (modèle « {settings.llm_model} » installé ?)")
-    return f"Modèle opérationnel : « {res['category']} » (confiance {res['confidence']:.0%}) — {res['summary']}"
+        hint = "Ollama 0.35 ou plus récent et un modèle de décision (tev1:4b, nimble) installés ?" if settings.llm_mode != "chat" \
+            else "modèle installé avec ollama pull ?"
+        raise RuntimeError(f"pas de réponse exploitable de {settings.llm_url} pour « {settings.llm_model} » ({hint})")
+    from .mailer import KIND_LABELS
+    detail = f" — {res['summary']}" if res["summary"] else ""
+    return (f"Modèle opérationnel : « {KIND_LABELS.get(res['category'], res['category'])} » "
+            f"(probabilité {round(res['confidence'] * 100)} %){detail}")
+
+
+# ------------------------------------------------------ Gestion des modèles ----
+import re as _re
+import threading as _threading
+import time as _time
+
+_MODEL_NAME_RE = _re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._/-]*(:[a-zA-Z0-9._-]+)?$")
+_installed_cache: dict = {"at": 0.0, "url": "", "names": None}
+PULLS: dict[str, dict] = {}  # téléchargements en cours ou terminés, par nom normalisé
+
+
+def installed_models(max_age: float = 20.0) -> list[str] | None:
+    """Modèles présents dans Ollama (None si Ollama est injoignable ou non configuré)."""
+    if not settings.llm_url:
+        return None
+    now = _time.monotonic()
+    if _installed_cache["names"] is not None and _installed_cache["url"] == settings.llm_url and now - _installed_cache["at"] < max_age:
+        return _installed_cache["names"]
+    try:
+        with urllib.request.urlopen(settings.llm_url.rstrip("/") + "/api/tags", timeout=3) as resp:
+            names = sorted(m["name"] for m in json.loads(resp.read()).get("models", []))
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        log.info("Liste des modèles Ollama indisponible : %s", e)
+        names = None
+    _installed_cache.update(at=now, url=settings.llm_url, names=names)
+    return names
+
+
+def is_installed(name: str) -> bool:
+    names = installed_models() or []
+    return normalize(name) in {normalize(n) for n in names}
+
+
+def _pull_worker(name: str) -> None:
+    key = normalize(name)
+    state = PULLS[key]
+    req = urllib.request.Request(settings.llm_url.rstrip("/") + "/api/pull",
+                                 data=json.dumps({"model": name, "stream": True}).encode(),
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60 * 60) as resp:
+            for raw in resp:
+                line = json.loads(raw.decode() or "{}")
+                if line.get("error"):
+                    raise RuntimeError(line["error"])
+                state["status"] = line.get("status", state["status"])
+                total, done = line.get("total"), line.get("completed")
+                if total and done is not None and total > 10_000_000:  # la grosse couche : les poids du modèle
+                    state["percent"] = int(100 * done / total)
+                if line.get("status") == "success":
+                    state.update(done=True, percent=100, status="installé")
+        if not state["done"]:
+            raise RuntimeError("téléchargement interrompu")
+    except Exception as e:  # noqa: BLE001
+        state.update(done=True, error=str(getattr(e, "reason", e)))
+        log.warning("Téléchargement du modèle %s impossible : %s", name, e)
+    finally:
+        _installed_cache["names"] = None  # forcer la relecture de la liste
+
+
+def start_pull(name: str) -> dict:
+    if not settings.llm_url:
+        raise ValueError("Indiquez d'abord l'adresse d'Ollama")
+    if not _MODEL_NAME_RE.match(name or ""):
+        raise ValueError("Nom de modèle invalide")
+    key = normalize(name)
+    current = PULLS.get(key)
+    if current and not current["done"]:
+        return current
+    PULLS[key] = {"model": name, "status": "démarrage", "percent": None, "done": False, "error": None}
+    _threading.Thread(target=_pull_worker, args=(name,), daemon=True).start()
+    return PULLS[key]
+
+
+def pull_status(name: str) -> dict:
+    return PULLS.get(normalize(name)) or {}

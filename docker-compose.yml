@@ -15,8 +15,8 @@ services:
 
   # IA locale facultative, pour classer les réponses ambiguës.
   # Démarrage : docker compose --profile ia up -d
-  # Modèle    : docker compose exec ollama ollama pull qwen2.5:7b
-  # Puis, dans Réglages → Automatismes : adresse http://ollama:11434, modèle qwen2.5:7b.
+  # Puis, dans Réglages → Automatismes : adresse http://ollama:11434, choisir le modèle
+  # (tev1:4b recommandé) et cliquer sur « Télécharger ce modèle ».
   ollama:
     image: ollama/ollama
     container_name: ollama

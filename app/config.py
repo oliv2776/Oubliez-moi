@@ -71,7 +71,9 @@ class Settings:
 
     # IA locale (Ollama) pour les réponses ambiguës
     llm_url: str = field(default_factory=lambda: _str("LLM_URL"))
-    llm_model: str = field(default_factory=lambda: _str("LLM_MODEL", "qwen2.5:7b"))
+    llm_model: str = field(default_factory=lambda: _str("LLM_MODEL", "tev1:4b"))
+    # decision : modèle de décision via /v1/systemone (Tev1, Nimble) ; chat : modèle conversationnel via /api/chat
+    llm_mode: str = field(default_factory=lambda: _str("LLM_MODE", "decision").lower())
 
     # Notifications
     app_url: str = field(default_factory=lambda: _str("APP_URL"))
@@ -164,6 +166,7 @@ EDITABLE: dict[str, type] = {
     "residence_country": str,
     "llm_url": str,
     "llm_model": str,
+    "llm_mode": str,
     "app_url": str,
     "notify_ntfy_url": str,
     "notify_ntfy_token": str,

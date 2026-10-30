@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 from sqlalchemy import select
 
-from app import confirm, llm, mailer, notify, service
+from app import settings_store, confirm, llm, mailer, notify, service
 from app.config import settings
 from app.db import FAILED, NEEDS_ACTION, QUEUED, REPLIED, SENT, Broker, Event, Profile, Request, SessionLocal, utcnow
 
@@ -157,9 +157,11 @@ class _Ollama(BaseHTTPRequestHandler):
 
 
 def test_local_ai_classifies_ambiguous_reply(client):
+    """Mode conversationnel (/api/chat) : catégorie, résumé et numéro de dossier."""
     srv = HTTPServer(("127.0.0.1", 0), _Ollama)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     settings.llm_url = f"http://127.0.0.1:{srv.server_port}"
+    settings.llm_mode, settings.llm_model = "chat", "qwen2.5:3b"
     try:
         rid = _sent_request(26)
         _reply(rid, "Bonjour, nous avons fait le nécessaire concernant votre profil. Cordialement.", msgid="<ai@b.example>")
@@ -169,6 +171,104 @@ def test_local_ai_classifies_ambiguous_reply(client):
             assert any(e.summary.startswith("Analyse IA") and "A-42" in e.summary for e in r.events)
     finally:
         settings.llm_url = ""
+        settings.llm_mode, settings.llm_model = "decision", "tev1:4b"
+        srv.shutdown()
+
+
+class _DecisionOllama(BaseHTTPRequestHandler):
+    """Faux Ollama : modèles de décision (/v1/systemone), liste (/api/tags) et téléchargement (/api/pull)."""
+    pulled = set()
+
+    def do_GET(self):
+        if self.path == "/api/tags":
+            names = ["tev1:4b", "qwen2.5:3b", "mistral:7b"] + sorted(self.pulled)
+            self._json({"models": [{"name": n} for n in names]})
+
+    def do_POST(self):
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        if self.path == "/v1/systemone":
+            q = body["questions"]["category"]
+            assert q["type"] == "choice" and "completed_no_data" in q["criteria"]
+            assert "message" in body["state"]
+            confident = "nothing" in body["state"]["message"]
+            probs = {"completed_no_data": 0.91, "reply": 0.05} if confident else {"completed_no_data": 0.40, "reply": 0.35}
+            self._json({"model": body["model"], "answers": {"category": {
+                "type": "choice", "choice": "completed_no_data", "probabilities": probs, "confidence": 0.8}}})
+        elif self.path == "/api/pull":
+            self.send_response(200)
+            self.end_headers()
+            for line in ({"status": "pulling manifest"},
+                         {"status": "downloading", "total": 2_000_000_000, "completed": 1_000_000_000},
+                         {"status": "success"}):
+                self.wfile.write((json.dumps(line) + "\n").encode())
+            type(self).pulled.add(body["model"])
+
+    def _json(self, data):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
+    def log_message(self, *a):
+        pass
+
+
+def test_decision_model_classifies_with_probability(client):
+    srv = HTTPServer(("127.0.0.1", 0), _DecisionOllama)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    settings.llm_url = f"http://127.0.0.1:{srv.server_port}"
+    settings.llm_mode, settings.llm_model = "decision", "tev1:4b"
+    try:
+        # Probabilité 91 % : appliqué ; le numéro de dossier vient du texte
+        rid = _sent_request(32)
+        _reply(rid, "Hello, we hold nothing about you anymore. Our reference: CS-55120.", msgid="<dec1@b.example>")
+        with SessionLocal() as db:
+            r = db.get(Request, rid)
+            assert r.status == "completed"
+            note = [e.summary for e in r.events if e.summary.startswith("Analyse IA")][0]
+            assert "aucune donnée" in note and "91 %" in note and "CS-55120" in note
+        # Probabilité 40 % : sous le seuil, la réponse reste à examiner
+        rid = _sent_request(33)
+        _reply(rid, "Bonjour, votre dossier suit son cours chez nos équipes.", msgid="<dec2@b.example>")
+        with SessionLocal() as db:
+            assert db.get(Request, rid).status == "replied"
+    finally:
+        settings.llm_url = ""
+        srv.shutdown()
+
+
+def test_model_picker_download_and_status(client):
+    import time
+    from app import llm
+    srv = HTTPServer(("127.0.0.1", 0), _DecisionOllama)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{srv.server_port}"
+    form = {"_settings_form": "1", "tab": "automatismes", "dry_run": "true", "send_per_hour": "30", "llm_url": url}
+    try:
+        # Modèle du catalogue : le type est imposé, même si le formulaire dit autre chose
+        client.post("/settings", data={**form, "llm_model": "qwen2.5:7b", "llm_mode": "decision"})
+        assert settings.llm_model == "qwen2.5:7b" and settings.llm_mode == "chat"
+        client.post("/settings", data={**form, "llm_model": "nimble"})
+        assert settings.llm_mode == "decision"
+        # « Autre modèle » : champ libre et type choisi
+        client.post("/settings", data={**form, "llm_model": "__custom__", "llm_model_custom": "mistral:7b", "llm_mode": "chat"})
+        assert settings.llm_model == "mistral:7b" and settings.llm_mode == "chat"
+        page = client.get("/settings")
+        assert "Tev1 4B" in page.text and "Nimble 9B" in page.text and "Qwen2.5 3B" in page.text
+        assert "✓ installé" in page.text
+        # Statut puis téléchargement d'un modèle absent
+        st = client.get("/settings/llm-status?model=nimble").json()
+        assert st["reachable"] and not st["installed"]
+        assert client.post("/settings/llm-pull", data={"model": "nimble"}).status_code == 200
+        for _ in range(50):
+            st = client.get("/settings/llm-status?model=nimble").json()
+            if st["pull"].get("done"):
+                break
+            time.sleep(0.05)
+        assert st["pull"]["done"] and not st["pull"]["error"] and st["installed"]
+        assert client.post("/settings/llm-pull", data={"model": "bad name;rm"}).status_code == 400
+    finally:
+        settings_store.reset_to_env()
+        llm._installed_cache["names"] = None
         srv.shutdown()
 
 
