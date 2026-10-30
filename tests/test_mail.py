@@ -101,8 +101,8 @@ def test_registered_domain_uses_public_suffix_list_and_private_suffixes():
 
 def test_classification_ignores_quoted_old_deletion_when_latest_reply_requests_id():
     body = (
-        "Bonjour, merci de nous transmettre une copie de votre pièce d'identité.\\n\\n"
-        "Le 12 octobre 2026, support@example.com a écrit :\\n"
+        "Bonjour, merci de nous transmettre une copie de votre pièce d'identité.\n\n"
+        "Le 12 octobre 2026, support@example.com a écrit :\n"
         "> Bonjour, vos données ont été supprimées de nos bases."
     )
     parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
@@ -111,10 +111,10 @@ def test_classification_ignores_quoted_old_deletion_when_latest_reply_requests_i
 
 def test_classification_ignores_quoted_old_id_request_when_latest_reply_confirms_deletion():
     body = (
-        "Bonjour, vos données ont été supprimées de nos bases.\\n\\n"
-        "-----Original Message-----\\n"
-        "From: support@example.com\\nSent: Monday\\nTo: user@example.com\\n"
-        "Subject: Requête\\nPlease send a copy of your ID."
+        "Bonjour, vos données ont été supprimées de nos bases.\n\n"
+        "-----Original Message-----\n"
+        "From: support@example.com\nSent: Monday\nTo: user@example.com\n"
+        "Subject: Requête\nPlease send a copy of your ID."
     )
     parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
     assert mailer.classify(parsed).kind == "completed_deleted"
