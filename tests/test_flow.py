@@ -22,6 +22,16 @@ def test_pages_render(client):
         assert r.status_code == 200, url
 
 
+def test_csrf_rejects_cross_origin_and_missing_origin(client):
+    payload = {"full_name": "CSRF Test", "emails": "csrf@example.net"}
+    cross = client.post("/profiles", data=payload, headers={"Origin": "https://attacker.example"})
+    assert cross.status_code == 403
+    missing = client.post("/profiles", data=payload, headers={"Origin": ""})
+    assert missing.status_code == 403
+    with SessionLocal() as db:
+        assert db.query(Profile).filter(Profile.full_name == "CSRF Test").count() == 0
+
+
 def test_auth_required():
     from fastapi.testclient import TestClient
     from app.main import app
