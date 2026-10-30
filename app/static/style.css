@@ -418,3 +418,16 @@ form.is-loading input[type="search"] { background-image: linear-gradient(90deg, 
   background-size: 200% 100%; animation: filtering 1s linear infinite; }
 @keyframes filtering { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { form.is-loading input[type="search"] { animation: none; } }
+
+/* Export pour analyse (À traiter) */
+.export-menu { position: relative; display: inline-block; }
+.export-menu > summary { list-style: none; color: inherit; font-size: inherit; }
+.export-menu > summary::-webkit-details-marker { display: none; }
+.export-panel { position: absolute; right: 0; top: calc(100% + .4rem); z-index: 20; width: min(26rem, 90vw);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem;
+  box-shadow: 0 8px 28px rgba(0,0,0,.18); display: grid; gap: .45rem; }
+.export-panel label { display: block; font-weight: 400; font-size: .9rem; line-height: 1.4; margin: 0; padding-left: 1.6rem; text-indent: -1.6rem; }
+.export-panel label input { margin: 0 .5rem 0 0; vertical-align: -1px; width: auto; }
+.export-panel label .small { white-space: normal; }
+.export-panel .export-raw { margin-top: .3rem; color: var(--bad); }
+.export-panel button { justify-self: start; }
