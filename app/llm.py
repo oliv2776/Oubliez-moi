@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -98,13 +99,25 @@ def catalog_kind(name: str) -> str | None:
 
 
 SYSTEM = (
-    "Tu analyses la réponse d'une entreprise à une demande d'effacement de données personnelles (RGPD). "
-    "Réponds UNIQUEMENT avec un objet JSON : "
-    '{"category": "<catégorie>", "confidence": <nombre entre 0 et 1>, "summary": "<une phrase en français>", '
-    '"action": "<ce que la personne doit faire maintenant, une phrase concrète en français, ou null si rien>", '
-    '"ticket": "<numéro de dossier ou null>"}. Catégories possibles :\n'
+    "Tu aides une personne qui a envoyé à une entreprise (courtier en données, régie publicitaire…) une demande RGPD "
+    "d'effacement de ses données (article 17) et d'opposition à la prospection (article 21). Tu lis la réponse de "
+    "l'entreprise et tu dis à la personne, en français, ce qu'elle dit et ce qu'il faut faire.\n"
+    "Réponds UNIQUEMENT avec un objet JSON :\n"
+    '{"category": "<catégorie>", "confidence": <nombre entre 0 et 1>, '
+    '"summary": "<une ou deux phrases : ce qui est déjà fait, ce qui reste en attente, et pourquoi>", '
+    '"action": "<ce que la personne doit faire maintenant : une à trois phrases concrètes, à l\'impératif>", '
+    '"ticket": "<numéro de dossier attribué par l\'entreprise, ou null>"}\n'
+    "Pour « action » : sois précis et appuie-toi sur le message. Cite l'expéditeur ou l'adresse d'où viendra un "
+    "autre e-mail (par exemple « cherchez dans votre boîte l'e-mail de privacy-requests@exemple.com »), le formulaire "
+    "ou la page à utiliser, le délai annoncé. Si une partie de la demande est déjà traitée, dis-le. Si l'entreprise "
+    "renvoie vers d'autres organismes, dis lesquels contacter. N'invente aucun lien ni aucune adresse. "
+    "Si rien n'est à faire, mets null.\n"
+    "« ticket » : uniquement un numéro attribué par l'entreprise ; jamais la référence de la demande qui commence par "
+    "OUBLI- ni aucune autre référence que la personne a elle-même envoyée.\n"
+    "Catégories possibles :\n"
     + "\n".join(f"- {k} : {v}" for k, v in CATEGORIES.items())
-    + "\nIgnore le message cité (notre demande d'origine). En cas de doute, utilise « reply » avec une confiance basse."
+    + "\nIgnore le message cité (notre demande d'origine) et la signature. En cas de doute, utilise « reply » avec "
+    "une confiance basse."
 )
 
 
@@ -139,7 +152,7 @@ def loaded_models() -> list[dict] | None:
 def _classify_decision(subject: str, text: str, timeout: int) -> dict | None:
     data = _post("/v1/systemone", {
         "model": settings.llm_model,
-        "state": {"subject": subject, "message": text[:6000]},
+        "state": {"subject": subject, "message": clean_for_model(text)[:6000]},
         "questions": {"category": {"type": "choice", "instructions": DECISION_INSTRUCTIONS, "criteria": DECISION_CRITERIA}},
         "keep_alive": "5m",
     }, timeout)
@@ -153,6 +166,26 @@ def _classify_decision(subject: str, text: str, timeout: int) -> dict | None:
     return {"category": cat, "confidence": float(conf or 0), "summary": "", "ticket": None, "mode": "decision"}
 
 
+_LINK = re.compile(r"<?https?://[^\s>]+>?;?")
+
+
+def clean_for_model(text: str) -> str:
+    """Retire le bruit qui égare le modèle : liens de pistage interminables, lignes vides en série."""
+    def short(m):
+        domain = re.sub(r"^<?https?://", "", m.group(0)).split("/", 1)[0].rstrip(">;")
+        return f"[lien {domain}]"
+    text = _LINK.sub(short, text or "")
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _their_ticket(value) -> str | None:
+    """Numéro de dossier de l'entreprise ; jamais notre propre référence (OUBLI-…)."""
+    value = str(value or "").strip()
+    if not value or value.lower() in ("null", "none") or value.upper().startswith(settings.reference_prefix.upper()):
+        return None
+    return value[:80]
+
+
 def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
     data = _post("/api/chat", {
         "model": settings.llm_model,
@@ -162,7 +195,7 @@ def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
         **({"think": False} if settings.llm_model.startswith("qwen3") else {}),
         "messages": [
             {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f"Objet : {subject}\n\n{text[:6000]}"},
+            {"role": "user", "content": f"Objet : {subject}\n\n{clean_for_model(text)[:6000]}"},
         ],
     }, timeout)
     content = json.loads(data["message"]["content"])
@@ -180,7 +213,7 @@ def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
         "confidence": conf,
         "summary": str(content.get("summary") or "")[:400],
         "action": str(action)[:400] if action and str(action).lower() not in ("null", "none", "") else None,
-        "ticket": str(ticket)[:80] if ticket and str(ticket).lower() != "null" else None,
+        "ticket": _their_ticket(ticket),
         "mode": "chat",
     }
 

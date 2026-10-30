@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 
 from . import mailer, mailview
+from .config import settings
 from .db import Request
 
 # Que faire, selon ce que dit la réponse (utilisé quand l'IA n'a pas donné de conseil).
@@ -93,6 +94,8 @@ def for_request(r: Request) -> Insight | None:
             text = e.summary[len("Analyse IA : "):]
             ins.by_ai = ins.by_ai or True
             # Modèle de décision : « catégorie (probabilité 88 %) », pas un résumé
+            # Notre propre référence a parfois été prise pour un numéro de dossier : on l'enlève.
+            text = re.sub(r"\s*\(dossier n° " + re.escape(settings.reference_prefix) + r"-[^)]*\)", "", text, flags=re.I)
             if not re.search(r"\(probabilité \d+ %\)", text):
                 ins.summary, ins.ai_summary = text, True
             proba = re.search(r"probabilité (\d+) %", text)
