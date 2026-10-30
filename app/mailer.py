@@ -179,8 +179,8 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
             authserv = value.split(";", 1)[0].strip().split()[0].lower() if value else ""
             if authserv != trusted_authserv:
                 continue
-            has_dmarc = bool(re.search(r"(?:^|;)\s*dmarc\s*=\s*pass\\b", value, re.I))
-            has_aligned_mechanism = bool(re.search(r"(?:^|;)\s*(?:spf|dkim)\s*=\s*pass\\b", value, re.I))
+            has_dmarc = bool(re.search(r"(?:^|;)\s*dmarc\s*=\s*pass\b", value, re.I))
+            has_aligned_mechanism = bool(re.search(r"(?:^|;)\s*(?:spf|dkim)\s*=\s*pass\b", value, re.I))
             dmarc_pass = has_dmarc and has_aligned_mechanism
             if dmarc_pass:
                 break
