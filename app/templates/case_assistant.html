@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Assistant RGPD — {{ case.organization.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><p class="small muted"><a href="/privacy-cases/{{ case.id }}">Dossier RGPD #{{ case.id }}</a></p>
+    <h1>Assistant RGPD</h1><p class="muted">{{ case.organization.name }} · {{ case.type_label }}</p></div>
+  <a class="btn" href="/privacy-cases/{{ case.id }}/export.zip">Exporter les preuves (.zip)</a>
+</div>
+<div class="banner info">L’assistant fournit une aide indicative. Il ne vérifie pas les faits, ne donne pas d’avis juridique et n’envoie aucun message. Relisez et validez chaque décision et chaque brouillon.</div>
+<div class="grid c2">
+  <section class="card">
+    <h2>Comprendre une réponse</h2>
+    <p class="small muted">Collez uniquement le texte utile de la réponse reçue. L’analyse utilise les règles locales déjà présentes dans Oubliez-moi. Le texte brut n’est pas conservé ; seule la catégorie, un indice court et la piste de suivi sont ajoutés à la chronologie.</p>
+    <form method="post" action="/privacy-cases/{{ case.id }}/assistant/analyze">
+      <label>Objet du message</label><input name="subject" maxlength="300" placeholder="Re: votre demande RGPD">
+      <label>Texte de la réponse</label><textarea name="reply_text" rows="9" required maxlength="20000" placeholder="Collez ici la réponse de l’organisme…"></textarea>
+      <button class="btn primary">Analyser la réponse</button>
+    </form>
+    {% if analysis %}
+    <div class="assistant-result">
+      <h3>Résultat indicatif : {{ analysis.label }}</h3>
+      {% if analysis.reason %}<p class="small">Indice détecté : « {{ analysis.reason }} »</p>{% endif %}
+      <p><strong>Piste de suivi :</strong> {{ analysis.action }}</p>
+      <p class="small muted">{{ analysis.caution }}</p>
+    </div>
+    {% elif latest_analysis %}
+    <div class="assistant-result">
+      <h3>Dernière analyse</h3><p>{{ latest_analysis.summary }}</p>
+      <pre>{{ latest_analysis.body }}</pre>
+      <p class="small muted">Enregistrée le {{ latest_analysis.at.strftime('%d/%m/%Y à %H:%M') if latest_analysis.at else '—' }}.</p>
+    </div>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Préparer un courrier</h2>
+    <p class="small muted">Choisissez l’objectif, puis relisez et modifiez librement le texte avant de l’enregistrer comme brouillon.</p>
+    <form method="get" action="/privacy-cases/{{ case.id }}/assistant">
+      <label>Type de courrier</label>
+      <select name="kind">
+        <option value="initial" {{ 'selected' if kind=='initial' }}>Demande initiale</option>
+        <option value="followup" {{ 'selected' if kind=='followup' }}>Relance</option>
+        <option value="appeal" {{ 'selected' if kind=='appeal' }}>Demande de réexamen</option>
+      </select>
+      <button class="btn">Générer le brouillon</button>
+    </form>
+    <form method="post" action="/privacy-cases/{{ case.id }}/assistant/draft">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <label>Brouillon modifiable</label>
+      <textarea name="draft_text" rows="17" required maxlength="30000">{{ draft_text }}</textarea>
+      <button class="btn primary">Enregistrer dans la chronologie</button>
+    </form>
+    <p class="small muted">Le brouillon est conservé dans le dossier. Aucun e-mail n’est envoyé et aucune adresse n’est contactée.</p>
+  </section>
+</div>
+<section class="card">
+  <h2>Éléments conservés</h2>
+  <p class="small muted">Les événements, références de pièces, analyses et brouillons sont inclus dans l’export ZIP, avec leurs dates. Les fichiers externes référencés par lien ou chemin ne sont pas téléchargés ni intégrés automatiquement.</p>
+  <a href="/privacy-cases/{{ case.id }}">Revenir à la chronologie du dossier</a>
+</section>
+{% endblock %}
