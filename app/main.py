@@ -825,7 +825,6 @@ async def senders_action(request: HttpRequest, db: Session = Depends(get_db)):
     return back(nxt)
 
 
-@app.get("/export.csv")
 def _csv_safe(value) -> str:
     """Neutralise les cellules susceptibles d'être interprétées comme une formule par un tableur."""
     text = "" if value is None else str(value)
@@ -834,6 +833,7 @@ def _csv_safe(value) -> str:
     return text
 
 
+@app.get("/export.csv")
 def export_csv(db: Session = Depends(get_db)):
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
