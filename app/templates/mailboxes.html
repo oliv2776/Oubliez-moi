@@ -11,6 +11,13 @@
 
 <div id="live" class="banner info" hidden></div>
 
+{% if settings_box_hidden %}
+<form method="post" action="/mailboxes/settings-account/restore" class="hint-line">
+  <span class="small muted">La boîte des réglages ({{ settings_box }}) n'est pas analysée ici.</span>
+  <button class="btn sm link">L'ajouter à la liste</button>
+</form>
+{% endif %}
+
 {% if not boxes %}
 <div class="card empty">
   <h2>Aucune boîte pour l'instant</h2>
@@ -29,15 +36,20 @@
       </div>
       <span class="tag">{{ b.provider }}</span>
     </div>
+    {% if b.linked_settings or b.address|lower == settings_box %}
+      <p class="small muted" style="margin:.1rem 0 .4rem">Aussi la boîte qui relève les réponses des courtiers{% if b.linked_settings %} : sa connexion se règle dans <a href="/settings#releve">Réglages</a>{% endif %}.</p>
+    {% endif %}
     {% if b.scanning %}
       <p class="small" style="color:var(--info)">⟳ Analyse en cours{% if b.progress %} : {{ b.progress }}{% endif %}</p>
     {% elif b.last_error %}
       <p class="small" style="color:var(--bad)">{{ b.last_error }}</p>
+    {% elif not b.last_scan_at %}
+      <p class="small">Pas encore analysée : rien n'est lu tant que vous ne lancez pas l'analyse.</p>
     {% else %}
       <p class="small muted">{{ per_box.get(b.id, 0) }} expéditeur(s) à traiter · analysée le {{ b.last_scan_at|dt }}</p>
     {% endif %}
     <div class="actions">
-      <form method="post" action="/mailboxes/{{ b.id }}/scan" class="inline"><button class="btn sm" {{ 'disabled' if b.scanning }}>Analyser</button></form>
+      <form method="post" action="/mailboxes/{{ b.id }}/scan" class="inline"><button class="btn sm {{ 'primary' if not b.last_scan_at and not b.scanning }}" {{ 'disabled' if b.scanning }}>Analyser</button></form>
       <a class="btn sm" href="/mailboxes/{{ b.id }}/edit">Réglages</a>
     </div>
   </div>

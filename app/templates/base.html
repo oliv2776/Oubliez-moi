@@ -7,32 +7,100 @@
   <title>{% block title %}Oubliez-moi{% endblock %} · Oubliez-moi</title>
   <link rel="stylesheet" href="/static/style.css?v={{ version }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='%2323524a' stroke-width='2.5'/></svg>">
+  <script>document.documentElement.classList.add("js")</script>
   <script defer src="/static/i18n.js?v={{ version }}"></script>
 </head>
-<body>
+{%- set ICONS = {
+  'dashboard': '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4.5" rx="1.5"/><rect x="13.5" y="11" width="7" height="9.5" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  'tasks': '<path d="M3.5 13.5 6 5.5h12l2.5 8"/><path d="M3.5 13.5v5A1.5 1.5 0 0 0 5 20h14a1.5 1.5 0 0 0 1.5-1.5v-5h-5a3.5 3.5 0 0 1-7 0z"/>',
+  'profiles': '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/>',
+  'requests': '<path d="M20.5 3.5 10 14"/><path d="M20.5 3.5 14 20.5l-4-6.5-6.5-4z"/>',
+  'brokers': '<rect x="4.5" y="3.5" width="15" height="17" rx="1.5"/><path d="M8.5 7.5h2M13.5 7.5h2M8.5 11.5h2M13.5 11.5h2M10.5 20.5v-4h3v4"/>',
+  'mailboxes': '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/>',
+  'exposures': '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="m8.2 10.9 7.6-3.8M8.2 13.1l7.6 3.8"/>',
+  'cases': '<path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4.5l2 2.5H19A1.5 1.5 0 0 1 20.5 9.5V18A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z"/>',
+  'settings': '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  'logout': '<path d="M14 4.5h4A1.5 1.5 0 0 1 19.5 6v12a1.5 1.5 0 0 1-1.5 1.5h-4"/><path d="m10 8-4 4 4 4M6 12h9"/>',
+  'menu': '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  'close': '<path d="M6 6l12 12M18 6 6 18"/>',
+  'search': '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+} -%}
+{%- macro icon(name) -%}<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">{{ ICONS[name]|safe }}</svg>{%- endmacro -%}
+{%- macro navlink(href, name, label, active, extra='') -%}
+<a href="{{ href }}"{% if active %} aria-current="page"{% endif %}>{{ icon(name) }}<span>{{ label }}</span>{{ extra|safe }}</a>
+{%- endmacro -%}
 {% set path = request.url.path %}
-{% if request.session.get('user') %}
-<header class="top"><div class="inner">
+{% set logged_in = request.session.get('user') %}
+<body class="{{ 'with-nav' if logged_in }}">
+{% if logged_in %}
+{% set todo_pill = '<span class="pill">%d</span>'|format(nav_todo) if nav_todo else '' %}
+<a class="skip" href="#contenu">Aller au contenu</a>
+<div class="mobilebar">
+  <button type="button" class="menu-btn" aria-controls="sidebar" aria-expanded="false">{{ icon('menu') }}<span>Menu</span></button>
   <a class="brand" href="/"><span class="dot"></span><span class="t">Oubliez-moi</span></a>
-  <form class="nav-search" action="/search" method="get" role="search"><input type="search" name="q" placeholder="Rechercher…" aria-label="Recherche globale"><button class="btn sm" aria-label="Rechercher">⌕</button></form>
-  <nav class="main">
-    <a href="/" class="{{ 'active' if path == '/' }}">Tableau de bord</a>
-    <a href="/profiles" class="{{ 'active' if path.startswith('/profiles') }}">Profils</a>
-    <a href="/requests" class="{{ 'active' if path.startswith('/requests') }}">Demandes</a>
-    <a href="/privacy-cases" class="{{ 'active' if path.startswith('/privacy-cases') or path.startswith('/organizations') }}">Dossiers RGPD</a>
-    <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}">À traiter{% if nav_todo %}<span class="pill">{{ nav_todo }}</span>{% endif %}</a>
-    <a href="/brokers" class="{{ 'active' if path.startswith('/brokers') }}">Courtiers</a>
-    <a href="/mailboxes" class="{{ 'active' if path.startswith('/mailboxes') }}">Boîtes mail</a>
-    <a href="/exposures" class="{{ 'active' if path.startswith('/exposures') }}">Expositions</a>
-    <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Réglages</a>
+  {% if nav_todo %}<a class="mobile-todo" href="/tasks">À traiter{{ todo_pill|safe }}</a>{% endif %}
+</div>
+<aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+  <div class="sb-head">
+    <a class="brand" href="/"><span class="dot"></span><span class="t">Oubliez-moi</span></a>
+    <button type="button" class="sb-close" aria-label="Fermer le menu">{{ icon('close') }}</button>
+  </div>
+  <form class="sb-search" action="/search" method="get" role="search">
+    {{ icon('search') }}<input type="search" name="q" placeholder="Rechercher…" aria-label="Recherche globale" value="{{ q if path == '/search' and q else '' }}">
+  </form>
+  <nav class="sb-nav">
+    {{ navlink('/', 'dashboard', 'Tableau de bord', path == '/') }}
+    {{ navlink('/tasks', 'tasks', 'À traiter', path.startswith('/tasks'), todo_pill) }}
+
+    <p class="sb-group" id="nav-courtiers">Effacement chez les courtiers</p>
+    <div role="group" aria-labelledby="nav-courtiers">
+      {{ navlink('/profiles', 'profiles', 'Profils', path.startswith('/profiles')) }}
+      {{ navlink('/requests', 'requests', 'Demandes', path.startswith('/requests')) }}
+      {{ navlink('/brokers', 'brokers', 'Courtiers', path.startswith('/brokers')) }}
+    </div>
+
+    <p class="sb-group" id="nav-boites">Ménage des boîtes mail</p>
+    <div role="group" aria-labelledby="nav-boites">
+      {{ navlink('/mailboxes', 'mailboxes', 'Boîtes mail', path.startswith('/mailboxes') or path.startswith('/senders')) }}
+      {{ navlink('/exposures', 'exposures', 'Expositions', path.startswith('/exposures')) }}
+    </div>
+
+    <p class="sb-group" id="nav-droits">Autres droits RGPD</p>
+    <div role="group" aria-labelledby="nav-droits">
+      {{ navlink('/privacy-cases', 'cases', 'Dossiers RGPD', path.startswith('/privacy-cases') or path.startswith('/organizations')) }}
+    </div>
   </nav>
-  <label class="small" for="language-switch" style="display:flex;align-items:center;gap:.3rem"><span aria-hidden="true">🌐</span><select id="language-switch" aria-label="Language" style="width:auto;padding:.35rem"><option value="fr">Français</option><option value="en">English</option></select></label>
-  <form method="post" action="/logout" class="inline"><button class="btn sm">Déconnexion</button></form>
-</div></header>
+  <div class="sb-foot">
+    <nav class="sb-nav" aria-label="Compte">{{ navlink('/settings', 'settings', 'Réglages', path.startswith('/settings')) }}</nav>
+    <div class="sb-row">
+      <label for="language-switch" class="sb-lang"><span class="visually-hidden">Langue</span>
+        <select id="language-switch" aria-label="Language"><option value="fr">Français</option><option value="en">English</option></select></label>
+      <form method="post" action="/logout" class="inline"><button class="sb-logout">{{ icon('logout') }}<span>Déconnexion</span></button></form>
+    </div>
+  </div>
+</aside>
+<div class="sb-backdrop" hidden></div>
+<script>
+(function () {
+  const body = document.body, btn = document.querySelector(".menu-btn"), sidebar = document.getElementById("sidebar");
+  const backdrop = document.querySelector(".sb-backdrop"), closeBtn = document.querySelector(".sb-close");
+  function set(open) {
+    body.classList.toggle("nav-open", open);
+    btn.setAttribute("aria-expanded", String(open));
+    backdrop.hidden = !open;
+    if (open) sidebar.querySelector("a[aria-current], a").focus(); else btn.focus();
+  }
+  btn.addEventListener("click", () => set(true));
+  closeBtn.addEventListener("click", () => set(false));
+  backdrop.addEventListener("click", () => set(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && body.classList.contains("nav-open")) set(false); });
+})();
+</script>
 {% else %}
 <div style="display:flex;justify-content:flex-end;max-width:1100px;margin:.75rem auto;padding:0 1rem"><label class="small" for="language-switch">🌐 <select id="language-switch" aria-label="Language" style="width:auto;padding:.35rem"><option value="fr">Français</option><option value="en">English</option></select></label></div>
 {% endif %}
-<main>
+<div class="content">
+<main id="contenu">
   {% if request.session.get('user') and settings.dry_run %}
   <div class="banner warn"><strong>Mode simulation.</strong> Aucun e-mail n'est réellement envoyé. Une fois la messagerie testée et le courrier relu, passez en envoi réel dans <a href="/settings">Réglages</a>.</div>
   {% endif %}
@@ -46,5 +114,6 @@
   {% block content %}{% endblock %}
 </main>
 <footer><a href="https://github.com/oliv2776/Oubliez-moi">Oubliez-moi</a> {{ version }} · auto-hébergé · catalogue de courtiers : <a href="https://github.com/datenanfragen/data">Datenanfragen.de</a> (CC0)</footer>
+</div>
 </body>
 </html>

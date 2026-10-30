@@ -17,7 +17,7 @@
 | **Liens de confirmation** | Les liens « confirmez votre demande » sont ouverts automatiquement (désactivable) : seulement sur le domaine du courtier ou une plateforme RGPD connue, jamais un lien d'annulation ni un lien de désinscription ou une adresse du réseau local. Les redirections sont suivies une à une (5 au maximum) et chaque étape est revérifiée. |
 | **IA locale (facultatif)** | Un modèle qui tourne chez vous avec Ollama classe et résume les réponses que les mots-clés ne comprennent pas. Rien n'est envoyé à un service externe. |
 | **Boîte mail rangée** | Les réponses des courtiers sont déplacées dans un dossier (ou libellées sur Gmail) et peuvent être marquées comme lues. |
-| **Boîtes mail (séparé)** | Ajoutez vos boîtes (Gmail, Hotmail/Outlook, Proton, iCloud, autre IMAP) : Oubliez-moi repère qui vous écrit en masse, vous désabonne en un clic quand l'expéditeur le permet, et range leurs e-mails dans un dossier. Seuls les en-têtes sont lus. |
+| **Boîtes mail (séparé)** | Ajoutez vos boîtes (Gmail, Hotmail/Outlook, Proton, iCloud, autre IMAP) : Oubliez-moi repère qui vous écrit en masse, vous désabonne en un clic quand l'expéditeur le permet, et range leurs e-mails dans un dossier. Seuls les en-têtes sont lus. La boîte déjà configurée dans les réglages y figure d'office (sans copier son mot de passe) ; rien n'y est lu avant que vous lanciez l'analyse. |
 | **Données protégées** | Mots de passe et jetons chiffrés dans la base ; sauvegardes automatiques et chiffrées vers votre pool. |
 | **Notifications** | ntfy, Gotify ou récapitulatif quotidien par e-mail, uniquement quand une décision vous attend. |
 | **Renvoi périodique** | Comme Incogni : 90 jours après une suppression confirmée, la demande est renvoyée, parce que les courtiers recollectent les données. |
@@ -110,6 +110,21 @@ Seules les réponses que les mots-clés ne savent pas classer sont analysées, q
 Le service est bridé pour ne pas gêner le reste du serveur : 4 cœurs au plus, priorité basse, 8 Go de mémoire maximum, et le modèle est déchargé de la mémoire après 5 minutes d'inactivité. Ajustez `cpus` et `mem_limit` dans `docker-compose.yml` si besoin.
 
 Si Ollama tourne déjà ailleurs sur votre réseau, indiquez simplement son adresse (par exemple `http://192.168.1.20:11434`).
+
+**Ollama installé directement sur le serveur** (script `curl -fsSL https://ollama.com/install.sh | sh`) : il n'écoute alors que sur `127.0.0.1`, que le conteneur ne peut pas joindre. Faites-le écouter sur le réseau et gardez les mêmes limites que le service Docker avec `sudo systemctl edit ollama` :
+
+```ini
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_KEEP_ALIVE=5m"
+Environment="OLLAMA_NUM_PARALLEL=1"
+Environment="OLLAMA_MAX_LOADED_MODELS=1"
+CPUQuota=400%
+MemoryMax=8G
+Nice=10
+```
+
+puis `sudo systemctl restart ollama`, et indiquez l'adresse `http://host.docker.internal:11434` dans les réglages. Ollama n'a pas de mot de passe : avec `ufw`, n'ouvrez le port qu'aux conteneurs (`sudo ufw allow from 172.16.0.0/12 to any port 11434 proto tcp`). N'activez pas en plus le profil `ia`.
 
 ## Boîtes mail : désinscriptions et rangement
 

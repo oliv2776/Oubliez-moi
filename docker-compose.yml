@@ -6,6 +6,10 @@ services:
     container_name: oubliez-moi
     restart: unless-stopped
     env_file: .env
+    # Permet de joindre un service installé directement sur le serveur (Ollama par exemple)
+    # à l'adresse http://host.docker.internal:11434.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       # Par défaut, accessible uniquement depuis le serveur (127.0.0.1).
       # Pour y accéder depuis votre réseau local, mettez BIND_ADDRESS=0.0.0.0 dans .env.
