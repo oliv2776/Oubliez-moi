@@ -216,17 +216,17 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
             dmarc_from = ""
             aligned_pass = False
             for clause in clauses:
-                if re.match(r"dmarc\\s*=\\s*pass\\b", clause, re.I):
-                    hit = re.search(r"\\bheader\\.from\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                if re.match(r"dmarc\s*=\s*pass\b", clause, re.I):
+                    hit = re.search(r"\bheader\.from\s*=\s*([^\s;()]+)", clause, re.I)
                     dmarc_from = hit.group(1).strip(".").lower() if hit else ""
-                elif re.match(r"spf\\s*=\\s*pass\\b", clause, re.I):
-                    hit = re.search(r"\\bsmtp\\.mailfrom\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                elif re.match(r"spf\s*=\s*pass\b", clause, re.I):
+                    hit = re.search(r"\bsmtp\.mailfrom\s*=\s*([^\s;()]+)", clause, re.I)
                     aligned_pass = aligned_pass or bool(
                         hit and "@" in hit.group(1)
                         and registered_domain(hit.group(1).rsplit("@", 1)[-1]) == registered_domain(from_domain)
                     )
-                elif re.match(r"dkim\\s*=\\s*pass\\b", clause, re.I):
-                    hit = re.search(r"\\bheader\\.d\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                elif re.match(r"dkim\s*=\s*pass\b", clause, re.I):
+                    hit = re.search(r"\bheader\.d\s*=\s*([^\s;()]+)", clause, re.I)
                     aligned_pass = aligned_pass or bool(
                         hit and registered_domain(hit.group(1).strip(".").lower()) == registered_domain(from_domain)
                     )
