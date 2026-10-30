@@ -208,10 +208,31 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         # Plusieurs résultats du même authserv-id peuvent signaler un header forgé
         # conservé par le relais : dans le doute, ne pas authentifier.
         if len(trusted_results) == 1:
-            value = trusted_results[0]
-            has_dmarc = bool(re.search(r"(?:^|;)\s*dmarc\s*=\s*pass\b", value, re.I))
-            has_aligned_mechanism = bool(re.search(r"(?:^|;)\s*(?:spf|dkim)\s*=\s*pass\b", value, re.I))
-            dmarc_pass = has_dmarc and has_aligned_mechanism
+            # DMARC passe uniquement si l'identité authentifiée est alignée
+            # avec le domaine visible dans From. Un SPF/DKIM pass sur une autre
+            # identité (Return-Path ou signature tierce) ne suffit pas.
+            clauses = [part.strip() for part in trusted_results[0].split(";")[1:]]
+            from_domain = sender.rsplit("@", 1)[-1].lower() if "@" in sender else ""
+            dmarc_from = ""
+            aligned_pass = False
+            for clause in clauses:
+                if re.match(r"dmarc\\s*=\\s*pass\\b", clause, re.I):
+                    hit = re.search(r"\\bheader\\.from\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                    dmarc_from = hit.group(1).strip(".").lower() if hit else ""
+                elif re.match(r"spf\\s*=\\s*pass\\b", clause, re.I):
+                    hit = re.search(r"\\bsmtp\\.mailfrom\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                    aligned_pass = aligned_pass or bool(
+                        hit and "@" in hit.group(1)
+                        and registered_domain(hit.group(1).rsplit("@", 1)[-1]) == registered_domain(from_domain)
+                    )
+                elif re.match(r"dkim\\s*=\\s*pass\\b", clause, re.I):
+                    hit = re.search(r"\\bheader\\.d\\s*=\\s*([^\\s;()]+)", clause, re.I)
+                    aligned_pass = aligned_pass or bool(
+                        hit and registered_domain(hit.group(1).strip(".").lower()) == registered_domain(from_domain)
+                    )
+            dmarc_pass = bool(
+                dmarc_from and registered_domain(dmarc_from) == registered_domain(from_domain) and aligned_pass
+            )
     return ParsedMail(
         uid=uid,
         from_addr=sender,
