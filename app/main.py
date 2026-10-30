@@ -7,6 +7,7 @@ import io
 import logging
 import re
 import time
+from urllib.parse import urlsplit
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -89,6 +90,36 @@ templates = Jinja2Templates(directory=BASE / "templates")
 PUBLIC_PATHS = ("/login", "/static", "/healthz")
 
 
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """Bloque les requêtes mutantes cross-origin, y compris le formulaire de connexion.
+
+    Les navigateurs modernes envoient Origin sur les POST ; Referer sert de repli.
+    APP_URL fixe l'origine publique derrière un reverse proxy.
+    """
+    async def dispatch(self, request, call_next):
+        if request.method in {"GET", "HEAD", "OPTIONS", "TRACE"}:
+            return await call_next(request)
+        source = request.headers.get("origin") or request.headers.get("referer")
+        if not source or request.headers.get("sec-fetch-site", "").lower() == "cross-site":
+            return JSONResponse({"detail": "Requête cross-site refusée (protection CSRF)."}, status_code=403)
+        try:
+            supplied = urlsplit(source)
+            expected_url = settings.app_url or f"{request.url.scheme}://{request.headers.get('host', '')}"
+            expected = urlsplit(expected_url)
+            supplied_port = supplied.port or (443 if supplied.scheme == "https" else 80)
+            expected_port = expected.port or (443 if expected.scheme == "https" else 80)
+            same_origin = (
+                supplied.scheme in {"http", "https"} and bool(supplied.hostname)
+                and supplied.hostname.lower() == (expected.hostname or "").lower()
+                and supplied_port == expected_port
+            )
+        except ValueError:
+            same_origin = False
+        if not same_origin:
+            return JSONResponse({"detail": "Origine de requête invalide (protection CSRF)."}, status_code=403)
+        return await call_next(request)
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if not request.url.path.startswith(PUBLIC_PATHS) and not request.session.get("user"):
@@ -97,6 +128,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(AuthMiddleware)
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, same_site="lax", max_age=7 * 24 * 3600, https_only=settings.cookie_secure)
 
 
