@@ -5,6 +5,7 @@
 {% block content %}
 <div class="page-head" style="margin-bottom:.75rem">
   <div><h1>À traiter</h1><p class="muted" style="margin:0">Ce que l'automatisation ne peut pas trancher seule. Chaque action passe à l'élément suivant.</p></div>
+  <a class="btn sm" href="/tasks/reanalysis">Réanalyser les réponses</a>
 </div>
 
 <nav class="chips" aria-label="Filtrer">
@@ -12,6 +13,17 @@
   <a href="/tasks{{ '?cat=' ~ key if key }}" class="chip {{ 'active' if cat == key }}">{{ label }} <span class="n">{{ n }}</span></a>
   {% endfor %}
 </nav>
+
+{% if reanalysis_running %}
+<div class="banner info">Réanalyse des réponses en cours. <a href="/tasks/reanalysis">Suivre</a></div>
+{% elif reanalysis_count %}
+<div class="banner info"><strong>{{ reanalysis_count }} correction(s) proposée(s)</strong> par la réanalyse des réponses. <a href="/tasks/reanalysis">Les examiner</a></div>
+{% elif reanalysis_suggest %}
+<div class="banner info" style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+  <span>Le modèle d'IA a changé ({{ settings.llm_model }}) : les réponses en attente ont été classées avec l'ancien.</span>
+  <form method="post" action="/tasks/reanalysis/start" class="inline"><button class="btn sm">Les réanalyser</button></form>
+</div>
+{% endif %}
 
 {% if late_cases or soon_cases %}
 <div class="card" style="margin-bottom:1rem">

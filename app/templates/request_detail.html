@@ -78,6 +78,10 @@
       {% if r.broker.email and r.sent_at and r.status not in ('completed', 'cancelled') %}
       <form method="post" action="/requests/{{ r.id }}/send-reminder" style="margin-top:.5rem"><button class="btn sm">Envoyer une relance maintenant</button></form>
       {% endif %}
+      {% if r.status in ('replied', 'needs_action', 'sent', 'overdue') and r.events|selectattr('kind', 'equalto', 'reply')|list %}
+      <form method="post" action="/tasks/reanalysis/start" style="margin-top:.5rem"><input type="hidden" name="rid" value="{{ r.id }}">
+        <button class="btn sm">Réanalyser la dernière réponse</button></form>
+      {% endif %}
     </div>
 
     <div class="card">
