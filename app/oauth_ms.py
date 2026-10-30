@@ -17,6 +17,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from .net import safe_urlopen
+
 AUTHORITY = os.environ.get("MS_AUTHORITY", "https://login.microsoftonline.com")
 SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
@@ -33,7 +35,7 @@ def _post(url: str, data: dict) -> dict:
     req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(),
                                  headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with safe_urlopen(req, timeout=30, allow_private=False) as resp:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         try:
