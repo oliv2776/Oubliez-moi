@@ -73,7 +73,12 @@ def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
 
 
 def _secret(mb: Mailbox) -> str:
-    return crypto.decrypt(mb.secret_enc)
+    try:
+        return crypto.decrypt(mb.secret_enc)
+    except crypto.DecryptionError as exc:
+        raise MailboxError(
+            "Secret de cette boîte illisible : restaurez la clé ENCRYPTION_KEY d'origine avant de reconnecter la boîte."
+        ) from exc
 
 
 def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
