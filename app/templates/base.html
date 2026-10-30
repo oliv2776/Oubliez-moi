@@ -7,6 +7,7 @@
   <title>{% block title %}Oubliez-moi{% endblock %} · Oubliez-moi</title>
   <link rel="stylesheet" href="/static/style.css?v={{ version }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='%2323524a' stroke-width='2.5'/></svg>">
+  <script defer src="/static/i18n.js?v={{ version }}"></script>
 </head>
 <body>
 {% set path = request.url.path %}
@@ -25,8 +26,11 @@
     <a href="/exposures" class="{{ 'active' if path.startswith('/exposures') }}">Expositions</a>
     <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Réglages</a>
   </nav>
+  <label class="small" for="language-switch" style="display:flex;align-items:center;gap:.3rem"><span aria-hidden="true">🌐</span><select id="language-switch" aria-label="Language" style="width:auto;padding:.35rem"><option value="fr">Français</option><option value="en">English</option></select></label>
   <form method="post" action="/logout" class="inline"><button class="btn sm">Déconnexion</button></form>
 </div></header>
+{% else %}
+<div style="display:flex;justify-content:flex-end;max-width:1100px;margin:.75rem auto;padding:0 1rem"><label class="small" for="language-switch">🌐 <select id="language-switch" aria-label="Language" style="width:auto;padding:.35rem"><option value="fr">Français</option><option value="en">English</option></select></label></div>
 {% endif %}
 <main>
   {% if request.session.get('user') and settings.dry_run %}
