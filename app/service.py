@@ -424,11 +424,34 @@ def check_deadlines() -> int:
 
 # ------------------------------------------------------------- Réponses ----
 
+def _sender_matches_broker(req: Request, from_addr: str) -> bool:
+    """Évite de rattacher automatiquement une référence connue à un domaine tiers.
+
+    Les plateformes de gestion des demandes RGPD courantes sont admises en plus
+    du domaine du courtier. Ce contrôle de cohérence ne remplace pas SPF/DKIM/DMARC.
+    """
+    if "@" not in (from_addr or ""):
+        return False
+    sender_domain = mailer.registered_domain(from_addr.rsplit("@", 1)[-1])
+    if not sender_domain:
+        return False
+    expected = {
+        d for d in (
+            mailer.registered_domain((req.broker.email or "").rsplit("@", 1)[-1]),
+            mailer.registered_domain(req.broker.web or ""),
+        ) if d
+    }
+    return sender_domain in expected or sender_domain in confirm.PRIVACY_PLATFORMS
+
+
 def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
     refs = mailer.find_references(m)
     if refs:
         req = db.scalars(select(Request).where(Request.reference.in_(refs)).order_by(Request.id.desc())).first()
         if req:
+            # Les plateformes de tickets peuvent répondre depuis un domaine tiers.
+            # Le rattachement par référence est permis, mais les décisions sensibles
+            # restent conditionnées à la cohérence du domaine dans _handle_reply().
             return req
     for mid in m.in_reply_to:
         req = db.scalars(select(Request).where(cast(Request.message_ids, String).contains(mid, autoescape=True))).first()
@@ -512,6 +535,13 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
 
 def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     c = _classify(db, req, m)
+    sender_trusted = _sender_matches_broker(req, m.from_addr)
+    if not sender_trusted:
+        # Une référence permet d'identifier le ticket, pas d'authentifier son expéditeur.
+        # Ne jamais clôturer, confirmer automatiquement ou prolonger sur cette seule base.
+        if c.kind in ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce"):
+            add_event(db, req, "warning", f"Réponse non vérifiée de {m.from_addr} : décision sensible non appliquée")
+            c = mailer.Classification("reply", "expéditeur non vérifié")
     label = mailer.KIND_LABELS.get(c.kind, c.kind)
     why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
 

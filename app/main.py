@@ -864,9 +864,12 @@ def broker_delete(request: HttpRequest, bid: int, db: Session = Depends(get_db))
     if b.source != "custom":
         flash(request, "Seuls les courtiers ajoutés à la main peuvent être supprimés (désactivez les autres).", "error")
     else:
-        db.delete(b)
+        # Ne jamais supprimer physiquement un courtier : la relation ORM utilise
+        # delete-orphan et effacerait aussi les demandes, réponses et preuves associées.
+        b.enabled = False
+        b.enabled_overridden = True
         db.commit()
-        flash(request, "Courtier supprimé.")
+        flash(request, "Courtier archivé : il ne sera plus inclus dans les campagnes, et son historique est conservé.")
     return back("/brokers")
 
 

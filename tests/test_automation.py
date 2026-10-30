@@ -387,3 +387,13 @@ def test_escalation_reminder_then_formal_notice_then_overdue(client):
     service.check_deadlines()
     with SessionLocal() as db:
         assert db.get(Request, rid).status == OVERDUE
+
+
+def test_unverified_ticket_sender_cannot_confirm_deletion(client):
+    rid = _sent_request(34)
+    _reply(rid, "Your data has been deleted successfully.",
+           sender="support@external-ticketing.example", reply_to=None)
+    with SessionLocal() as db:
+        req = db.get(Request, rid)
+        assert req.status != "completed"
+        assert any("Réponse non vérifiée" in e.summary for e in req.events)

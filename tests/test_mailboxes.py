@@ -247,3 +247,11 @@ def test_microsoft_device_code_flow(client, monkeypatch):
         assert oauth_ms.xoauth2("moi@hotmail.fr", "at-2") == b"user=moi@hotmail.fr\x01auth=Bearer at-2\x01\x01"
     finally:
         srv.shutdown()
+
+
+def test_one_click_redirects_are_not_followed():
+    import urllib.request
+
+    handler = mailboxes._NoRedirect()
+    request = urllib.request.Request("https://unsubscribe.example/u")
+    assert handler.redirect_request(request, None, 302, "Found", {}, "http://127.0.0.1/admin") is None
