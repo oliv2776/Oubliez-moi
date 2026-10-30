@@ -13,9 +13,9 @@
   <input type="search" name="q" value="{{ q }}" placeholder="Courtier, e-mail ou référence">
   <select name="status"><option value="">Tous les statuts</option>{% for k, v in STATUS.items() %}<option value="{{ k }}" {{ 'selected' if status==k }}>{{ v }}</option>{% endfor %}</select>
   {% if profiles|length > 1 %}<select name="profile"><option value="">Tous les profils</option>{% for p in profiles %}<option value="{{ p.id }}" {{ 'selected' if profile==p.id }}>{{ p.full_name }}</option>{% endfor %}</select>{% endif %}
-  <button class="btn">Filtrer</button>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
-<div class="card table-wrap">
+<div class="card table-wrap" data-results>
 {% if reqs %}
 <table>
   <tr><th>Réf.</th><th>Courtier</th>{% if profiles|length > 1 %}<th>Profil</th>{% endif %}<th>Statut</th><th class="hide-sm">Envoyée</th><th class="hide-sm">Échéance</th><th class="hide-sm">Réponse</th></tr>

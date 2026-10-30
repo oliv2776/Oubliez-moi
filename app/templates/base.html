@@ -121,6 +121,43 @@
 {% else %}
 <div style="display:flex;justify-content:flex-end;max-width:1100px;margin:.75rem auto;padding:0 1rem"><label class="small" for="language-switch">🌐 <select id="language-switch" aria-label="Language" style="width:auto;padding:.35rem"><option value="fr">Français</option><option value="en">English</option></select></label></div>
 {% endif %}
+<script>
+// Recherche et filtres instantanés : la liste se met à jour pendant la frappe, sans bouton ni Entrée.
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("form.filters, form.filters-live").forEach((form) => {
+    if ((form.getAttribute("method") || "get").toLowerCase() !== "get") return;
+    let timer = null, ctrl = null;
+    async function run() {
+      const params = new URLSearchParams(new FormData(form));
+      for (const [k, v] of [...params]) if (v === "") params.delete(k);
+      const url = (form.getAttribute("action") || location.pathname) + (params.toString() ? "?" + params : "");
+      if (ctrl) ctrl.abort();
+      ctrl = new AbortController();
+      form.classList.add("is-loading");
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        const fresh = new DOMParser().parseFromString(await res.text(), "text/html").querySelectorAll("[data-results]");
+        const current = document.querySelectorAll("[data-results]");
+        if (!res.ok || fresh.length !== current.length) { location.href = url; return; }
+        current.forEach((el, i) => el.replaceWith(fresh[i]));
+        history.replaceState(null, "", url);
+        document.dispatchEvent(new CustomEvent("results:updated"));
+      } catch (e) {
+        if (e.name !== "AbortError") location.href = url;
+      } finally {
+        form.classList.remove("is-loading");
+      }
+    }
+    form.addEventListener("input", (e) => {
+      if (e.target.matches('input[type="search"], input[type="text"]')) { clearTimeout(timer); timer = setTimeout(run, 250); }
+    });
+    form.addEventListener("change", (e) => {
+      if (e.target.matches('select, input[type="checkbox"], input[type="radio"]')) { clearTimeout(timer); run(); }
+    });
+    form.addEventListener("submit", (e) => { e.preventDefault(); clearTimeout(timer); run(); });
+  });
+});
+</script>
 <div class="content">
 <main id="contenu">
   {% if request.session.get('user') and settings.dry_run %}

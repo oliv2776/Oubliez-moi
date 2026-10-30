@@ -56,7 +56,7 @@
   {% endfor %}
 </div>
 
-<nav class="chips" aria-label="Filtrer" style="margin-top:.5rem">
+<nav class="chips" aria-label="Filtrer" style="margin-top:.5rem" data-results>
   {% set qs = ('&mailbox=' ~ mailbox if mailbox else '') ~ ('&q=' ~ q if q else '') %}
   {% for key in ['new', 'manual', 'unsubscribed', 'kept', 'failed'] %}
   <a class="chip {{ 'active' if status == key }}" href="/mailboxes?status={{ key }}{{ qs }}">{{ SSTATUS[key] }} <span class="n">{{ counts.get(key, 0) }}</span></a>
@@ -67,14 +67,16 @@
 <form class="filters" method="get">
   <input type="hidden" name="status" value="{{ status }}">
   {% if boxes|length > 1 %}
-  <select name="mailbox" onchange="this.form.submit()">
+  <select name="mailbox">
     <option value="">Toutes les boîtes</option>
     {% for b in boxes %}<option value="{{ b.id }}" {{ 'selected' if mailbox == b.id }}>{{ b.label }}</option>{% endfor %}
   </select>
   {% endif %}
   <input type="search" name="q" value="{{ q }}" placeholder="Expéditeur, domaine…">
-  <button class="btn">Filtrer</button>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
+
+<div data-results>
 
 {% set next_url = '/mailboxes?status=' ~ status ~ qs %}
 <form method="post" action="/senders/action" id="senders-form">
@@ -144,10 +146,12 @@
   </div>
 </div>
 </form>
+</div>
 {% endif %}
 
 <script>
 (function () {
+  function bindSenders() {
   const form = document.getElementById("senders-form");
   if (form) {
     const boxes = () => [...form.querySelectorAll('input[name="ids"]')];
@@ -164,6 +168,9 @@
       boxes().forEach(b => b.checked = (b.value === btn.dataset.one));
     }));
   }
+  }
+  bindSenders();
+  document.addEventListener("results:updated", bindSenders);
   // Progression des analyses et des travaux en arrière-plan
   const live = document.getElementById("live");
   let wasBusy = false;

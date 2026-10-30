@@ -4,10 +4,11 @@
 <div class="page-head">
   <div><h1>Recherche globale</h1><p class="muted">Profils, demandes, courtiers et expéditeurs de vos boîtes mail.</p></div>
 </div>
-<form class="global-search-page" action="/search" method="get">
+<form class="global-search-page filters-live" action="/search" method="get">
   <input type="search" name="q" value="{{ q }}" placeholder="Nom, e-mail, domaine ou référence…" minlength="2" autofocus>
-  <button class="btn primary">Rechercher</button>
+  <button class="btn primary filter-submit">Rechercher</button>
 </form>
+<div data-results>
 {% if q|length < 2 %}
 <div class="card empty"><p>Saisissez au moins deux caractères pour lancer la recherche.</p></div>
 {% else %}
@@ -34,4 +35,5 @@
 <table>{% for s in senders %}<tr><td><a href="/mailboxes?status=all&q={{ s.domain|urlencode }}"><strong>{{ s.name or s.domain }}</strong></a><div class="small muted">{{ s.address }} · {{ s.domain }}</div></td><td><span class="badge sb-{{ s.status }}">{{ s.status_label }}</span></td><td class="num">{{ s.count }} e-mails</td></tr>{% endfor %}</table></div>
 {% endif %}
 {% endif %}
+</div>
 {% endblock %}
