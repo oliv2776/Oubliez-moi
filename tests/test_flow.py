@@ -66,7 +66,8 @@ def test_full_flow(client):
     # Une réponse citant la référence -> terminée
     m = EmailMessage()
     m["From"] = broker_email
-    m["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+    auth_domain = broker_email.rsplit("@", 1)[-1]
+    m["Authentication-Results"] = f"mx.test; dkim=pass header.d={auth_domain}; dmarc=pass header.from={auth_domain}"
     m["Subject"] = f"RE: Demande d'effacement – Réf. {ref}"
     m["Message-ID"] = "<reply1@broker>"
     m.set_content("Bonjour, vos données ont été supprimées. Cordialement")
@@ -79,7 +80,8 @@ def test_full_flow(client):
         second = db.scalars(select(Request).where(Request.status == SENT).order_by(Request.id)).first()
         m2 = EmailMessage()
         m2["From"] = "support@" + second.broker.email.split("@")[1]
-        m2["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        auth_domain = second.broker.email.rsplit("@", 1)[-1]
+        m2["Authentication-Results"] = f"mx.test; spf=pass smtp.mailfrom=support@{auth_domain}; dmarc=pass header.from={auth_domain}"
         m2["Subject"] = "Your request"
         m2["In-Reply-To"] = second.message_ids[0]
         m2["Message-ID"] = "<reply2@broker>"
@@ -182,6 +184,37 @@ def test_automatic_resends_stop_at_configured_cycle_limit(client):
         db.add(req)
         db.commit()
     assert service.schedule_resends() == 0
+
+
+def test_authentication_results_require_trusted_authserv_and_aligned_identity():
+    original = settings.imap_authserv_id
+    settings.imap_authserv_id = "mx.test"
+    try:
+        def parsed(auth_results, sender="privacy@trusted.example"):
+            raw = EmailMessage()
+            raw["From"] = sender
+            raw["Authentication-Results"] = auth_results
+            raw.set_content("Your data has been deleted.")
+            return mailer.parse_mail(bytes(raw))
+
+        assert parsed(
+            "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
+        ).dmarc_pass
+        assert not parsed(
+            "attacker.example; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
+        ).dmarc_pass
+        assert not parsed(
+            "mx.test; spf=pass smtp.mailfrom=sender.other.example; dmarc=pass header.from=trusted.example"
+        ).dmarc_pass
+
+        raw = EmailMessage()
+        raw["From"] = "privacy@trusted.example"
+        raw["Authentication-Results"] = "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
+        raw["Authentication-Results"] = "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
+        raw.set_content("x")
+        assert not mailer.parse_mail(bytes(raw)).dmarc_pass
+    finally:
+        settings.imap_authserv_id = original
 
 
 def test_deleting_custom_broker_archives_and_preserves_history(client):
