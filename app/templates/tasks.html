@@ -29,6 +29,13 @@
   {% endfor %}
 </nav>
 
+{% if device_count %}
+<div class="banner info" style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+  <span><strong>{{ device_count }} courtier(s)</strong> ne connaissent que vos identifiants publicitaires (cookie, téléphone) et vous les réclament.</span>
+  <a class="btn sm" href="/tasks/device-ids">Les traiter tous ensemble</a>
+</div>
+{% endif %}
+
 {% include "_progress.html" %}
 {% if reanalysis_running %}
 {% elif reanalysis_count %}
@@ -107,6 +114,7 @@
         <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
       </div>
       {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
+      {% if ins.kind == 'device_id' %}<p class="small" style="margin:.4rem 0 0"><a href="/tasks/device-ids">Marche à suivre commune et clôture groupée →</a></p>{% endif %}
       {% if can_summarize %}
       <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Le modèle lit le message… (jusqu\'à une minute)';">
         <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">

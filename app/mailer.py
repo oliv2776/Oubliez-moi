@@ -326,7 +326,7 @@ NO_DATA_RE = _P(
     r"no (personal )?(data|information|records?) (about|on|relating to|regarding|associated with|linked to) you",
     r"(do not|don't|does not|doesn't) (hold|have|store|process)( or (hold|have|store|process))? any (other )?(personal )?(data|information)",
     r"(could|were|did) not (find|locate|identify) any", r"unable to (find|locate|identify) (any|your)", r"no records? (were |was )?found",
-    r"did not identify any", r"no (personal )?data to (be )?(erased|deleted)", r"(do not|does not|don't|doesn't) (maintain|keep) (any )?records",
+    r"did not identify any", r"(could|were|did) not (find|locate|identify) (your|an?) (account|record|profile|data)", r"no (personal )?data to (be )?(erased|deleted)", r"(do not|does not|don't|doesn't) (maintain|keep) (any )?records",
     r"aucune donn[ée]e(?![^.\n]{0,60}(communication|communiqu|transmi|partag|c[ée]d[ée]|vendu))",
     r"ne (d[ée]tenons|disposons|poss[ée]dons|traitons) (d')?aucune", r"pas de donn[ée]es (vous )?concernant",
     r"n'avons pas (pu )?trouv(er|[ée]) (de |d'|aucun|un enregistrement)", r"n'avons pas enregistr[ée] de donn[ée]es", r"ne parvenons pas [àa] trouver",

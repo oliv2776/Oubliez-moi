@@ -42,9 +42,9 @@ ACTIONS = {
                 "Ouvrez le lien de son message, remplissez le formulaire avec l'aide « Formulaire » plus bas, puis cliquez "
                 "« C'est fait, j'attends leur réponse ».",
                 "Vérifiez que le lien mène bien au site du courtier avant d'y saisir vos informations."),
-    "device_id": ("Le courtier dit ne connaître que des identifiants publicitaires (cookie, téléphone). Le plus simple : "
-                  "utilisez son lien d'opposition (opt-out) depuis votre navigateur et votre téléphone, puis cliquez "
-                  "« Données supprimées » si cela vous suffit. Lui envoyer un identifiant est facultatif.",
+    "device_id": ("Le courtier ne connaît que des identifiants publicitaires (cookie, téléphone) et vous les réclame. "
+                  "Inutile de les lui envoyer : réinitialisez-les une fois pour tous les courtiers (voir « Marche à suivre "
+                  "commune » ci-dessous), puis clôturez la demande.",
                   "Un identifiant publicitaire est une donnée personnelle : ne le transmettez que si vous le souhaitez."),
     "delivery_issue": ("Incident de distribution passager ou limité à un membre de leur équipe : rien à faire, la demande "
                        "suit son cours.", ""),

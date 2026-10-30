@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Identifiants publicitaires{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/tasks">À traiter</a></p>
+    <h1>Identifiants publicitaires</h1>
+    <p class="muted" style="margin:0">Ces courtiers ne connaissent ni votre nom ni votre e-mail : leur profil est rangé sous un numéro (cookie du navigateur, identifiant publicitaire du téléphone). Ils vous demandent ce numéro pour le retrouver.</p>
+  </div>
+</div>
+
+{% if not items %}
+<div class="card empty">
+  <h2>Aucun courtier ne réclame d'identifiant publicitaire</h2>
+  <p><a href="/tasks">Retour à À traiter</a></p>
+</div>
+{% else %}
+<div class="card device-why">
+  <h2 style="margin-top:0">Ne leur envoyez pas ce numéro : rendez-le inutile</h2>
+  <p>Leur envoyer l'identifiant leur donnerait justement le lien entre votre identité et ce profil, qu'ils n'ont pas aujourd'hui. Il vaut mieux réinitialiser ces identifiants : le profil associé à l'ancien numéro ne peut plus vous suivre ni vous être rattaché. Ces réglages valent pour <strong>tous les courtiers</strong> à la fois.</p>
+  <ol class="device-steps">
+    <li><strong>iPhone :</strong> Réglages › Confidentialité et sécurité › Suivi : désactivez « Autoriser les demandes de suivi ». Les applications reçoivent alors un identifiant vide.</li>
+    <li><strong>Android :</strong> Paramètres › Google › Annonces (ou Confidentialité › Annonces) : « Supprimer l'identifiant publicitaire ». L'intitulé varie selon le téléphone.</li>
+    <li><strong>Firefox :</strong> la protection totale contre les cookies (active par défaut) isole déjà ces cookies site par site. Pour effacer ceux déjà posés : Paramètres › Vie privée et sécurité › Cookies et données de sites › Effacer les données. Vous pouvez aussi passer la protection renforcée en mode « Stricte ».</li>
+    <li><strong>Autres navigateurs</strong> (Safari, Chrome…) : effacez les cookies et bloquez les cookies tiers dans leurs réglages de confidentialité.</li>
+    <li><strong>Facultatif :</strong> ouvrez le lien d'opposition (opt-out) de chaque courtier ci-dessous depuis chacun de vos navigateurs. Il enregistre un refus dans ce navigateur, mais disparaît si vous effacez vos cookies : c'est un complément.</li>
+  </ol>
+</div>
+
+<form method="post" action="/tasks/device-ids/close" class="card">
+  <h2 style="margin-top:0">{{ items|length }} courtier(s) concerné(s)</h2>
+  <table class="device-table">
+    <thead><tr><th style="width:2rem"><input type="checkbox" checked aria-label="Tout cocher" onclick="this.closest('table').querySelectorAll('tbody input[type=checkbox]').forEach((c) => c.checked = this.checked)"></th>
+      <th>Courtier</th><th>Liens cités dans sa réponse</th></tr></thead>
+    <tbody>
+    {% for r, links in items %}
+    <tr>
+      <td><input type="checkbox" name="ids" value="{{ r.id }}" checked aria-label="{{ r.broker.name }}"></td>
+      <td><a href="/tasks?id={{ r.id }}"><strong>{{ r.broker.name }}</strong></a><div class="small muted">{{ r.status_label }}{% if r.last_reply_at %} · réponse du {{ r.last_reply_at|d }}{% endif %}</div></td>
+      <td>
+        {% for l in links %}
+        <div class="device-link"><a href="{{ l.url }}" target="_blank" rel="noopener noreferrer" translate="no">{{ l.short }}</a>
+          {% if l.label %}<span class="small muted" translate="no">« {{ l.label }} »</span>{% endif %}{% if not l.own %} <span class="tag" title="Ce lien n'est pas sur le domaine du courtier : vérifiez-le avant de l'ouvrir">autre domaine</span>{% endif %}</div>
+        {% else %}<span class="small muted">Aucun lien d'opposition dans sa réponse : passez par son site.</span>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small muted">Les demandes cochées passent en « Terminée », avec une note dans leur historique. C'est votre décision : la réanalyse ne la remettra pas en cause.</p>
+  <button class="btn primary">J'ai fait le ménage : clôturer les demandes cochées</button>
+</form>
+{% endif %}
+{% endblock %}
