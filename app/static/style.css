@@ -278,3 +278,11 @@ table.senders td { vertical-align: middle; }
 .exposure-review { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .65rem; }
 .exposure-review input { flex: 1 1 180px; min-width: 0; }
 @media (max-width: 560px) { .exposure-link-head { flex-direction: column; } }
+
+ 
+/* Assistant RGPD et export de preuves */
+.assistant-shortcut { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+.row-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.assistant-result { margin-top:1rem; padding:.9rem; border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+.assistant-result h3 { margin-bottom:.5rem; }
+.assistant-result pre { max-height:300px; }

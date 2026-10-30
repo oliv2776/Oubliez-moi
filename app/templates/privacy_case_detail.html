@@ -7,6 +7,10 @@
   <span class="badge s-{{ 'overdue' if case.overdue else case.status }}">{{ case.status_label }}</span>
 </div>
 {% if case.overdue %}<div class="banner warn">L’échéance enregistrée est dépassée. Vérifiez les dates et les échanges avec l’organisme.</div>{% endif %}
+<div class="card assistant-shortcut">
+  <div><h2>Assistant RGPD et preuves</h2><p class="small muted">Analyser une réponse, préparer un brouillon à relire et exporter la chronologie.</p></div>
+  <div class="row-actions"><a class="btn primary" href="/privacy-cases/{{ case.id }}/assistant">Ouvrir l’assistant</a><a class="btn" href="/privacy-cases/{{ case.id }}/export.zip">Exporter (.zip)</a></div>
+</div>
 <div class="grid c2">
   <div>
     <section class="card">

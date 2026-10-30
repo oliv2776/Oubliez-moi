@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from . import __version__, case_management, exposures
+from . import __version__, case_assistant, case_management, exposures
 from .config import settings
 from .db import (
     FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Broker, Profile, Request as PrivacyRequest,
@@ -14,6 +14,7 @@ from .main_templates import templates
 
 router = APIRouter()
 router.include_router(case_management.router)
+router.include_router(case_assistant.router)
 router.include_router(exposures.router)
 
 
