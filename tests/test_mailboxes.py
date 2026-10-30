@@ -228,6 +228,7 @@ def test_microsoft_device_code_flow(client, monkeypatch):
     srv = HTTPServer(("127.0.0.1", 0), _MS)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     monkeypatch.setattr(oauth_ms, "AUTHORITY", f"http://127.0.0.1:{srv.server_port}")
+    monkeypatch.setattr(oauth_ms, "ALLOW_PRIVATE", True)
     monkeypatch.setattr(mailboxes, "scan_in_background", lambda mid: None)
     try:
         client.post("/mailboxes", data={"provider": "outlook", "address": "moi@hotmail.fr", "oauth_client_id": "client-1",
