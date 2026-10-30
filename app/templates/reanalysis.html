@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Réanalyse des réponses{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/tasks">À traiter</a></p>
+    <h1>Réanalyse des réponses</h1>
+    <p class="muted" style="margin:0">La dernière réponse de chaque demande en cours repasse dans le classement actuel{% if model %} (règles, puis {{ model }} pour les cas ambigus){% endif %}. Rien n'est modifié sans votre accord, et aucune réponse automatique, aucun lien ni aucune relance ne part après coup.</p>
+  </div>
+  <form method="post" action="/tasks/reanalysis/start" class="inline"><button class="btn {{ '' if proposals else 'primary' }}" {{ 'disabled' if state.running }}>{{ 'Relancer la réanalyse' if proposals else 'Réanalyser les réponses' }}</button></form>
+</div>
+
+<div class="banner info" id="re-live" {{ '' if state.running else 'hidden' }}>Réanalyse en cours : <span id="re-progress">{{ state.done }} / {{ state.total }}{% if state.current %} ({{ state.current }}){% endif %}</span>. Avec un modèle d'IA sur processeur, comptez jusqu'à une minute par réponse ambiguë.</div>
+
+{% if proposals %}
+<form method="post" action="/tasks/reanalysis/apply">
+<div class="card">
+  <table>
+    <tr><th style="width:28px"><input type="checkbox" id="re-all" checked aria-label="Tout sélectionner"></th><th>Demande</th><th>Changement proposé</th><th>Pourquoi</th></tr>
+    {% for p in proposals %}
+    <tr>
+      <td><input type="checkbox" name="ids" value="{{ p.request_id }}" {{ "" if p.downgraded else "checked" }} aria-label="Appliquer pour {{ p.broker }}"></td>
+      <td><a href="/requests/{{ p.request_id }}"><strong>{{ p.broker }}</strong></a><div class="small muted">{{ p.reference }}</div></td>
+      <td><span class="badge s-{{ p.from_status }}">{{ status_label(p.from_status) }}</span> → <span class="badge s-{{ p.to_status }}">{{ status_label(p.to_status) }}</span></td>
+      <td class="small">{{ p.label }}{% if p.reason %} (« {{ p.reason }} »){% endif %}
+        {% if p.note %}<div class="muted">{{ p.note }}</div>{% endif %}
+        {% if p.downgraded %}<div style="color:var(--warn)">Expéditeur non authentifié : la décision sensible n'est pas proposée.</div>
+        {% elif not p.from_mailbox %}<div class="muted">Message absent de la boîte : analysé depuis l'historique.</div>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+<div class="savebar">
+  <button class="btn link" formaction="/tasks/reanalysis/dismiss" formnovalidate>Tout écarter</button>
+  <button class="btn primary">Appliquer la sélection</button>
+</div>
+</form>
+{% elif not state.running %}
+<div class="card empty">
+  <h2>Aucune correction à proposer</h2>
+  <p>{{ "Le classement actuel confirme celui des réponses en cours." if state.total else "Lancez la réanalyse pour vérifier le classement des réponses en cours." }}</p>
+</div>
+{% endif %}
+
+<script>
+(function () {
+  const all = document.getElementById("re-all");
+  if (all) all.addEventListener("change", () => document.querySelectorAll('input[name="ids"]').forEach((c) => { c.checked = all.checked; }));
+  const live = document.getElementById("re-live");
+  if (live && !live.hidden) {
+    const tick = async () => {
+      try {
+        const st = await (await fetch("/tasks/reanalysis/status")).json();
+        if (!st.running) { location.reload(); return; }
+        document.getElementById("re-progress").textContent = `${st.done} / ${st.total}` + (st.current ? ` (${st.current})` : "");
+      } catch (e) { /* réessai */ }
+      setTimeout(tick, 3000);
+    };
+    setTimeout(tick, 3000);
+  }
+})();
+</script>
+{% endblock %}

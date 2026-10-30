@@ -28,6 +28,7 @@
 | **Compléments** | Vous ajoutez une adresse e-mail, un téléphone ou une ancienne adresse au profil après l'envoi ? Oubliez-moi repère les courtiers qui ne l'ont pas reçue et leur envoie un complément sous la même référence. |
 | **Protection de vos comptes** | Les organismes chez qui vous avez peut-être un vrai compte (instituts de panels, outils de prospection professionnels, cashback et affiliation, avis clients) sont signalés avant l'envoi, pour que vous puissiez les exclure. |
 | **Dossiers RGPD** | Pour les autres droits (accès, rectification, portabilité…) auprès de n'importe quel organisme : suivi des délais (un mois, prolongeable de deux), assistant de rédaction et export des preuves. Les dossiers en retard apparaissent dans « À traiter » et sur le tableau de bord, et sont notifiés une fois par échéance. |
+| **Réanalyse** | Les réponses déjà reçues peuvent repasser dans le classement actuel (règles et modèle d'IA du moment), par exemple après un changement de modèle. Le message est relu dans la boîte pour vérifier son expéditeur ; les corrections sont proposées, jamais appliquées sans validation, et rien n'est envoyé après coup. |
 | **Migration vers Proton** | Liste des services qui écrivent à vos anciennes adresses Gmail ou Hotmail, création de leur alias Proton Pass en un clic (API SimpleLogin) et suivi jusqu'à ce que chacun écrive à son alias. |
 | **Export CSV** | L'historique complet, utile comme preuve. |
 

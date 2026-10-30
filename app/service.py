@@ -541,10 +541,12 @@ def process_incoming(db: Session, m: mailer.ParsedMail) -> Request | None:
     return req
 
 
-def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classification:
+def classify_reply(m: mailer.ParsedMail) -> tuple[mailer.Classification, str | None]:
+    """Classement d'une réponse (mots-clés, puis IA locale si ambiguë), sans aucun effet. Renvoie (classement, note IA)."""
     if not settings.auto_classify:
-        return mailer.Classification("reply")
+        return mailer.Classification("reply"), None
     c = mailer.classify(m)
+    note = None
     if c.kind == "reply" and settings.llm_enabled:
         res = llm.classify(m.subject, mailview.strip_quoted(m.text))
         if res:
@@ -556,9 +558,16 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
             ticket = res["ticket"] or mailer.extract_ticket(f"{m.subject}\n{mailview.strip_quoted(m.text)}")
             if ticket:
                 note += f" (dossier n° {ticket})"
-            add_event(db, req, "info", note[:500])
+            note = note[:500]
             if res["confidence"] >= LLM_MIN_CONFIDENCE:
-                return mailer.Classification(res["category"], f"IA, probabilité {round(res['confidence'] * 100)} %")
+                return mailer.Classification(res["category"], f"IA, probabilité {round(res['confidence'] * 100)} %"), note
+    return c, note
+
+
+def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classification:
+    c, note = classify_reply(m)
+    if note:
+        add_event(db, req, "info", note)
     return c
 
 

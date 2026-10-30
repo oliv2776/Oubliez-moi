@@ -512,6 +512,46 @@ def fetch_new_messages(folder: str, last_uidvalidity: str | None, last_uid: int,
             pass
 
 
+def fetch_by_message_id(message_ids: list[str]) -> dict[str, bytes]:
+    """Retrouve des messages déjà relevés grâce à leur Message-ID (lecture seule).
+
+    Cherche dans les dossiers surveillés et dans le dossier de rangement, où les
+    réponses des courtiers ont pu être déplacées. Renvoie {Message-ID: message brut}.
+    """
+    wanted = [m for m in dict.fromkeys(message_ids) if m and re.fullmatch(r"<[^<>\s\"]+>", m)]
+    found: dict[str, bytes] = {}
+    if not wanted:
+        return found
+    folders = list(settings.imap_folders or ["INBOX"])
+    if settings.imap_file_mode == "move" and settings.imap_file_folder and settings.imap_file_folder not in folders:
+        folders.append(settings.imap_file_folder)
+    conn = _imap_connect()
+    try:
+        for folder in folders:
+            typ, _ = conn.select(_quote_folder(folder), readonly=True)
+            if typ != "OK":
+                continue
+            for mid in wanted:
+                if mid in found:
+                    continue
+                typ, data = conn.uid("SEARCH", None, "HEADER", "Message-ID", f'"{mid}"')
+                uids = (data[0] or b"").split() if typ == "OK" and data else []
+                if not uids:
+                    continue
+                typ, msg_data = conn.uid("FETCH", uids[-1].decode(), "(BODY.PEEK[])")
+                raw = next((part[1] for part in msg_data or [] if isinstance(part, tuple)), None) if typ == "OK" else None
+                if raw:
+                    found[mid] = raw
+            if len(found) == len(wanted):
+                break
+    finally:
+        try:
+            conn.logout()
+        except Exception:  # noqa: BLE001
+            pass
+    return found
+
+
 def imap_utf7(name: str) -> str:
     """Encode un nom de dossier en UTF-7 modifié (RFC 3501), ex. « Désinscriptions »."""
     out, buf = [], []

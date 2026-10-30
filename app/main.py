@@ -23,7 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, exposures, migration_routes, search as search_routes
+from . import case_assistant, case_management, exposures, migration_routes, reanalysis, search as search_routes
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -608,7 +608,54 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.summary.startswith("Analyse IA")), None)
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
+    ctx["reanalysis_count"] = len(reanalysis.load(db))
+    ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
+    ctx["reanalysis_running"] = reanalysis.state["running"]
     return render(request, "tasks.html", db, **ctx)
+
+
+# ------------------------------------------------------------- Réanalyse ----
+
+@app.get("/tasks/reanalysis", response_class=HTMLResponse)
+def reanalysis_page(request: HttpRequest, db: Session = Depends(get_db)):
+    return render(request, "reanalysis.html", db, proposals=reanalysis.load(db), state=reanalysis.state,
+                  model=reanalysis.current_model(), status_label=reanalysis.status_label)
+
+
+@app.get("/tasks/reanalysis/status")
+def reanalysis_status():
+    return JSONResponse(reanalysis.state)
+
+
+@app.post("/tasks/reanalysis/start")
+def reanalysis_start(request: HttpRequest, rid: int | None = Form(None)):
+    if reanalysis.start([rid] if rid else None):
+        flash(request, "Réanalyse lancée : les propositions s'affichent dès qu'elle est terminée. Rien n'est modifié sans votre accord.")
+    else:
+        flash(request, "Une réanalyse est déjà en cours.", "info")
+    return back("/tasks/reanalysis")
+
+
+@app.post("/tasks/reanalysis/apply")
+async def reanalysis_apply(request: HttpRequest, db: Session = Depends(get_db)):
+    form = await request.form()
+    ids = [int(v) for v in form.getlist("ids") if str(v).isdigit()]
+    if not ids:
+        flash(request, "Cochez au moins une proposition.", "error")
+        return back("/tasks/reanalysis")
+    applied, skipped = reanalysis.apply(db, ids)
+    msg = f"{applied} correction(s) appliquée(s)."
+    if skipped:
+        msg += f" {skipped} ignorée(s) : la demande a changé depuis l'analyse."
+    flash(request, msg)
+    return back("/tasks/reanalysis")
+
+
+@app.post("/tasks/reanalysis/dismiss")
+def reanalysis_dismiss(request: HttpRequest, db: Session = Depends(get_db)):
+    reanalysis.dismiss(db)
+    flash(request, "Propositions écartées : rien n'a été modifié.")
+    return back("/tasks")
 
 
 def _snippet(r: Request) -> str:
@@ -1049,8 +1096,12 @@ def _save_settings(request: HttpRequest, form: dict) -> bool:
 @app.post("/settings")
 async def settings_save(request: HttpRequest):
     form = dict(await request.form())
+    model_before = reanalysis.current_model()
     if _save_settings(request, form):
         flash(request, "Réglages enregistrés.")
+        if reanalysis.current_model() and reanalysis.current_model() != model_before:
+            flash(request, f"Nouveau modèle d'IA ({settings.llm_model}) : vous pouvez réanalyser les réponses en attente "
+                           "depuis « À traiter ».", "info")
     return back(_tab_url(form))
 
 
