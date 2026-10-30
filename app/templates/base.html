@@ -18,6 +18,7 @@
     <a href="/" class="{{ 'active' if path == '/' }}">Tableau de bord</a>
     <a href="/profiles" class="{{ 'active' if path.startswith('/profiles') }}">Profils</a>
     <a href="/requests" class="{{ 'active' if path.startswith('/requests') }}">Demandes</a>
+    <a href="/privacy-cases" class="{{ 'active' if path.startswith('/privacy-cases') or path.startswith('/organizations') }}">Dossiers RGPD</a>
     <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}">À traiter{% if nav_todo %}<span class="pill">{{ nav_todo }}</span>{% endif %}</a>
     <a href="/brokers" class="{{ 'active' if path.startswith('/brokers') }}">Courtiers</a>
     <a href="/mailboxes" class="{{ 'active' if path.startswith('/mailboxes') }}">Boîtes mail</a>
