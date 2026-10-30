@@ -264,7 +264,23 @@ def profile_detail(request: HttpRequest, pid: int, db: Session = Depends(get_db)
     pending_new = db.scalar(
         select(func.count(Broker.id)).where(Broker.enabled.is_(True), Broker.id.not_in(select(Request.broker_id).where(Request.profile_id == pid)))
     )
-    return render(request, "profile_detail.html", db, p=p, reqs=reqs, st=service.stats(db, pid), sample_broker=sample_broker, pending_new=pending_new)
+    # Organismes à risque pas encore contactés (ni demande, ni demande encore en file)
+    contacted = select(Request.broker_id).where(Request.profile_id == pid, Request.status != QUEUED)
+    risky = [b for b in db.scalars(select(Broker).where(Broker.enabled.is_(True), Broker.id.not_in(contacted)).order_by(Broker.name))
+             if b.account_risk]
+    cands = service.supplement_candidates(db, p)
+    new_values = sorted({v for _, missing in cands for _, v in missing})
+    supp_queued = db.scalar(select(func.count(Request.id)).where(Request.profile_id == pid, Request.supplement_pending.is_(True)))
+    return render(request, "profile_detail.html", db, p=p, reqs=reqs, st=service.stats(db, pid), sample_broker=sample_broker,
+                  pending_new=pending_new, supp_count=len(cands), supp_values=new_values, supp_queued=supp_queued, risky=risky)
+
+
+@app.post("/profiles/{pid}/supplement")
+def profile_supplement(request: HttpRequest, pid: int, db: Session = Depends(get_db)):
+    p = _get(db, Profile, pid)
+    n = service.queue_supplements(db, p)
+    flash(request, f"{n} complément(s) mis en file : ils partiront au rythme normal d'envoi." if n else "Aucun complément à envoyer.")
+    return back(f"/profiles/{pid}")
 
 
 @app.get("/profiles/{pid}/edit", response_class=HTMLResponse)
@@ -282,7 +298,12 @@ def profile_update(
     invalid = _fill_profile(p, full_name, other_names, emails, phones, addresses, birth_date, language, notes)
     db.commit()
     _warn_phones(request, invalid)
-    flash(request, "Profil mis à jour. Les prochains courriers utiliseront ces informations.")
+    n = len(service.supplement_candidates(db, p))
+    if n:
+        flash(request, f"Profil mis à jour. {n} courtier(s) déjà contacté(s) n'ont pas reçu les nouvelles informations : "
+                       "vous pouvez leur envoyer un complément ci-dessous.", "info")
+    else:
+        flash(request, "Profil mis à jour. Les prochains courriers utiliseront ces informations.")
     return back(f"/profiles/{pid}")
 
 
@@ -351,7 +372,15 @@ def requests_list(request: HttpRequest, status: str = "", profile: int | None = 
 def request_detail(request: HttpRequest, rid: int, db: Session = Depends(get_db)):
     r = _get(db, Request, rid)
     complaint = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
-    return render(request, "request_detail.html", db, r=r, complaint=complaint)
+    form_help = None
+    if r.broker.webform and r.status not in ("completed", "cancelled"):
+        form_help = {
+            "fields": letters.form_fields(r),
+            "msg_fr": letters.form_message(r, "fr"),
+            "msg_en": letters.form_message(r, "en"),
+            "open": r.status == NEEDS_ACTION or (r.channel == "webform" and not r.sent_at),
+        }
+    return render(request, "request_detail.html", db, r=r, complaint=complaint, form_help=form_help)
 
 
 @app.post("/requests/{rid}/status")
@@ -440,6 +469,8 @@ def brokers_list(request: HttpRequest, q: str = "", country: str = "", state: st
     elif state == "custom":
         stmt = stmt.where(Broker.source == "custom")
     rows = db.scalars(stmt.order_by(Broker.name)).all()
+    if state == "account":
+        rows = [b for b in rows if b.account_risk]
     if country:
         rows = [b for b in rows if country.lower() in (b.countries or [])]
     all_countries = sorted({c for b in db.scalars(select(Broker)) for c in (b.countries or [])})

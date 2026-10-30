@@ -104,6 +104,11 @@ class Broker(Base):
     def channel(self) -> str:
         return "email" if self.email else "webform"
 
+    @property
+    def account_risk(self) -> str | None:
+        from .brokers import account_risk
+        return account_risk(self.slug)
+
 
 class Request(Base):
     __tablename__ = "requests"
@@ -125,6 +130,7 @@ class Request(Base):
     last_reply_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supplement_pending: Mapped[bool] = mapped_column(Boolean, default=False)
 
     profile: Mapped[Profile] = relationship(back_populates="requests")
     broker: Mapped[Broker] = relationship(back_populates="requests")
@@ -174,8 +180,20 @@ def _sqlite_pragmas(dbapi_conn, _):
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
+# Colonnes ajoutées après la première version : (table, colonne, définition SQL).
+# SQLAlchemy ne modifie pas les tables existantes, on les ajoute donc à la main.
+MIGRATIONS = [
+    ("requests", "supplement_pending", "BOOLEAN NOT NULL DEFAULT 0"),
+]
+
+
 def init_db() -> None:
     Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        for table, column, ddl in MIGRATIONS:
+            cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+            if column not in cols:
+                conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
 def kv_get(db, key: str, default: str | None = None) -> str | None:

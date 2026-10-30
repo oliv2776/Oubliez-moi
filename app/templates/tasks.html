@@ -11,13 +11,13 @@
     <tr>
       <td><a href="/requests/{{ r.id }}"><strong>{{ r.broker.name }}</strong></a><div class="small muted">{{ r.profile.full_name }} · <span class="mono">{{ r.reference }}</span></div></td>
       <td>{{ badge(r.status) }}</td>
-      <td class="small">{% if r.channel == 'webform' and not r.sent_at and r.broker.webform %}<a href="{{ r.broker.webform|url }}" target="_blank" rel="noopener noreferrer">Ouvrir le formulaire ↗</a>{% elif r.last_error %}{{ r.last_error[:120] }}{% else %}{{ r.last_reply_at|d if r.last_reply_at else '' }}{% endif %}</td>
+      <td class="small">{% if r.channel == 'webform' and not r.sent_at and r.broker.webform %}<span class="muted">formulaire en ligne</span>{% elif r.last_error %}{{ r.last_error[:120] }}{% else %}{{ r.last_reply_at|d if r.last_reply_at else '' }}{% endif %}</td>
       <td class="num">
         <div class="actions" style="justify-content:flex-end">
-        {% if r.channel == 'webform' and not r.sent_at %}
-          <form method="post" action="/requests/{{ r.id }}/status" class="inline"><input type="hidden" name="status" value="sent"><input type="hidden" name="note" value="Formulaire rempli"><button class="btn sm">Formulaire envoyé</button></form>
+        {% if r.broker.webform and r.status == 'needs_action' %}
+          <a class="btn sm primary" href="/requests/{{ r.id }}#formulaire">Remplir le formulaire</a>
         {% endif %}
-        {% if r.status in ('replied', 'needs_action') %}
+        {% if r.status == 'replied' or (r.status == 'needs_action' and not r.broker.webform) %}
           <form method="post" action="/requests/{{ r.id }}/status" class="inline"><input type="hidden" name="status" value="completed"><button class="btn sm primary">Terminée</button></form>
         {% endif %}
         <a class="btn sm" href="/requests/{{ r.id }}">Ouvrir</a>

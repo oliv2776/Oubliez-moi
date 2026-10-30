@@ -16,6 +16,9 @@
 | **Renvoi périodique** | Comme Incogni : 90 jours après une suppression confirmée, la demande est renvoyée, parce que les courtiers recollectent les données. |
 | **Plusieurs profils** | Pour vous et vos proches (avec leur accord). |
 | **Liste « À traiter »** | Les formulaires en ligne à remplir, les confirmations à cliquer et les réponses ambiguës, au même endroit. |
+| **Aide aux formulaires** | Pour les courtiers qui n'acceptent que leur formulaire en ligne : chaque information prête à copier en un clic (nom, prénom, e-mails, téléphones aux deux formats, adresse découpée), message de demande en français et en anglais, et délai d'un mois qui démarre quand vous confirmez l'envoi. |
+| **Compléments** | Vous ajoutez une adresse e-mail, un téléphone ou une ancienne adresse au profil après l'envoi ? Oubliez-moi repère les courtiers qui ne l'ont pas reçue et leur envoie un complément sous la même référence. |
+| **Protection de vos comptes** | Les organismes chez qui vous avez peut-être un vrai compte (instituts de panels, outils de prospection professionnels, cashback et affiliation, avis clients) sont signalés avant l'envoi, pour que vous puissiez les exclure. |
 | **Export CSV** | L'historique complet, utile comme preuve. |
 
 <p align="center"><img src="docs/a-traiter.png" width="49%"> <img src="docs/demande.png" width="49%"></p>
@@ -133,6 +136,7 @@ git pull && docker compose up -d --build
 - **Ce n'est pas un conseil juridique.** Les courriers s'appuient sur le RGPD, mais chaque situation est différente.
 - **Couverture** : le catalogue est fort sur les courtiers européens et l'adtech internationale. Il ne couvre pas les sites américains de recherche de personnes (Spokeo, Whitepages…), qui ne concernent guère les résidents européens et n'acceptent en général que leurs propres formulaires. Vous pouvez ajouter n'importe quel organisme depuis **Courtiers → Ajouter**.
 - **Pièces d'identité** : Oubliez-moi n'en envoie jamais. Le RGPD (art. 12.6) n'en autorise l'exigence qu'en cas de doute raisonnable. Si un courtier insiste, la demande passe en « Action requise » ; vous décidez alors quoi lui transmettre (de préférence une copie masquée).
+- **Comptes chez les marchands** : Oubliez-moi n'écrit qu'aux organismes du catalogue (courtiers en données, régies et plateformes publicitaires, bureaux de crédit) et jamais aux sites où vous achetez, sauf si vous les ajoutez vous-même. Une demande vise uniquement l'organisme destinataire : effacer vos données chez une régie publicitaire ne touche pas votre compte chez un marchand qui travaille avec elle. Les grandes plateformes (Google, Meta, Amazon, Microsoft…) sont exclues du catalogue, et les organismes où l'on peut aussi avoir un compte sont signalés avant l'envoi.
 - **Classement automatique** : il repose sur des mots-clés et peut se tromper. Chaque décision est tracée dans l'historique avec l'expression qui l'a déclenchée, et vous pouvez la corriger en un clic.
 - **Proches** : n'envoyez de demande au nom d'une autre personne qu'avec son accord.
 - **Sécurité** : la base contient les informations qui vous identifient. Mot de passe fort, HTTPS, disque chiffré et sauvegardes sont recommandés.

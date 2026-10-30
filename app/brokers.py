@@ -43,6 +43,29 @@ EXCLUDED_SLUGS = re.compile(
 )
 
 
+# Organismes du catalogue chez qui une personne peut AUSSI avoir un compte qu'elle utilise.
+# Une demande d'effacement y supprimerait ce compte : on le signale avant l'envoi.
+ACCOUNT_RISKS = [
+    (re.compile(r"^(gfk|nielsen|kantar)(-|$)"),
+     "Institut d'études : si vous êtes panéliste, votre inscription au panel sera supprimée."),
+    (re.compile(r"^(zoominfo|lusha|kaspr|apollo-io|rocketreach|contactout|dealfront|sales-rocks|growbots|amazinghiring|similarweb)(-|$)"),
+     "Outil professionnel : si vous l'utilisez pour votre travail, votre compte utilisateur pourrait être supprimé."),
+    (re.compile(r"^(awin|tradedoubler|rakutenmarketing|skimlinks|sovendus|aklamio|kupona|planet49)(-|$)"),
+     "Affiliation, cashback ou jeux-concours : un compte de gains, de parrainage ou d'éditeur pourrait être supprimé."),
+    (re.compile(r"^(bazaarvoice)(-|$)"),
+     "Plateforme d'avis clients : les avis que vous avez publiés pourraient être supprimés."),
+    (re.compile(r"^(we-conect|meinestadt-de)(-|$)"),
+     "Service avec comptes utilisateurs : si vous y êtes inscrit, votre compte pourrait être supprimé."),
+]
+
+
+def account_risk(slug: str) -> str | None:
+    for rx, message in ACCOUNT_RISKS:
+        if rx.match(slug or ""):
+            return message
+    return None
+
+
 def normalize_record(rec: dict) -> dict | None:
     """Convertit un enregistrement Datenanfragen en courtier, ou None s'il n'en est pas un."""
     slug = (rec.get("slug") or "").strip()

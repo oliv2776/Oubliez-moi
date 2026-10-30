@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import logging
+import re
 import threading
 from datetime import datetime, timedelta
 
-from sqlalchemy import String, cast, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import String, cast, func, or_, select, true
+from sqlalchemy.orm import Session, selectinload
 
 from . import brokers as broker_catalog
-from . import letters, mailer
+from . import letters, mailer, phones
 from .config import settings
 from .db import (
     COMPLETED,
@@ -215,7 +216,7 @@ def _next_queued(db: Session) -> Request | None:
     return db.scalars(
         select(Request)
         .join(Profile).join(Broker)
-        .where(Request.status == QUEUED, Profile.active.is_(True), Broker.email.is_not(None))
+        .where(Request.status == QUEUED, Profile.active.is_(True), Broker.email.is_not(None), Broker.enabled.is_(True))
         .order_by(Request.attempts, Request.id)
         .limit(1)
     ).first()
@@ -227,7 +228,9 @@ def _next_reminder(db: Session) -> Request | None:
     return db.scalars(
         select(Request)
         .join(Profile)
-        .where(Request.status == SENT, Request.reminder_count == 0, Request.due_at < utcnow(), Profile.active.is_(True))
+        .join(Broker)
+        .where(Request.status == SENT, Request.reminder_count == 0, Request.due_at < utcnow(), Profile.active.is_(True),
+               Broker.email.is_not(None))
         .order_by(Request.due_at)
         .limit(1)
     ).first()
@@ -245,6 +248,10 @@ def send_tick() -> str | None:
             if req:
                 ok = send_initial(db, req)
                 return f"{'OK' if ok else 'ERREUR'} {req.reference} {req.broker.name}"
+            req = _next_supplement(db)
+            if req:
+                ok = send_supplement(db, req)
+                return f"{'OK' if ok else 'ERREUR'} complément {req.reference} {req.broker.name}"
             req = _next_reminder(db)
             if req:
                 ok = send_reminder(db, req)
@@ -271,12 +278,112 @@ def requeue_simulated() -> int:
     return n
 
 
+# ------------------------------------------------------------ Compléments ----
+# Quand on ajoute une adresse e-mail, un téléphone, une adresse postale ou un
+# autre nom au profil après l'envoi, les courtiers déjà contactés ne les ont pas
+# reçus. On compare donc le profil actuel aux courriers réellement envoyés.
+
+IDENTITY_FIELDS = (("emails", "Adresse e-mail", "Email address"), ("phones", "Téléphone", "Phone number"),
+                   ("addresses", "Adresse postale", "Postal address"), ("other_names", "Autre nom", "Other name"))
+_SUPPLEMENT_STATUSES = {SENT, REPLIED, NEEDS_ACTION, OVERDUE, COMPLETED}
+
+
+def _compact(text: str) -> str:
+    return re.sub(r"[\s.\-()]", "", text).lower()
+
+
+def _sent_text(req: Request) -> str:
+    return "\n".join(e.body or "" for e in req.events if e.kind in ("sent", "supplement"))
+
+
+def _covered(field: str, value: str, text: str, compact: str) -> bool:
+    if field == "phones":
+        p = phones.parse(value)
+        if p.valid:
+            return _compact(p.e164) in compact or _compact(p.national) in compact
+        return _compact(value) in compact
+    norm = " ".join(value.split()).lower()
+    return norm in " ".join(text.split()).lower()
+
+
+def missing_identifiers(req: Request) -> list[tuple[str, str]]:
+    """Identifiants du profil absents des courriers déjà envoyés à ce courtier."""
+    text = _sent_text(req)
+    if not text:
+        return []
+    compact = _compact(text)
+    out = []
+    for field, *_ in IDENTITY_FIELDS:
+        for value in getattr(req.profile, field) or []:
+            if value and not _covered(field, value, text, compact):
+                out.append((field, value))
+    return out
+
+
+def supplement_candidates(db: Session, profile: Profile) -> list[tuple[Request, list[tuple[str, str]]]]:
+    """Dernière demande par courtier, déjà envoyée par e-mail, à qui il manque des identifiants."""
+    latest: dict[int, Request] = {}
+    q = (select(Request).options(selectinload(Request.events), selectinload(Request.broker))
+         .where(Request.profile_id == profile.id).order_by(Request.cycle))
+    for r in db.scalars(q):
+        latest[r.broker_id] = r
+    out = []
+    for r in latest.values():
+        if r.broker.email and r.sent_at and r.status in _SUPPLEMENT_STATUSES and not r.supplement_pending:
+            missing = missing_identifiers(r)
+            if missing:
+                out.append((r, missing))
+    return out
+
+
+def queue_supplements(db: Session, profile: Profile) -> int:
+    cands = supplement_candidates(db, profile)
+    for r, missing in cands:
+        r.supplement_pending = True
+        add_event(db, r, "info", "Complément mis en file : " + ", ".join(v for _, v in missing))
+    db.commit()
+    return len(cands)
+
+
+def send_supplement(db: Session, req: Request) -> bool:
+    missing = missing_identifiers(req)
+    if not missing:
+        req.supplement_pending = False
+        db.commit()
+        return True
+    subject, body = letters.supplement_letter(req, missing)
+    if not _deliver(db, req, subject, body):
+        return False
+    now = utcnow()
+    req.supplement_pending = False
+    if req.status in (SENT, COMPLETED, OVERDUE):
+        # Le délai d'un mois court à nouveau pour les données nouvellement signalées.
+        req.status, req.closed_at = SENT, None
+        req.due_at = now + timedelta(days=settings.response_days)
+        req.reminder_count = 0
+    prefix = "[SIMULATION] " if settings.dry_run else ""
+    add_event(db, req, "supplement", f"{prefix}Complément envoyé à {req.broker.email} : " + ", ".join(v for _, v in missing),
+              f"Objet : {subject}\n\n{body}")
+    db.commit()
+    return True
+
+
+def _next_supplement(db: Session) -> Request | None:
+    return db.scalars(
+        select(Request).join(Profile)
+        .where(Request.supplement_pending.is_(True), Profile.active.is_(True))
+        .order_by(Request.id).limit(1)
+    ).first()
+
+
 def check_deadlines() -> int:
     """Passe en « sans réponse » les demandes relancées restées muettes."""
     n = 0
     with SessionLocal() as db:
-        cond = Request.reminder_count > 0 if settings.auto_reminder else Request.reminder_count >= 0
-        for req in db.scalars(select(Request).where(Request.status == SENT, Request.due_at < utcnow(), cond)):
+        # Sans relance possible (formulaire en ligne, relance désactivée), le délai expiré suffit.
+        cond = or_(Request.reminder_count > 0, Broker.email.is_(None)) if settings.auto_reminder else true()
+        q = select(Request).join(Broker).where(Request.status == SENT, Request.due_at < utcnow(), cond)
+        for req in db.scalars(q):
             req.status = OVERDUE
             add_event(db, req, "status", "Délai dépassé sans réponse : vous pouvez saisir la CNIL")
             n += 1
@@ -403,6 +510,10 @@ def set_status(db: Session, req: Request, status: str, note: str | None = None) 
         # Formulaire rempli à la main : on démarre le délai légal.
         req.sent_at = now
         req.due_at = now + timedelta(days=settings.response_days)
+    elif status == SENT and old in (NEEDS_ACTION, REPLIED) and req.sent_at:
+        # L'action demandée par le courtier vient d'être faite : un nouveau délai d'un mois commence.
+        req.due_at = now + timedelta(days=settings.response_days)
+        req.reminder_count = 0
     if status == QUEUED:
         req.attempts = 0
         req.last_error = None

@@ -19,6 +19,7 @@
     <option value="off" {{ 'selected' if state=='off' }}>Désactivés</option>
     <option value="webform" {{ 'selected' if state=='webform' }}>Formulaire uniquement</option>
     <option value="custom" {{ 'selected' if state=='custom' }}>Ajoutés à la main</option>
+    <option value="account" {{ 'selected' if state=='account' }}>Compte possible</option>
   </select>
   <select name="country"><option value="">Tous les pays</option>{% for c in countries %}<option value="{{ c }}" {{ 'selected' if country==c }}>{{ 'international' if c=='all' else c|upper }}</option>{% endfor %}</select>
   <button class="btn">Filtrer</button>
@@ -40,7 +41,7 @@
     <td><strong>{{ b.name }}</strong>{% if b.web %}<div class="small"><a href="{{ b.web|url }}" target="_blank" rel="noopener noreferrer">{{ b.web.replace('https://','').replace('http://','').rstrip('/') }}</a></div>{% endif %}</td>
     <td class="small">{% if b.email %}{{ b.email }}{% else %}<a href="{{ b.webform|url }}" target="_blank" rel="noopener noreferrer">formulaire ↗</a>{% endif %}</td>
     <td class="hide-sm small">{% for c in b.countries %}<span class="tag">{{ 'intl' if c=='all' else c|upper }}</span>{% endfor %}</td>
-    <td class="hide-sm small">{% for c in b.categories %}<span class="tag">{{ {'addresses':'adresses','ads':'publicité','custom':'perso'}.get(c, c) }}</span>{% endfor %}{% if b.needs_id %}<span class="tag" title="Demande souvent un justificatif">ID</span>{% endif %}</td>
+    <td class="hide-sm small">{% for c in b.categories %}<span class="tag">{{ {'addresses':'adresses','ads':'publicité','custom':'perso'}.get(c, c) }}</span>{% endfor %}{% if b.needs_id %}<span class="tag" title="Demande souvent un justificatif">ID</span>{% endif %}{% if b.account_risk %}<span class="tag" style="color:var(--warn);border-color:var(--warn)" title="{{ b.account_risk }}">compte possible</span>{% endif %}</td>
     <td class="num">{% if b.source == 'custom' %}<form method="post" action="/brokers/{{ b.id }}/delete" class="inline"><button class="btn sm link" onclick="return confirm('Supprimer ce courtier et ses demandes ?')">Supprimer</button></form>{% endif %}</td>
   </tr>
   {% else %}

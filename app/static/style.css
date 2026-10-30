@@ -162,3 +162,20 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 2re
 .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
 @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
 .status-line { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+
+/* Aide aux formulaires */
+details.formhelp > summary { list-style: none; cursor: pointer; }
+details.formhelp > summary::-webkit-details-marker { display: none; }
+details.formhelp > summary h2 { display: inline; }
+details.formhelp > summary::after { content: "▸"; float: right; color: var(--muted); }
+details.formhelp[open] > summary::after { content: "▾"; }
+ol.steps { padding-left: 1.3rem; margin: 1rem 0 0; }
+ol.steps > li { margin-bottom: 1rem; padding-left: .3rem; }
+ol.steps > li::marker { font-weight: 700; color: var(--accent); }
+table.copytable { margin-top: .5rem; font-size: .88rem; }
+table.copytable th { text-transform: none; letter-spacing: 0; font-size: .82rem; width: 26%; padding-right: 1rem; }
+table.copytable td { padding: .35rem .6rem; overflow-wrap: anywhere; }
+table.copytable td.num { width: 1%; }
+details.formhelp { max-width: 900px; }
+table.copytable tr.copied td.mono { color: var(--muted); }
+.btn.done { color: var(--ok); border-color: var(--ok); }

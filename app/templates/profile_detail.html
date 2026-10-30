@@ -14,6 +14,37 @@
   </div>
 </div>
 
+{% if risky and not pending_new %}
+<div class="card" style="border-color:var(--warn)">
+  <h2 style="margin-bottom:.2rem">{{ risky|length }} demande(s) pas encore partie(s) vers des organismes où vous avez peut-être un compte</h2>
+  <p class="small muted" style="margin-top:0">Une demande d'effacement y supprimerait aussi ce compte. Désactivez ceux que vous utilisez : leurs demandes en file ne partiront pas.</p>
+  <table class="small">
+    {% for b in risky %}
+    <tr>
+      <td style="width:52px"><form method="post" action="/brokers/{{ b.id }}/toggle" class="inline"><button class="toggle on" title="Désactiver" aria-label="Désactiver {{ b.name }}"></button></form></td>
+      <td><strong>{{ b.name }}</strong><div class="muted">{{ b.account_risk }}</div></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if supp_count %}
+<div class="card" style="border-color:var(--warn)">
+  <div class="page-head" style="margin:0">
+    <div>
+      <h2 style="margin:0">Nouvelles informations à transmettre</h2>
+      <p class="small" style="margin:.35rem 0 .25rem">{{ supp_count }} courtier(s) déjà contacté(s) n'ont pas reçu :
+        {% for v in supp_values %}<span class="tag" style="font-size:.8rem">{{ v }}</span>{% endfor %}</p>
+      <p class="small muted" style="margin:0">Un court e-mail leur demandera d'étendre la demande d'effacement à ces informations (même référence). Le délai d'un mois repart pour celles déjà terminées.</p>
+    </div>
+    <form method="post" action="/profiles/{{ p.id }}/supplement" class="inline"><button class="btn primary">Envoyer un complément</button></form>
+  </div>
+</div>
+{% elif supp_queued %}
+<div class="banner info">{{ supp_queued }} complément(s) en file d'attente d'envoi.</div>
+{% endif %}
+
 {% if pending_new %}
 <div class="card" style="border-color:var(--accent)">
   <div class="page-head" style="margin:0">
@@ -24,6 +55,20 @@
     </div>
     <form method="post" action="/profiles/{{ p.id }}/campaign" class="inline"><button class="btn primary">{{ 'Lancer les demandes' if not st.total else 'Ajouter ces courtiers' }}</button></form>
   </div>
+  {% if risky %}
+  <div style="margin-top:1rem;border-top:1px solid var(--line);padding-top:.9rem">
+    <h3 style="margin-bottom:.2rem">À vérifier avant de lancer : {{ risky|length }} organisme(s) où vous avez peut-être un compte</h3>
+    <p class="small muted" style="margin-top:0">Une demande d'effacement y supprimerait aussi ce compte. Désactivez ceux que vous utilisez ; les autres peuvent rester.</p>
+    <table class="small">
+      {% for b in risky %}
+      <tr>
+        <td style="width:52px"><form method="post" action="/brokers/{{ b.id }}/toggle" class="inline"><button class="toggle on" title="Désactiver" aria-label="Désactiver {{ b.name }}"></button></form></td>
+        <td><strong>{{ b.name }}</strong>{% if b.web %} · <a href="{{ b.web|url }}" target="_blank" rel="noopener noreferrer">{{ b.web.replace('https://','').replace('http://','').replace('www.','').rstrip('/') }}</a>{% endif %}<div class="muted">{{ b.account_risk }}</div></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 
