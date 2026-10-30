@@ -651,10 +651,79 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         elif links:
             add_event(db, req, "info", "Lien de confirmation à ouvrir", links[0])
         set_status(db, req, NEEDS_ACTION, why)
+    elif c.kind == "confirm_from_address":
+        plan = confirm_from_plan(db, req, m.subject, m.text, m.message_id)
+        if (plan and plan["mailbox"] is not None and settings.auto_replies and _can_auto_reply(req, c.kind)
+                and send_confirm_from(db, req, plan)[0]):
+            set_status(db, req, SENT, why + f" — confirmation envoyée depuis {plan['address']}")
+        else:
+            set_status(db, req, NEEDS_ACTION, why)
     elif c.kind in ("needs_action", "webform", "device_id"):
         set_status(db, req, NEEDS_ACTION, why)
     else:  # refus probable, réponse non reconnue
         set_status(db, req, REPLIED, why)
+
+
+def confirm_from_plan(db: Session, req: Request, subject: str, text: str, message_id: str | None = None) -> dict | None:
+    """Le courtier demande une confirmation écrite depuis une autre adresse du profil : de quelle adresse, vers qui, quoi.
+
+    Renvoie None si la réponse ne demande pas cela, ou si l'adresse n'est pas une adresse du profil.
+    """
+    from . import mailboxes
+    m = mailer.ParsedMail(uid="", from_addr="", from_name="", subject=subject, message_id=message_id or "", text=text)
+    c = mailer.classify(m)
+    if c.kind != "confirm_from_address":
+        return None
+    current = mailer.latest_reply_text(text)
+    mine = [e.lower() for e in (req.profile.emails or []) if e]
+    main = (settings.smtp_from or "").lower()
+    # L'adresse citée dans la phrase reconnue d'abord, sinon une adresse du profil citée dans la réponse.
+    cited = [a for a in mailer.emails_in(c.reason) + mailer.emails_in(current) if a in mine and a != main]
+    if not cited:
+        return None
+    address = cited[0]
+    allowed = {d for d in (mailer.registered_domain((req.broker.email or "").split("@")[-1]),
+                           mailer.registered_domain(req.broker.web or "")) if d} | confirm.PRIVACY_PLATFORMS
+    targets = [a for a in mailer.emails_in(current)
+               if a not in mine and not _NOREPLY_RE.match(a.split("@")[0]) and mailer.registered_domain(a.split("@")[-1]) in allowed]
+    to = targets[0] if targets else req.broker.email
+    if not to:
+        return None
+    letter_subject, body = letters.confirm_from_letter(req, address, subject)
+    mb = mailboxes.for_address(db, address)
+    return {"address": address, "to": to, "mailbox": mb, "subject": letter_subject, "body": body,
+            "in_reply_to": message_id or None}
+
+
+def confirm_from_plan_for(db: Session, req: Request) -> dict | None:
+    """Même chose à partir de la dernière réponse enregistrée (page À traiter, réanalyse)."""
+    replies = [e for e in req.events if e.kind == "reply"]
+    if not replies:
+        return None
+    headers, text = mailview.split_headers(replies[-1].body or "")
+    return confirm_from_plan(db, req, headers.get("Objet", ""), text, replies[-1].message_id)
+
+
+def send_confirm_from(db: Session, req: Request, plan: dict) -> tuple[bool, str]:
+    """Envoie la confirmation depuis la boîte de l'autre adresse. Les réponses reviennent à l'adresse habituelle."""
+    from . import mailboxes
+    mb = plan.get("mailbox")
+    if mb is None:
+        return False, f"{plan['address']} n'est pas connectée dans Boîtes mail : envoyez le message vous-même."
+    msg = mailer.build_message(plan["to"], plan["subject"], plan["body"], from_name=req.profile.full_name,
+                               reply_to=settings.smtp_from or None, in_reply_to=plan.get("in_reply_to"),
+                               from_addr=plan["address"])
+    try:
+        mailboxes.send_from(mb, msg, db)
+    except mailboxes.MailboxError as e:
+        add_event(db, req, "error", f"Confirmation non envoyée depuis {plan['address']} : {e}")
+        return False, str(e)
+    req.message_ids = [*(req.message_ids or []), msg["Message-ID"]]
+    prefix = "[SIMULATION] " if settings.dry_run else ""
+    add_event(db, req, "auto_reply",
+              f"{prefix}Confirmation envoyée depuis {plan['address']} à {plan['to']} "
+              f"({mailer.KIND_LABELS['confirm_from_address']})", f"Objet : {plan['subject']}\n\n{plan['body']}")
+    return True, ""
 
 
 def _can_auto_reply(req: Request, kind: str) -> bool:

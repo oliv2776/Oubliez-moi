@@ -48,7 +48,7 @@ def _target(kind: str, current: str) -> str | None:
         "completed_no_data": COMPLETED, "completed_deleted": COMPLETED,
         "ack": SENT if current in (REPLIED, NEEDS_ACTION, COMPLETED, FAILED) else None,
         "delivery_issue": SENT if current in (FAILED, REPLIED, NEEDS_ACTION) else None,
-        "webform": NEEDS_ACTION, "device_id": NEEDS_ACTION,
+        "webform": NEEDS_ACTION, "device_id": NEEDS_ACTION, "confirm_from_address": NEEDS_ACTION,
         "extension": SENT,
         "confirm_link": NEEDS_ACTION, "needs_action": NEEDS_ACTION, "id_request": NEEDS_ACTION,
         "legit_refusal": REPLIED, "residence_question": NEEDS_ACTION,

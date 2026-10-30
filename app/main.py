@@ -33,6 +33,7 @@ from .db import (
     OVERDUE,
     QUEUED,
     REPLIED,
+    SENT,
     STATUS_LABELS,
     Broker,
     SENDER_STATUSES,
@@ -619,6 +620,7 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
     ctx["device_count"] = len(device_ids.candidates(db))
+    ctx["confirm_from"] = service.confirm_from_plan_for(db, r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
     ctx["reanalysis_count"] = len(reanalysis.load(db))
     ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
     ctx["reanalysis_running"] = reanalysis.state["running"]
@@ -635,6 +637,24 @@ def tasks_export(request: HttpRequest, db: Session = Depends(get_db)):
     name = f"oubliez-moi-analyse-{datetime.now():%Y%m%d-%H%M}.json"
     return StreamingResponse(iter([payload]), media_type="application/json; charset=utf-8",
                              headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"})
+
+
+@app.post("/requests/{rid}/confirm-from")
+def request_confirm_from(request: HttpRequest, rid: int, next: str = Form(""), db: Session = Depends(get_db)):
+    """Envoie, depuis l'autre adresse du profil, la confirmation demandée par le courtier."""
+    r = _get(db, Request, rid)
+    plan = service.confirm_from_plan_for(db, r)
+    if plan is None:
+        flash(request, "Cette réponse ne demande pas de confirmation depuis une autre adresse.", "error")
+    else:
+        ok, err = service.send_confirm_from(db, r, plan)
+        if ok:
+            service.set_status(db, r, SENT, f"Confirmation envoyée depuis {plan['address']}")
+            flash(request, f"Confirmation envoyée depuis {plan['address']} à {plan['to']}.")
+        else:
+            flash(request, f"Envoi impossible : {err}", "error")
+        db.commit()
+    return back(_safe_next(next) or f"/requests/{rid}")
 
 
 @app.post("/requests/{rid}/summarize")

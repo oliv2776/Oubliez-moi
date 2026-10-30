@@ -14,6 +14,7 @@ import email
 import imaplib
 import logging
 import re
+import smtplib
 import ssl
 import threading
 import urllib.error
@@ -25,7 +26,7 @@ from email.utils import getaddresses, parsedate_to_datetime
 
 from sqlalchemy import func, select
 
-from . import confirm, crypto, oauth_ms, settings_store
+from . import confirm, crypto, mailer, oauth_ms, settings_store
 from .config import settings
 from .db import KV, Broker, Mailbox, Sender, SessionLocal, kv_get, kv_set, utcnow
 from .mailer import _quote_folder, registered_domain
@@ -211,6 +212,71 @@ def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
             pass
         raise MailboxError(f"Identifiants refusés par {host} : {e}") from e
     return conn
+
+
+# Serveurs d'envoi des fournisseurs courants (hôte, port, sécurité). Proton : le Bridge envoie sur le port 25.
+SMTP_SERVERS = {
+    "gmail": ("smtp.gmail.com", 465, "ssl"),
+    "outlook": ("smtp-mail.outlook.com", 587, "starttls"),
+    "icloud": ("smtp.mail.me.com", 587, "starttls"),
+}
+
+
+def for_address(db, address: str) -> Mailbox | None:
+    """Boîte enregistrée pour cette adresse (Boîtes mail), s'il y en a une."""
+    a = (address or "").strip().lower()
+    return next((mb for mb in db.scalars(select(Mailbox)) if (mb.address or "").strip().lower() == a), None)
+
+
+def smtp_server(mb: Mailbox) -> tuple[str, int, str, bool]:
+    """(hôte, port, sécurité, vérifier le certificat) pour envoyer depuis cette boîte."""
+    if mb.auth == "oauth_ms":
+        return ("smtp-mail.outlook.com", 587, "starttls", True)
+    if mb.provider in SMTP_SERVERS:
+        return (*SMTP_SERVERS[mb.provider], True)
+    if mb.provider == "proton":
+        return (mb.host, 25, "starttls", mb.verify_tls)
+    host = re.sub(r"^imap\.", "smtp.", mb.host or "")
+    return (host, 587, "starttls", mb.verify_tls)
+
+
+def send_from(mb: Mailbox, msg, db=None) -> None:
+    """Envoie le message depuis cette boîte (mêmes identifiants que pour la lire). Respecte le mode simulation."""
+    if settings.dry_run:
+        log.info("[DRY_RUN] E-mail non envoyé depuis %s à %s : %s", mb.address, msg["To"], msg["Subject"])
+        return
+    if mb.linked_settings:
+        mailer.send_message(msg)  # boîte des réglages : serveur d'envoi des réglages
+        return
+    host, port, security, verify = smtp_server(mb)
+    if not host:
+        raise MailboxError("Serveur d'envoi inconnu pour cette boîte")
+    user = mb.username or mb.address
+    ctx = _ssl_context(verify)
+    try:
+        server = (mailer._PinnedSMTP_SSL(host, port, context=ctx, timeout=60) if security == "ssl"
+                  else mailer._PinnedSMTP(host, port, timeout=60))
+        with server:
+            server.ehlo()
+            if security == "starttls":
+                server.starttls(context=ctx)
+                server.ehlo()
+            if mb.auth == "oauth_ms":
+                token, new_refresh = oauth_ms.smtp_access_token(oauth_ms.client_id_for(mb.oauth_client_id), mb.oauth_tenant, _secret(mb))
+                if new_refresh and db is not None:
+                    mb.secret_enc = crypto.encrypt(new_refresh)
+                server.auth("XOAUTH2", lambda challenge=None: oauth_ms.xoauth2(user, token).decode(), initial_response_ok=True)
+            else:
+                server.login(user, _secret(mb))
+            server.send_message(msg, to_addrs=[a for _, a in getaddresses([msg["To"]])])
+    except oauth_ms.OAuthError as e:
+        raise MailboxError(str(e)) from e
+    except smtplib.SMTPAuthenticationError as e:
+        hint = (" Microsoft : reconnectez la boîte une fois pour autoriser l'envoi." if mb.auth == "oauth_ms"
+                else " Gmail : il faut un mot de passe d'application." if mb.provider == "gmail" else "")
+        raise MailboxError(f"Envoi refusé par {host} : {e.smtp_error.decode(errors='replace') if isinstance(e.smtp_error, bytes) else e}.{hint}") from e
+    except (smtplib.SMTPException, OSError) as e:
+        raise MailboxError(f"Envoi depuis {mb.address} impossible ({host}:{port}) : {e}") from e
 
 
 def test_connection(mb: Mailbox, db=None) -> str:

@@ -114,6 +114,23 @@
         <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
       </div>
       {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
+      {% if confirm_from %}
+      <div class="confirm-from">
+        <p class="small" style="margin:.5rem 0 .3rem"><strong>À envoyer depuis {{ confirm_from.address }}</strong> à {{ confirm_from.to }} — les réponses reviendront à votre adresse habituelle.</p>
+        <details><summary>Voir le message</summary><pre translate="no">Objet : {{ confirm_from.subject }}
+
+{{ confirm_from.body }}</pre></details>
+        {% if confirm_from.mailbox %}
+        <form method="post" action="/requests/{{ r.id }}/confirm-from" class="inline">
+          <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
+          <button class="btn primary sm">Envoyer la confirmation depuis {{ confirm_from.address }}</button>
+        </form>
+        {% else %}
+        <p class="small muted">Cette adresse n'est pas connectée dans <a href="/mailboxes">Boîtes mail</a> : copiez le message et envoyez-le vous-même depuis {{ confirm_from.address }}.
+          <button type="button" class="btn sm copy" data-copy="{{ confirm_from.body }}">Copier le texte</button></p>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if ins.kind == 'device_id' %}<p class="small" style="margin:.4rem 0 0"><a href="/tasks/device-ids">Marche à suivre commune et clôture groupée →</a></p>{% endif %}
       {% if can_summarize %}
       <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Le modèle lit le message… (jusqu\'à une minute)';">

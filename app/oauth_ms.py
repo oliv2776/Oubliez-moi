@@ -30,6 +30,9 @@ AUTHORITY = os.environ.get("MS_AUTHORITY", "https://login.microsoftonline.com")
 PROJECT_CLIENT_ID = "40870361-82c7-42f9-8e99-594cc906acf8"
 ALLOW_PRIVATE = False  # surchargeable uniquement dans les tests de flux OAuth local
 SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
+SMTP_SCOPE = "https://outlook.office.com/SMTP.Send offline_access"
+# À la connexion, on demande aussi l'envoi : il sert à confirmer une demande depuis cette adresse.
+CONNECT_SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/SMTP.Send offline_access"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 _access_cache: dict[int, tuple[str, float]] = {}  # mailbox_id -> (jeton d'accès, expiration)
@@ -72,7 +75,7 @@ def start(mailbox_id: int, client_id: str, tenant: str) -> dict:
     """Démarre la connexion : renvoie le code à saisir et l'adresse où le saisir."""
     if not client_id:
         raise OAuthError("Aucun identifiant d'application Microsoft : indiquez-en un dans « Utiliser votre propre identifiant »")
-    data = _post(_endpoint(tenant, "devicecode"), {"client_id": client_id, "scope": SCOPE})
+    data = _post(_endpoint(tenant, "devicecode"), {"client_id": client_id, "scope": CONNECT_SCOPE})
     if "device_code" not in data:
         raise OAuthError(data.get("error_description") or data.get("error") or "réponse inattendue de Microsoft")
     flow = {
@@ -131,6 +134,19 @@ def access_token(mailbox_id: int, client_id: str, tenant: str, refresh_token: st
         raise OAuthError("Connexion Microsoft expirée ou révoquée : reconnectez le compte "
                          f"({data.get('error_description') or data.get('error') or 'refus'})")
     _access_cache[mailbox_id] = (data["access_token"], time.time() + int(data.get("expires_in", 3600)) - 120)
+    return data["access_token"], data.get("refresh_token")
+
+
+def smtp_access_token(client_id: str, tenant: str, refresh_token: str) -> tuple[str, str | None]:
+    """Jeton d'accès pour l'envoi (SMTP). Les boîtes connectées avant cette autorisation doivent être reconnectées."""
+    if not refresh_token:
+        raise OAuthError("Compte Microsoft non connecté : cliquez sur « Connecter le compte Microsoft »")
+    data = _post(_endpoint(tenant, "token"), {
+        "grant_type": "refresh_token", "client_id": client_id, "refresh_token": refresh_token, "scope": SMTP_SCOPE,
+    })
+    if "access_token" not in data:
+        raise OAuthError("Envoi non autorisé pour cette boîte : reconnectez-la une fois dans Boîtes mail pour accepter "
+                         f"l'envoi d'e-mails ({data.get('error_description') or data.get('error') or 'refus'})")
     return data["access_token"], data.get("refresh_token")
 
 
