@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Dossiers RGPD{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Dossiers RGPD</h1><p class="muted">Suivez les demandes adressées aux organismes, leurs réponses et leurs délais.</p></div>
+</div>
+<div class="grid c2">
+  <section class="card">
+    <h2>Nouvelle demande</h2>
+    {% if organizations %}
+    <form method="post" action="/privacy-cases">
+      <label>Organisme *</label>
+      <select name="organization_id" required>{% for org in organizations %}<option value="{{ org.id }}">{{ org.name }}</option>{% endfor %}</select>
+      <label>Type de demande *</label>
+      <select name="request_type" required>{% for key, label in CASE_TYPES.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+      <label>Objet ou périmètre</label>
+      <input type="text" name="subject" maxlength="300" placeholder="Ex. données de compte et historique d’achat">
+      <label>Profil concerné <span class="hint">— facultatif</span></label>
+      <select name="profile_id"><option value="0">Aucun profil associé</option>{% for p in profiles %}<option value="{{ p.id }}">{{ p.full_name }}</option>{% endfor %}</select>
+      <label>Référence communiquée par l’organisme</label>
+      <input type="text" name="reference" maxlength="150">
+      <label>Note initiale</label>
+      <textarea name="note" rows="2" placeholder="Contexte, canal prévu, pièces à réunir…"></textarea>
+      <p style="margin-top:1rem"><button class="btn primary">Créer le dossier</button></p>
+    </form>
+    {% else %}<p class="muted">Ajoutez d’abord un organisme pour créer un dossier.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Ajouter un organisme</h2>
+    <form method="post" action="/organizations">
+      <label>Nom de l’organisme *</label><input type="text" name="name" required maxlength="300">
+      <label>Site web</label><input type="text" name="website" maxlength="500" placeholder="https://…">
+      <label>Adresse de contact RGPD</label><input type="email" name="contact_email" maxlength="300">
+      <label>Adresse postale</label><textarea name="postal_address" rows="2"></textarea>
+      <label>Notes privées</label><textarea name="notes" rows="2"></textarea>
+      <p style="margin-top:1rem"><button class="btn">Enregistrer l’organisme</button></p>
+    </form>
+  </section>
+</div>
+<div class="page-head"><div><h2>Suivi des dossiers</h2><p class="muted">{{ cases|length }} dossier(s)</p></div></div>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Organisme, objet ou référence">
+  <select name="status"><option value="">Tous les statuts</option>{% for key, label in CASE_STATUSES.items() %}<option value="{{ key }}" {{ 'selected' if status == key }}>{{ label }}</option>{% endfor %}</select>
+  <button class="btn">Filtrer</button>
+</form>
+<div class="card table-wrap">
+{% if cases %}
+<table>
+  <tr><th>Organisme / objet</th><th>Demande</th><th>Statut</th><th>Échéance</th></tr>
+  {% for c in cases %}
+  <tr>
+    <td><a href="/privacy-cases/{{ c.id }}"><strong>{{ c.organization.name }}</strong></a><div class="small muted">{{ c.subject or 'Sans objet précisé' }}{% if c.reference %} · Réf. {{ c.reference }}{% endif %}</div></td>
+    <td>{{ c.type_label }}</td>
+    <td><span class="badge s-{{ 'overdue' if c.overdue else c.status }}">{{ c.status_label }}</span></td>
+    <td class="small">{% if c.effective_deadline %}{{ c.effective_deadline.strftime('%d/%m/%Y') }}{% else %}—{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="empty">Aucun dossier ne correspond à ces critères.</p>{% endif %}
+</div>
+<div class="banner info small">Créer un dossier n’envoie aucun courrier. L’envoi et la confirmation du résultat restent des actions explicites de votre part.</div>
+{% endblock %}
