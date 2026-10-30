@@ -81,6 +81,13 @@ def test_authentication_results_requires_trusted_authserv_and_dmarc_pass():
         authenticated.set_content("Your data has been deleted.")
         assert mailer.parse_mail(bytes(authenticated)).dmarc_pass is True
 
+        duplicated = EmailMessage()
+        duplicated["From"] = "privacy@example.org"
+        duplicated["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
+        duplicated["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
+        duplicated.set_content("Your data has been deleted.")
+        assert mailer.parse_mail(bytes(duplicated)).dmarc_pass is False
+
         failed = EmailMessage()
         failed["From"] = "privacy@example.org"
         failed["Authentication-Results"] = "mx.test; spf=fail; dkim=fail; dmarc=fail"
