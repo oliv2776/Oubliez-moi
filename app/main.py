@@ -87,6 +87,8 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
+from . import search as search_routes  # noqa: E402
+app.include_router(search_routes.router)
 
 PUBLIC_PATHS = ("/login", "/healthz")
 PUBLIC_PREFIXES = ("/static",)
@@ -266,6 +268,9 @@ def dashboard(request: HttpRequest, db: Session = Depends(get_db)):
         per_profile=per_profile, total=service.stats(db), events=events, upcoming=upcoming,
         queued=queued, eta_hours=eta_hours,
         brokers_enabled=db.scalar(select(func.count(Broker.id)).where(Broker.enabled.is_(True))),
+        mailboxes_total=db.scalar(select(func.count(Mailbox.id))) or 0,
+        senders_total=db.scalar(select(func.count(Sender.id))) or 0,
+        senders_new=db.scalar(select(func.count(Sender.id)).where(Sender.status == "new")) or 0,
         imap_polled_at=kv_get(db, "imap_polled_at"),
     )
 
