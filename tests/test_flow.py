@@ -129,6 +129,7 @@ def test_full_flow(client):
         done.closed_at = utcnow() - timedelta(days=settings.resend_interval_days + 1)
         db.commit()
     assert service.schedule_resends() == 1
+    assert service.schedule_resends() == 0  # le même cycle ne doit pas être créé deux fois
     with SessionLocal() as db:
         again = db.scalars(select(Request).where(Request.broker_id == done.broker_id, Request.profile_id == pid, Request.cycle == 2)).one()
         assert again.status == QUEUED
