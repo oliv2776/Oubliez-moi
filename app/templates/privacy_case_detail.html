@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Dossier RGPD — {{ case.organization.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><p class="small muted"><a href="/privacy-cases">Dossiers RGPD</a> · dossier #{{ case.id }}</p>
+    <h1>{{ case.organization.name }}</h1><p class="muted">{{ case.type_label }}{% if case.subject %} · {{ case.subject }}{% endif %}</p></div>
+  <span class="badge s-{{ 'overdue' if case.overdue else case.status }}">{{ case.status_label }}</span>
+</div>
+{% if case.overdue %}<div class="banner warn">L’échéance enregistrée est dépassée. Vérifiez les dates et les échanges avec l’organisme.</div>{% endif %}
+<div class="grid c2">
+  <div>
+    <section class="card">
+      <h2>Chronologie</h2>
+      {% if case.events %}
+      <ul class="timeline">{% for event in case.events|reverse %}
+        <li class="k-{{ event.kind }}"><div class="small muted">{{ event.at.strftime('%d/%m/%Y %H:%M') }}</div><strong>{{ event.summary }}</strong>{% if event.body %}<div class="small" style="white-space:pre-wrap;margin-top:.3rem">{{ event.body }}</div>{% endif %}</li>
+      {% endfor %}</ul>
+      {% else %}<p class="muted">Aucun événement enregistré.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Ajouter un événement ou une preuve</h2>
+      <form method="post" action="/privacy-cases/{{ case.id }}/note">
+        <label>Intitulé *</label><input type="text" name="summary" required maxlength="500" placeholder="Ex. accusé de réception reçu">
+        <label>Détails / référence / lien vers la preuve</label><textarea name="body" rows="3" placeholder="Date, canal, contenu utile, emplacement d’un document conservé…"></textarea>
+        <p style="margin-top:.75rem"><button class="btn">Ajouter à l’historique</button></p>
+      </form>
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2>Organisme</h2>
+      <dl class="kv small"><dt>Nom</dt><dd>{{ case.organization.name }}</dd>
+      <dt>Contact</dt><dd>{{ case.organization.contact_email or '—' }}</dd>
+      <dt>Site</dt><dd>{{ case.organization.website or '—' }}</dd>
+      <dt>Adresse</dt><dd>{{ case.organization.postal_address or '—' }}</dd>
+      {% if case.profile %}<dt>Profil</dt><dd>{{ case.profile.full_name }}</dd>{% endif %}
+      <dt>Référence</dt><dd>{{ case.reference or '—' }}</dd></dl>
+    </section>
+    <section class="card">
+      <h2>Délais</h2>
+      <dl class="kv small"><dt>Envoyée le</dt><dd>{{ case.sent_at.strftime('%d/%m/%Y') if case.sent_at else 'Pas encore envoyée' }}</dd>
+      <dt>Échéance initiale</dt><dd>{{ case.deadline_at.strftime('%d/%m/%Y') if case.deadline_at else 'Calculée à l’envoi' }}</dd>
+      <dt>Échéance actuelle</dt><dd>{{ case.effective_deadline.strftime('%d/%m/%Y') if case.effective_deadline else '—' }}</dd>
+      <dt>Prolongation</dt><dd>{{ case.extension_notified_at.strftime('%d/%m/%Y') if case.extension_notified_at else 'Aucune' }}</dd></dl>
+      {% if case.sent_at and not case.extended_deadline_at and case.status in ('sent', 'acknowledged', 'in_progress') %}
+      <form method="post" action="/privacy-cases/{{ case.id }}/extend">
+        <p class="small muted">Pour un dossier complexe, une prolongation maximale de deux mois peut être appliquée. Elle doit être signalée à la personne concernée dans le premier mois.</p>
+        <label>Note de suivi (facultatif)</label><input type="text" name="note" maxlength="300">
+        <button class="btn sm">J’ai informé la personne : enregistrer +2 mois</button>
+      </form>
+      {% elif case.extended_deadline_at %}<p class="small muted">Prolongation déjà enregistrée. Conservez la preuve de l’information envoyée.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Mettre à jour le statut</h2>
+      <form method="post" action="/privacy-cases/{{ case.id }}/status">
+        <label>Nouveau statut</label><select name="status">{% for key, label in CASE_STATUSES.items() %}<option value="{{ key }}" {{ 'selected' if case.status == key }}>{{ label }}</option>{% endfor %}</select>
+        <label>Commentaire associé</label><input type="text" name="note" maxlength="300" placeholder="Ex. réponse complète vérifiée">
+        <p style="margin-top:.75rem"><button class="btn primary">Enregistrer</button></p>
+      </form>
+      <p class="small muted">« Traitée — résultat confirmé » est un statut manuel : Oubliez-moi ne prétend pas vérifier la suppression auprès de l’organisme.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}
