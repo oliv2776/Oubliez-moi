@@ -273,6 +273,7 @@ def logout(request: HttpRequest):
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: HttpRequest, db: Session = Depends(get_db)):
+    mailboxes.sync_settings_mailbox(db)
     profiles = db.scalars(select(Profile).order_by(Profile.id)).all()
     per_profile = [(p, service.stats(db, p.id)) for p in profiles]
     events = db.scalars(
@@ -645,7 +646,9 @@ def mailboxes_page(request: HttpRequest, status: str = "new", mailbox: int | Non
             else:
                 flash(request, f"Rangement terminé : {j['ok']} e-mail(s) déplacé(s)." if not j["error"] else f"Rangement impossible : {j['error']}",
                       "ok" if not j["error"] else "error")
-    boxes = db.scalars(select(Mailbox).order_by(Mailbox.id)).all()
+    mailboxes.sync_settings_mailbox(db)
+    boxes = db.scalars(select(Mailbox).order_by(Mailbox.linked_settings.desc(), Mailbox.id)).all()
+    settings_box = mailboxes.settings_address()
     conds = [Sender.mailbox_id == mailbox] if mailbox else []
     counts = dict(db.execute(select(Sender.status, func.count()).where(*conds).group_by(Sender.status)).all())
     stmt = select(Sender).where(*conds).options(selectinload(Sender.mailbox))
@@ -658,7 +661,8 @@ def mailboxes_page(request: HttpRequest, status: str = "new", mailbox: int | Non
     per_box = dict(db.execute(select(Sender.mailbox_id, func.count()).where(Sender.status == "new").group_by(Sender.mailbox_id)).all())
     return render(request, "mailboxes.html", db, boxes=boxes, senders=senders, status=status, mailbox=mailbox, q=q,
                   counts=counts, total=sum(counts.values()), per_box=per_box, SSTATUS=SENDER_STATUSES,
-                  brokers_by_domain=mailboxes.catalog_domains(db), jobs=mailboxes.jobs)
+                  brokers_by_domain=mailboxes.catalog_domains(db), jobs=mailboxes.jobs, settings_box=settings_box,
+                  settings_box_hidden=bool(settings_box) and all(b.address.lower() != settings_box for b in boxes))
 
 
 @app.get("/mailboxes/new", response_class=HTMLResponse)
@@ -671,7 +675,19 @@ def mailbox_edit(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
     return render(request, "mailbox_form.html", db, mb=_get(db, Mailbox, mid), PROVIDERS=mailboxes.PROVIDERS)
 
 
+def _fill_analysis_options(mb: Mailbox, form: dict, default_folders: list[str]) -> None:
+    mb.folders = [f.strip() for f in (form.get("folders") or "").split(",") if f.strip()] or list(default_folders)
+    mb.file_folder = (form.get("file_folder") or "Newsletters").strip() or "Newsletters"
+    months = (form.get("months") or "12").strip()
+    mb.months = min(120, max(1, int(months))) if months.isdigit() else 12
+    mb.auto_scan = bool(form.get("auto_scan"))
+
+
 def _fill_mailbox(mb: Mailbox, form: dict) -> list[str]:
+    if mb.linked_settings:  # la connexion se règle dans Réglages : seules les options d'analyse sont modifiables
+        mb.label = (form.get("label") or "").strip() or "Boîte des demandes"
+        _fill_analysis_options(mb, form, mb.folders or ["INBOX"])
+        return []
     errors = []
     provider = form.get("provider", "imap")
     preset = mailboxes.PROVIDERS.get(provider, mailboxes.PROVIDERS["imap"])
@@ -689,11 +705,7 @@ def _fill_mailbox(mb: Mailbox, form: dict) -> list[str]:
         mb.secret_enc = crypto.encrypt(form["password"])
     mb.oauth_client_id = (form.get("oauth_client_id") or "").strip() or None
     mb.oauth_tenant = (form.get("oauth_tenant") or "consumers").strip() or "consumers"
-    mb.folders = [f.strip() for f in (form.get("folders") or "").split(",") if f.strip()] or list(preset["folders"])
-    mb.file_folder = (form.get("file_folder") or "Newsletters").strip() or "Newsletters"
-    months = (form.get("months") or "12").strip()
-    mb.months = min(120, max(1, int(months))) if months.isdigit() else 12
-    mb.auto_scan = bool(form.get("auto_scan"))
+    _fill_analysis_options(mb, form, preset["folders"])
     if "@" not in mb.address:
         errors.append("Indiquez l'adresse e-mail de la boîte")
     if not mb.host:
@@ -745,10 +757,23 @@ async def mailbox_update(request: HttpRequest, mid: int, db: Session = Depends(g
 def mailbox_delete(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
     mb = _get(db, Mailbox, mid)
     oauth_ms.forget(mb.id)
+    if mb.linked_settings:
+        mailboxes.dismiss_settings_mailbox(db, mb)  # sinon elle réapparaîtrait au prochain affichage
     db.delete(mb)
     db.commit()
-    flash(request, "Boîte retirée d'Oubliez-moi (rien n'a été modifié dans la boîte elle-même).")
+    if mb.linked_settings:
+        flash(request, "Boîte des demandes retirée de cette page. Elle reste utilisée pour relever les réponses des courtiers.")
+    else:
+        flash(request, "Boîte retirée d'Oubliez-moi (rien n'a été modifié dans la boîte elle-même).")
     return back("/mailboxes")
+
+
+@app.post("/mailboxes/settings-account/restore")
+def mailbox_settings_restore(request: HttpRequest, db: Session = Depends(get_db)):
+    mb = mailboxes.restore_settings_mailbox(db)
+    if mb:
+        flash(request, f"« {mb.address} » est de nouveau dans la liste. Lancez l'analyse quand vous voulez.")
+    return back(f"/mailboxes?mailbox={mb.id}" if mb else "/mailboxes")
 
 
 @app.post("/mailboxes/{mid}/test")
@@ -767,6 +792,9 @@ def mailbox_scan(request: HttpRequest, mid: int, db: Session = Depends(get_db)):
     if mb.scanning:
         flash(request, "Une analyse est déjà en cours.", "info")
     else:
+        if mb.linked_settings and mb.last_scan_at is None:
+            mb.auto_scan = True  # comme une boîte ajoutée à la main : première analyse, puis chaque nuit
+            db.commit()
         mailboxes.scan_in_background(mid)
         flash(request, f"Analyse de « {mb.label} » lancée. Les expéditeurs apparaissent au fur et à mesure.")
     return back(f"/mailboxes?mailbox={mid}")
@@ -982,6 +1010,7 @@ def settings_page(request: HttpRequest, db: Session = Depends(get_db)):
         imap_polled_at=kv_get(db, "imap_polled_at"), synced_at=kv_get(db, "brokers_synced_at"),
         overridden=settings_store.overridden_keys(), file_status=(kv_get(db, "imap_file_status") or "").split("|", 2),
         llm_models=llm.MODELS, llm_installed=llm.installed_models() if settings.llm_url else None,
+        llm_hint=llm.unreachable_hint(settings.llm_url) if settings.llm_url else "",
         llm_details=llm.installed_details() if settings.llm_url else None,
         backups=backup.list_backups(), backup_error=_backup_error(db),
         key_source=crypto.key_source, crypto_errors=crypto.decrypt_errors,

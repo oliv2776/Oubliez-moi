@@ -195,9 +195,9 @@
   <div class="card">
     <h2>IA locale pour les réponses ambiguës <span class="tag">facultatif</span></h2>
     <p class="small muted">Quand les mots-clés ne suffisent pas, un modèle qui tourne chez vous avec <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a> lit la réponse et la classe. Son choix n'est appliqué que si sa probabilité atteint 70 % ; sinon la réponse reste dans « À traiter ». Rien n'est envoyé à un service externe.</p>
-    <label for="llm_url">Adresse d'Ollama <span class="hint">— vide = désactivé ; ex. http://ollama:11434 ou http://172.17.0.1:11434</span></label>
+    <label for="llm_url">Adresse d'Ollama <span class="hint">— vide = désactivé. Conteneur du profil « ia » : http://ollama:11434 ; Ollama installé sur le serveur : http://host.docker.internal:11434</span></label>
     <input id="llm_url" type="text" name="llm_url" value="{{ settings.llm_url }}" placeholder="http://ollama:11434">
-    {% if settings.llm_url and llm_installed is none %}<p class="small" style="color:var(--warn);margin-top:.3rem">Ollama ne répond pas à cette adresse : vérifiez qu'il tourne (<code>docker compose --profile ia up -d</code>).</p>{% endif %}
+    {% if settings.llm_url and llm_installed is none %}<p class="small" style="color:var(--warn);margin-top:.3rem">Ollama ne répond pas à cette adresse. Conteneur du profil « ia » : vérifiez qu'il tourne (<code>docker compose --profile ia up -d</code>). Ollama installé sur le serveur : {{ llm_hint }}.</p>{% endif %}
 
     {% set inst = (llm_installed or [])|map('replace', ':latest', '')|list %}
     {% macro opt(m) -%}

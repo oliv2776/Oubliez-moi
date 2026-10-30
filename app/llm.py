@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from .config import settings
@@ -177,7 +178,22 @@ def classify(subject: str, text: str, timeout: int = 300) -> dict | None:
     return res
 
 
+def unreachable_hint(url: str) -> str:
+    """Explication concrète quand Ollama ne répond pas (cas fréquent : installé sur l'hôte)."""
+    host = (urllib.parse.urlsplit(url).hostname or "").lower()
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return ("dans le conteneur, « localhost » désigne Oubliez-moi lui-même : pour un Ollama installé sur le serveur, "
+                "utilisez http://host.docker.internal:11434")
+    return ("s'il est installé directement sur le serveur, il n'écoute que sur 127.0.0.1 : ajoutez "
+            "OLLAMA_HOST=0.0.0.0:11434 au service (sudo systemctl edit ollama) puis redémarrez-le — voir le README")
+
+
 def test() -> str:
+    try:
+        with safe_urlopen(settings.llm_url.rstrip("/") + "/api/tags", timeout=5, allow_private=True) as resp:
+            resp.read()
+    except (OSError, ValueError) as e:
+        raise RuntimeError(f"Ollama injoignable à {settings.llm_url} ({getattr(e, 'reason', e)}) : {unreachable_hint(settings.llm_url)}") from e
     sample = "Hello, we have reviewed your request and removed your email address from our marketing database. Kind regards."
     res = classify("Re: your request", sample, timeout=300)
     if res is None:

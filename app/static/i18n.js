@@ -47,7 +47,12 @@
     "Se connecter":"Sign in","Au moins une adresse e-mail est nécessaire pour que les courtiers vous identifient.":"At least one email address is required so data brokers can identify you.",
     "Aucune sauvegarde pour l'instant.":"No backups yet.","Exporter l'historique (CSV)":"Export history (CSV)","Annuler":"Cancel","Supprimer":"Delete","Ajouter":"Add",
     "Précédent":"Previous","Suivant":"Next",
-    "Rechercher":"Search","Date":"Date","Actions":"Actions","Détails":"Details","Historique":"History","Créer":"Create","Non":"No"
+    "Rechercher":"Search","Date":"Date","Actions":"Actions","Détails":"Details","Historique":"History","Créer":"Create","Non":"No",
+    "Effacement chez les courtiers":"Data broker removals","Ménage des boîtes mail":"Mailbox clean-up",
+    "Autres droits RGPD":"Other GDPR rights","Aller au contenu":"Skip to content","Fermer le menu":"Close menu",
+    "Navigation principale":"Main navigation","Langue":"Language","Boîte des demandes":"Requests mailbox",
+    "Pas encore analysée : rien n'est lu tant que vous ne lancez pas l'analyse.":"Not analysed yet: nothing is read until you start the analysis.",
+    "L'ajouter à la liste":"Add it to the list","Aussi la boîte qui relève les réponses des courtiers":"Also the mailbox that collects data broker replies"
   };
   // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
   // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées

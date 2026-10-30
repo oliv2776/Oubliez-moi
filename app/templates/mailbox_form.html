@@ -16,6 +16,14 @@
 </div>
 
 <form method="post" action="{{ '/mailboxes/%d'|format(mb.id) if mb else '/mailboxes' }}" autocomplete="off" class="panel-narrow">
+{% if mb and mb.linked_settings %}
+<div class="card">
+  <h2>Compte</h2>
+  <p>{{ mb.address }}</p>
+  <p class="small muted">C'est la boîte qui relève les réponses des courtiers. Son serveur et son mot de passe se règlent dans <a href="/settings#releve">Réglages › Relève des réponses</a> ; cette page ne règle que l'analyse des expéditeurs.</p>
+  <label for="label">Nom affiché</label><input id="label" type="text" name="label" value="{{ mb.label }}">
+</div>
+{% else %}
 <div class="card">
   <h2>Compte</h2>
   <label for="provider">Fournisseur</label>
@@ -69,8 +77,11 @@
   </div>
 </div>
 
+{% endif %}
+
 <div class="card">
-  <h2>Serveur et analyse</h2>
+  <h2>{{ 'Analyse' if mb and mb.linked_settings else 'Serveur et analyse' }}</h2>
+  {% if not (mb and mb.linked_settings) %}
   <label for="host">Serveur IMAP *</label>
   <input id="host" type="text" name="host" value="{{ mb.host if mb else '' }}">
   <div class="row2">
@@ -82,6 +93,7 @@
       </select></div>
   </div>
   <label class="check"><input type="checkbox" id="verify_tls" name="verify_tls" value="1" {{ 'checked' if (mb.verify_tls if mb else True) }}> Vérifier le certificat du serveur <span class="hint">— à décocher uniquement pour Proton Mail Bridge sur votre réseau</span></label>
+  {% endif %}
   <label for="folders">Dossiers à analyser <span class="hint">— séparés par des virgules</span></label>
   <input id="folders" type="text" name="folders" value="{{ mb.folders|join(', ') if mb else '' }}">
   <div class="row2">
@@ -105,7 +117,7 @@
 {% if mb %}
 <form method="post" action="/mailboxes/{{ mb.id }}/delete" class="panel-narrow" style="margin-top:1rem" onsubmit="return confirm('Retirer cette boîte d\'Oubliez-moi ? La boîte elle-même ne sera pas modifiée.')">
   <button class="btn sm danger">Retirer cette boîte</button>
-  <span class="small muted">Supprime aussi la liste de ses expéditeurs dans Oubliez-moi.</span>
+  <span class="small muted">Supprime aussi la liste de ses expéditeurs dans Oubliez-moi.{% if mb.linked_settings %} La relève des réponses des courtiers continue.{% endif %}</span>
 </form>
 {% endif %}
 
@@ -114,6 +126,7 @@
   const PROVIDERS = {{ PROVIDERS|tojson }};
   const $ = id => document.getElementById(id);
   const isNew = {{ 'false' if mb else 'true' }};
+  if (!$("provider")) return;  // boîte des réglages : pas de champs de connexion ici
   function apply(fill) {
     const p = PROVIDERS[$("provider").value];
     $("provider-help").textContent = p.help || "";

@@ -186,6 +186,8 @@ class Mailbox(Base):
     file_folder: Mapped[str] = mapped_column(String(200), default="Newsletters")
     months: Mapped[int] = mapped_column(Integer, default=12)
     auto_scan: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Boîte des réglages (relève des réponses) : connexion lue dans Réglages, rien n'est dupliqué ici.
+    linked_settings: Mapped[bool] = mapped_column(Boolean, default=False)
     state: Mapped[dict] = mapped_column(JSON, default=dict)  # dossier -> "uidvalidity:dernier_uid"
     scanning: Mapped[bool] = mapped_column(Boolean, default=False)
     progress: Mapped[str | None] = mapped_column(String(300), nullable=True)
@@ -290,6 +292,7 @@ MIGRATIONS = [
     ("events", "html", "TEXT"),
     ("events", "message_id", "VARCHAR(500)"),
     ("privacy_cases", "overdue_notified_at", "DATETIME"),
+    ("mailboxes", "linked_settings", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 

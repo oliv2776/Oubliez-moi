@@ -32,7 +32,7 @@
 
 {% if not items %}
 <div class="card empty">
-  <h2>Rien à traiter 🎉</h2>
+  <h2>{{ 'Aucune réponse de courtier à traiter' if late_cases else 'Rien à traiter 🎉' }}</h2>
   <p>Les nouvelles réponses des courtiers apparaîtront ici dès leur arrivée.</p>
 </div>
 {% else %}

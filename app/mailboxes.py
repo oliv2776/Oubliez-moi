@@ -23,10 +23,11 @@ from datetime import timedelta
 from email.policy import default as default_policy
 from email.utils import getaddresses, parsedate_to_datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
-from . import confirm, crypto, oauth_ms
-from .db import Broker, Mailbox, Sender, SessionLocal, utcnow
+from . import confirm, crypto, oauth_ms, settings_store
+from .config import settings
+from .db import KV, Broker, Mailbox, Sender, SessionLocal, kv_get, kv_set, utcnow
 from .mailer import _quote_folder, registered_domain
 from .net import create_pinned_socket, safe_urlopen
 
@@ -73,14 +74,97 @@ class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
         return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
 
 
+# ------------------------------------------------- Boîte des réglages ----
+# La boîte configurée dans Réglages › Relève des réponses apparaît aussi dans « Boîtes mail ».
+# Ses identifiants ne sont pas copiés : la connexion est relue dans les réglages à chaque fois.
+
+SETTINGS_DISMISSED = "mailbox_settings_dismissed"  # adresse retirée volontairement de la liste
+
+
+def settings_address() -> str:
+    """Adresse de la boîte des réglages ("" si la relève n'est pas configurée)."""
+    if not settings.imap_configured:
+        return ""
+    user, _ = settings.imap_login
+    return (user if "@" in (user or "") else settings.smtp_from or "").strip().lower()
+
+
+def _provider_for(host: str) -> str:
+    host = (host or "").lower()
+    for key, preset in PROVIDERS.items():
+        if preset["host"] and host == preset["host"]:
+            return key
+    return "gmail" if host.endswith(("gmail.com", "googlemail.com")) else "imap"
+
+
+def sync_settings_mailbox(db) -> Mailbox | None:
+    """Crée ou met à jour la boîte des réglages dans la liste des boîtes analysées.
+
+    Rien n'est lu tant que l'utilisateur ne lance pas l'analyse (auto_scan désactivé
+    à la création). Pas de doublon si la même adresse a déjà été ajoutée à la main.
+    """
+    linked = db.scalar(select(Mailbox).where(Mailbox.linked_settings.is_(True)))
+    address = settings_address()
+    if not address:
+        return linked
+    provider = _provider_for(settings.imap_host)
+    if linked is None:
+        if kv_get(db, SETTINGS_DISMISSED) == address:
+            return None
+        if db.scalar(select(Mailbox.id).where(func.lower(Mailbox.address) == address)):
+            return None
+        preset = PROVIDERS[provider]
+        linked = Mailbox(
+            label="Boîte des demandes", address=address, provider=provider, linked_settings=True,
+            host=settings.imap_host, port=settings.imap_port, security=settings.imap_security, verify_tls=True,
+            auth="password", username="", secret_enc="", state={}, auto_scan=False,
+            folders=list(preset["folders"]) if provider != "imap" else list(settings.imap_folders or ["INBOX"]),
+        )
+        db.add(linked)
+        db.commit()
+        return linked
+    if (linked.address, linked.host) != (address, settings.imap_host):
+        linked.state = {}  # autre compte : l'analyse repart de zéro
+    linked.address, linked.provider = address, provider
+    linked.host, linked.port, linked.security = settings.imap_host, settings.imap_port, settings.imap_security
+    if db.is_modified(linked):
+        db.commit()
+    return linked
+
+
+def dismiss_settings_mailbox(db, mb: Mailbox) -> None:
+    kv_set(db, SETTINGS_DISMISSED, mb.address)
+
+
+def restore_settings_mailbox(db) -> Mailbox | None:
+    db.query(KV).filter(KV.key == SETTINGS_DISMISSED).delete()
+    db.commit()
+    return sync_settings_mailbox(db)
+
+
 # ------------------------------------------------------------- Connexion ----
 
-def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
+def _ssl_context(verify_tls: bool) -> ssl.SSLContext:
     ctx = ssl.create_default_context()
-    if not mb.verify_tls:  # Proton Mail Bridge : certificat auto-signé sur le réseau local
+    if not verify_tls:  # Proton Mail Bridge : certificat auto-signé sur le réseau local
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
     return ctx
+
+
+def _account(mb: Mailbox) -> dict:
+    """Paramètres de connexion effectifs : ceux de la boîte, ou ceux des réglages pour la boîte liée."""
+    if mb.linked_settings:
+        if not settings.imap_configured:
+            raise MailboxError("La relève n'est plus configurée : renseignez-la dans Réglages › Relève des réponses.")
+        user, password = settings.imap_login
+        key = "imap_password" if settings.imap_password else "smtp_password"
+        if settings_store.secret_unavailable(key):
+            raise MailboxError("Mot de passe des réglages illisible : saisissez-le de nouveau dans Réglages.")
+        return {"host": settings.imap_host, "port": settings.imap_port, "security": settings.imap_security,
+                "verify_tls": True, "auth": "password", "user": user, "secret": lambda: password}
+    return {"host": mb.host, "port": mb.port, "security": mb.security, "verify_tls": mb.verify_tls,
+            "auth": mb.auth, "user": mb.username or mb.address, "secret": lambda: _secret(mb)}
 
 
 def _secret(mb: Mailbox) -> str:
@@ -93,27 +177,29 @@ def _secret(mb: Mailbox) -> str:
 
 
 def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
-    if not mb.host:
+    acc = _account(mb)
+    host, port = acc["host"], acc["port"]
+    if not host:
         raise MailboxError("Serveur IMAP non renseigné")
     try:
-        if mb.security == "ssl":
-            conn = _PinnedIMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
+        if acc["security"] == "ssl":
+            conn = _PinnedIMAP4_SSL(host, port, ssl_context=_ssl_context(acc["verify_tls"]), timeout=60)
         else:
-            conn = _PinnedIMAP4(mb.host, mb.port, timeout=60)
-            if mb.security == "starttls":
-                conn.starttls(ssl_context=_ssl_context(mb))
+            conn = _PinnedIMAP4(host, port, timeout=60)
+            if acc["security"] == "starttls":
+                conn.starttls(ssl_context=_ssl_context(acc["verify_tls"]))
     except (OSError, imaplib.IMAP4.error) as e:
-        raise MailboxError(f"Connexion à {mb.host}:{mb.port} impossible : {e}") from e
+        raise MailboxError(f"Connexion à {host}:{port} impossible : {e}") from e
     try:
-        user = mb.username or mb.address
-        if mb.auth == "oauth_ms":
+        user = acc["user"]
+        if acc["auth"] == "oauth_ms":
             token, new_refresh = oauth_ms.access_token(mb.id, mb.oauth_client_id or "", mb.oauth_tenant, _secret(mb))
             if new_refresh and db is not None:
                 mb.secret_enc = crypto.encrypt(new_refresh)  # Microsoft fait tourner les jetons
                 db.commit()
             conn.authenticate("XOAUTH2", lambda _: oauth_ms.xoauth2(user, token))
         else:
-            conn.login(user, _secret(mb))
+            conn.login(user, acc["secret"]())
     except oauth_ms.OAuthError as e:
         conn.logout()
         raise MailboxError(str(e)) from e
@@ -122,7 +208,7 @@ def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
             conn.logout()
         except Exception:  # noqa: BLE001
             pass
-        raise MailboxError(f"Identifiants refusés par {mb.host} : {e}") from e
+        raise MailboxError(f"Identifiants refusés par {host} : {e}") from e
     return conn
 
 
