@@ -274,11 +274,24 @@ def scan_all() -> str | None:
 
 # ---------------------------------------------------------- Désinscription ----
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Ne suit jamais les redirections d'un endpoint List-Unsubscribe non fiable."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Un endpoint public peut rediriger vers localhost ou un service interne.
+        # La désinscription reste alors manuelle plutôt que de suivre la redirection.
+        return None
+
+
 def _post_one_click(url: str) -> int:
-    """Désinscription « en un clic » normalisée (RFC 8058) : une requête POST, sans cookie ni JavaScript."""
+    """POST RFC 8058 sans cookie, JavaScript ni suivi de redirection."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname or not confirm._is_public(parsed.hostname):
+        raise urllib.error.URLError("adresse de désinscription non publique ou non HTTPS")
     req = urllib.request.Request(url, data=b"List-Unsubscribe=One-Click", method="POST", headers={
         "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Oubliez-moi (RFC 8058)"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
+    opener = urllib.request.build_opener(_NoRedirect())
+    with opener.open(req, timeout=20) as resp:
         return resp.status
 
 
