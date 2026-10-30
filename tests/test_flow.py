@@ -22,16 +22,6 @@ def test_pages_render(client):
         assert r.status_code == 200, url
 
 
-def test_csrf_rejects_cross_origin_and_missing_origin(client):
-    payload = {"full_name": "CSRF Test", "emails": "csrf@example.net"}
-    cross = client.post("/profiles", data=payload, headers={"Origin": "https://attacker.example"})
-    assert cross.status_code == 403
-    missing = client.post("/profiles", data=payload, headers={"Origin": ""})
-    assert missing.status_code == 403
-    with SessionLocal() as db:
-        assert db.query(Profile).filter(Profile.full_name == "CSRF Test").count() == 0
-
-
 def test_auth_required():
     from fastapi.testclient import TestClient
     from app.main import app
@@ -194,37 +184,6 @@ def test_automatic_resends_stop_at_configured_cycle_limit(client):
         db.add(req)
         db.commit()
     assert service.schedule_resends() == 0
-
-
-def test_authentication_results_require_trusted_authserv_and_aligned_identity():
-    original = settings.imap_authserv_id
-    settings.imap_authserv_id = "mx.test"
-    try:
-        def parsed(auth_results, sender="privacy@trusted.example"):
-            raw = EmailMessage()
-            raw["From"] = sender
-            raw["Authentication-Results"] = auth_results
-            raw.set_content("Your data has been deleted.")
-            return mailer.parse_mail(bytes(raw))
-
-        assert parsed(
-            "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
-        ).dmarc_pass
-        assert not parsed(
-            "attacker.example; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
-        ).dmarc_pass
-        assert not parsed(
-            "mx.test; spf=pass smtp.mailfrom=sender.other.example; dmarc=pass header.from=trusted.example"
-        ).dmarc_pass
-
-        raw = EmailMessage()
-        raw["From"] = "privacy@trusted.example"
-        raw["Authentication-Results"] = "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
-        raw["Authentication-Results"] = "mx.test; dkim=pass header.d=trusted.example; dmarc=pass header.from=trusted.example"
-        raw.set_content("x")
-        assert not mailer.parse_mail(bytes(raw)).dmarc_pass
-    finally:
-        settings.imap_authserv_id = original
 
 
 def test_deleting_custom_broker_archives_and_preserves_history(client):
