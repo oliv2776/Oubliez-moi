@@ -6,6 +6,7 @@ depuis la page Réglages les remplacent.
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 from sqlalchemy import delete, select
@@ -13,6 +14,8 @@ from sqlalchemy import delete, select
 from . import crypto
 from .config import EDITABLE, SECRET_KEYS, settings
 from .db import KV, SessionLocal, kv_set
+
+log = logging.getLogger(__name__)
 
 PREFIX = "cfg:"
 ENV_DEFAULTS = {k: getattr(settings, k) for k in EDITABLE}  # capturé avant toute surcharge
@@ -42,7 +45,13 @@ def apply_overrides() -> None:
                 if value and not crypto.is_encrypted(value):
                     row.value = _dump(key, value)  # ancienne valeur en clair : on la chiffre
                     migrated += 1
-                value = crypto.decrypt(value)
+                try:
+                    value = crypto.decrypt(value)
+                except crypto.DecryptionError:
+                    # Ne jamais remplacer un secret chiffré illisible par une chaîne vide.
+                    # On conserve la valeur d'environnement et la valeur chiffrée en base.
+                    log.exception("Réglage secret %s illisible : clé de chiffrement incorrecte", key)
+                    continue
             setattr(settings, key, value)
         if migrated:
             db.commit()
