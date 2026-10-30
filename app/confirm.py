@@ -101,7 +101,7 @@ def click(url: str) -> ClickResult:
         "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
     })
     try:
-        with safe_urlopen(req, timeout=20, allow_private=False) as resp:
+        with safe_urlopen(req, timeout=20, allow_private=ALLOW_PRIVATE) as resp:
             status = resp.status
             page = resp.read(500_000).decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
     except urllib.error.HTTPError as e:
