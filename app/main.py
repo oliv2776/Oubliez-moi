@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hmac
 import io
+import json
 import logging
 import re
 import time
@@ -23,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, exposures, insight, migration_routes, reanalysis, search as search_routes
+from . import case_assistant, case_management, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -622,6 +623,17 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
     ctx["reanalysis_running"] = reanalysis.state["running"]
     ctx["rp"] = reanalysis.progress(with_models=False)
     return render(request, "tasks.html", db, **ctx)
+
+
+@app.get("/tasks/export")
+def tasks_export(request: HttpRequest, db: Session = Depends(get_db)):
+    """Fichier JSON des réponses (à traiter, terminées…) pour chercher de nouvelles règles de classement."""
+    parts = {p for p in request.query_params.getlist("parts") if p in (*task_export.SECTIONS, "examples")}
+    data = task_export.build(db, anonymize=request.query_params.get("brut") != "1", sections=parts or None)
+    payload = json.dumps(data, ensure_ascii=False, indent=1)
+    name = f"oubliez-moi-analyse-{datetime.now():%Y%m%d-%H%M}.json"
+    return StreamingResponse(iter([payload]), media_type="application/json; charset=utf-8",
+                             headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"})
 
 
 @app.post("/requests/{rid}/summarize")

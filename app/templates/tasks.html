@@ -5,7 +5,22 @@
 {% block content %}
 <div class="page-head" style="margin-bottom:.75rem">
   <div><h1>À traiter</h1><p class="muted" style="margin:0">Ce que l'automatisation ne peut pas trancher seule. Chaque action passe à l'élément suivant.</p></div>
-  <a class="btn sm" href="/tasks/reanalysis">Réanalyser les réponses</a>
+  <div class="actions">
+    <a class="btn sm" href="/tasks/reanalysis">Réanalyser les réponses</a>
+    <details class="export-menu">
+      <summary class="btn sm">Exporter pour analyse</summary>
+      <form method="get" action="/tasks/export" class="export-panel">
+        <p class="small muted" style="margin-top:0">Un fichier JSON à joindre à Claude (ou à un autre assistant) pour repérer des classements à corriger et proposer de nouvelles règles.</p>
+        <label><input type="checkbox" name="parts" value="todo" checked> Réponses à traiter</label>
+        <label><input type="checkbox" name="parts" value="done" checked> Demandes terminées <span class="muted small">(repérer les faux positifs)</span></label>
+        <label><input type="checkbox" name="parts" value="waiting" checked> Réponses traitées sans moi <span class="muted small">(accusés, prolongations, liens confirmés…)</span></label>
+        <label><input type="checkbox" name="parts" value="examples" checked> Mes autres décisions <span class="muted small">(refus, abandons : servent d'exemples)</span></label>
+        <label class="export-raw"><input type="checkbox" name="brut" value="1"> Ne pas masquer mes données personnelles</label>
+        <p class="small muted">Par défaut, votre nom, vos adresses e-mail et alias, téléphones, adresse postale, date de naissance et les jetons des liens sont remplacés par des marqueurs. Le texte des courtiers reste intact.</p>
+        <button class="btn primary sm">Télécharger</button>
+      </form>
+    </details>
+  </div>
 </div>
 
 <nav class="chips" aria-label="Filtrer">
