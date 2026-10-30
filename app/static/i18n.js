@@ -65,7 +65,8 @@
     "Thème auto":"Auto theme","Clair":"Light","Sombre":"Dark","Voir la mise en forme d'origine":"Show original formatting",
     "Réanalyse en cours":"Re-analysis in progress","Réanalyser les réponses":"Re-analyse replies",
     "Classées par l'IA":"Classified by AI","Classé par les règles":"Classified by rules","Début du message :":"Message starts with:",
-    "Conseil de l'IA":"AI advice","À faire":"To do"
+    "Conseil de l'IA":"AI advice","À faire":"To do",
+    "Identifiants publicitaires":"Advertising identifiers","Ne leur envoyez pas ce numéro : rendez-le inutile":"Don't send them this number: make it useless","J'ai fait le ménage : clôturer les demandes cochées":"Done: close the selected requests","Les traiter tous ensemble":"Handle them all at once","Marche à suivre commune et clôture groupée →":"Shared steps and bulk closing →","Liens cités dans sa réponse":"Links quoted in their reply","autre domaine":"other domain"
   };
   // Les mots isolés (« Nom », « Non », « Profil »…) ne sont traduits que si le texte entier
   // leur est égal : sinon « Nombre » deviendrait « Namebre ». Les expressions sont remplacées

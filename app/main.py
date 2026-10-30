@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
+from . import case_assistant, case_management, device_ids, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -82,7 +82,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = web.templates  # environnement Jinja partagé : les filtres ci-dessous servent à toutes les pages
-for _module in (search_routes, case_management, case_assistant, exposures, migration_routes):
+for _module in (search_routes, case_management, case_assistant, exposures, migration_routes, device_ids):
     app.include_router(_module.router)
 
 PUBLIC_PATHS = ("/login", "/healthz")
@@ -618,6 +618,7 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["why"] = next((e.summary for e in reversed(r.events) if e.kind == "status"), None)
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
+    ctx["device_count"] = len(device_ids.candidates(db))
     ctx["reanalysis_count"] = len(reanalysis.load(db))
     ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
     ctx["reanalysis_running"] = reanalysis.state["running"]
