@@ -28,7 +28,7 @@ from sqlalchemy import select
 from . import confirm, crypto, oauth_ms
 from .db import Broker, Mailbox, Sender, SessionLocal, utcnow
 from .mailer import _quote_folder, registered_domain
-from .net import safe_urlopen
+from .net import create_pinned_socket, safe_urlopen
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +62,17 @@ class MailboxError(Exception):
     pass
 
 
+class _PinnedIMAP4(imaplib.IMAP4):
+    def _create_socket(self, timeout):
+        return create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+
+
+class _PinnedIMAP4_SSL(imaplib.IMAP4_SSL):
+    def _create_socket(self, timeout):
+        sock = create_pinned_socket(self.host, self.port, timeout, allow_private=True)
+        return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
+
+
 # ------------------------------------------------------------- Connexion ----
 
 def _ssl_context(mb: Mailbox) -> ssl.SSLContext:
@@ -86,9 +97,9 @@ def connect(mb: Mailbox, db=None) -> imaplib.IMAP4:
         raise MailboxError("Serveur IMAP non renseigné")
     try:
         if mb.security == "ssl":
-            conn = imaplib.IMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
+            conn = _PinnedIMAP4_SSL(mb.host, mb.port, ssl_context=_ssl_context(mb), timeout=60)
         else:
-            conn = imaplib.IMAP4(mb.host, mb.port, timeout=60)
+            conn = _PinnedIMAP4(mb.host, mb.port, timeout=60)
             if mb.security == "starttls":
                 conn.starttls(ssl_context=_ssl_context(mb))
     except (OSError, imaplib.IMAP4.error) as e:
