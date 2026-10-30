@@ -20,6 +20,7 @@ import urllib.request
 from .net import safe_urlopen
 
 AUTHORITY = os.environ.get("MS_AUTHORITY", "https://login.microsoftonline.com")
+ALLOW_PRIVATE = False  # surchargeable uniquement dans les tests de flux OAuth local
 SCOPE = "https://outlook.office.com/IMAP.AccessAsUser.All offline_access"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
@@ -35,7 +36,7 @@ def _post(url: str, data: dict) -> dict:
     req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode(),
                                  headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
     try:
-        with safe_urlopen(req, timeout=30, allow_private=False) as resp:
+        with safe_urlopen(req, timeout=30, allow_private=ALLOW_PRIVATE) as resp:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         try:
