@@ -121,8 +121,8 @@ def read_backup(path: Path, key: str | None = None) -> bytes:
     if path.name.endswith(".enc"):
         try:
             data = Fernet(crypto._from_passphrase(key)).decrypt(data) if key else crypto.decrypt_bytes(data)
-        except InvalidToken as e:
-            raise BackupError("Impossible de déchiffrer la sauvegarde : ce n'est pas la bonne clé de chiffrement") from e
+        except (InvalidToken, crypto.DecryptionError) as e:
+            raise BackupError("Impossible de déchiffrer la sauvegarde : vérifiez et restaurez la clé de chiffrement d'origine") from e
     if not data.startswith(b"SQLite format 3"):
         raise BackupError("Le fichier n'est pas une base SQLite valide (mauvaise clé ?)")
     return data
