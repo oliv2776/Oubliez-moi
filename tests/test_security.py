@@ -195,3 +195,21 @@ def test_backup_route_and_errors(client, backup_dir):
     settings.backup_dir = backup_dir / "absent"
     r = client.post("/settings/backup-now", data=FORM, follow_redirects=True)
     assert "Sauvegarde impossible" in r.text and "BACKUP_PATH" in r.text
+
+
+
+def test_public_paths_require_exact_match_or_path_boundary():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    with TestClient(app) as anonymous:
+        for path in ("/login-extra", "/healthz-extra", "/staticity/file.css", "/static-extra/file.css"):
+            response = anonymous.get(path, follow_redirects=False)
+            assert response.status_code == 303, path
+            assert response.headers["location"] == "/login"
+        assert anonymous.get("/healthz").status_code == 200
+
+
+def test_oauth_poll_rejects_get_method(client):
+    response = client.get("/mailboxes/1/oauth/poll", follow_redirects=False)
+    assert response.status_code == 405
