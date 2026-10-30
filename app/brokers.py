@@ -13,10 +13,10 @@ import json
 import logging
 import re
 import urllib.request
-
-from .net import safe_urlopen
 import zipfile
 from pathlib import Path
+
+from .net import safe_urlopen
 
 log = logging.getLogger(__name__)
 
