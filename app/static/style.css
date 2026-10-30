@@ -250,3 +250,19 @@ table.senders td { vertical-align: middle; }
 .bulkbar { justify-content: space-between; }
 .oauth-box { border: 1px dashed var(--line); border-radius: 8px; padding: .8rem 1rem; margin-top: .6rem; }
 .oauth-code { font: 700 1.6rem ui-monospace, Menlo, monospace; letter-spacing: .15em; }
+
+/* Recherche globale et navigation */
+.nav-search { display: flex; align-items: center; gap: .25rem; flex: 0 1 230px; min-width: 145px; }
+.nav-search input { min-width: 0; padding: .35rem .55rem; font-size: .85rem; }
+.nav-search .btn { padding: .3rem .55rem; }
+.global-search-page { display: flex; gap: .6rem; max-width: 760px; margin: 0 0 1rem; }
+.global-search-page input { flex: 1; min-width: 0; }
+@media (max-width: 900px) {
+  header.top .inner { height: auto; min-height: 58px; flex-wrap: wrap; padding-top: .55rem; padding-bottom: .55rem; }
+  .nav-search { order: 3; flex: 1 1 100%; }
+  nav.main { order: 2; }
+}
+@media (max-width: 560px) {
+  .global-search-page { flex-direction: column; }
+  .global-search-page .btn { justify-content: center; }
+}
