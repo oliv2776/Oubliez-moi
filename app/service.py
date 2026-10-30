@@ -428,8 +428,8 @@ def check_deadlines() -> int:
 def _sender_matches_broker(req: Request, from_addr: str, dmarc_pass: bool = False) -> bool:
     """Authentifie l'expéditeur via DMARC validé par le serveur IMAP, puis vérifie son domaine.
 
-    Les plateformes de gestion des demandes RGPD courantes sont admises en plus
-    du domaine du courtier. Ce contrôle de cohérence ne remplace pas SPF/DKIM/DMARC.
+    Le DMARC doit d'abord être validé par le serveur IMAP explicitement approuvé.
+    Les plateformes de gestion RGPD sont admises en plus du domaine du courtier.
     """
     if not dmarc_pass or "@" not in (from_addr or ""):
         return False
