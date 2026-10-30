@@ -31,6 +31,7 @@ def _reply(rid, body, sender=None, subject=None, html=None, msgid=None, reply_to
         r = db.get(Request, rid)
         m = EmailMessage()
         m["From"] = sender or r.broker.email
+        m["Authentication-Results"] = "mx.test; spf=pass; dkim=pass; dmarc=pass"
         m["Subject"] = subject or f"Re: {r.reference}"
         m["Message-ID"] = msgid or f"<{abs(hash(body)) % 10**9}.{rid}@broker.example>"
         if reply_to:
