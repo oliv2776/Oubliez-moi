@@ -42,6 +42,12 @@ def _resolve_pinned(host: str, port: int, allow_private: bool = False) -> str:
     return addresses[0]
 
 
+def create_pinned_socket(host: str, port: int, timeout=None, source_address=None, *, allow_private: bool = True):
+    """Ouvre une socket TCP vers l'IP résolue et épinglée (SMTP/IMAP configurés par l'administrateur)."""
+    pinned_ip = _resolve_pinned(host, port, allow_private=allow_private)
+    return socket.create_connection((pinned_ip, port), timeout, source_address)
+
+
 class _PinnedHTTPConnection(http.client.HTTPConnection):
     def __init__(self, host, *, pinned_ip: str, **kwargs):
         super().__init__(host, **kwargs)
