@@ -90,7 +90,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
             state["current"] = req.broker.name
             raw = raw_by_id.get(mid or "")
             m = mailer.parse_mail(raw) if raw else _from_event(ev)
-            c, note = classify_reply(m)
+            c, note, advice = classify_reply(m)
             trusted = bool(raw) and _sender_matches_broker(req, m.from_addr, m.dmarc_pass)
             kind = c.kind
             if kind in SENSITIVE and not trusted:
@@ -103,6 +103,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
                     "request_id": req.id, "event_id": ev.id, "broker": req.broker.name, "reference": req.reference,
                     "from_status": req.status, "to_status": target, "kind": kind,
                     "label": mailer.KIND_LABELS.get(kind, kind), "reason": c.reason or "", "note": note or "",
+                    "advice": advice or "",
                     "trusted": trusted, "from_mailbox": bool(raw), "downgraded": kind != c.kind,
                 })
     return proposals
@@ -198,6 +199,8 @@ def apply(db, request_ids: list[int]) -> tuple[int, int]:
             req.due_at, req.reminder_count = due, reminders
         if p["note"]:
             add_event(db, req, "info", p["note"])
+        if p.get("advice"):
+            add_event(db, req, "info", f"Conseil IA : {p['advice']}"[:500])
         applied += 1
     kv_set(db, PROPOSALS_KEY, json.dumps(remaining, ensure_ascii=False))
     db.commit()

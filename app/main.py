@@ -23,7 +23,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, exposures, migration_routes, reanalysis, search as search_routes
+from . import case_assistant, case_management, exposures, insight, migration_routes, reanalysis, search as search_routes
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -578,21 +578,27 @@ TRIAGE = [
 def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Session = Depends(get_db)):
     cats = {k: st for k, _, st in TRIAGE}
     statuses = cats.get(cat) or [x for st in cats.values() for x in st]
-    if cat not in cats:
+    if cat not in cats and cat != "ai":
         cat = ""
     activity = func.coalesce(Request.last_reply_at, Request.sent_at, Request.created_at)
     items = db.scalars(
         select(Request).options(selectinload(Request.broker), selectinload(Request.profile), selectinload(Request.events))
         .where(Request.status.in_(statuses)).order_by(activity.desc(), Request.id.desc())
     ).all()
+    insights = {x.id: insight.for_request(x) for x in items}
+    n_ai = sum(1 for v in insights.values() if v and v.by_ai)
+    if cat == "ai":  # réponses classées par l'IA
+        items = [x for x in items if insights[x.id] and insights[x.id].by_ai]
     counts = dict(db.execute(select(Request.status, func.count()).where(Request.status.in_([x for st in cats.values() for x in st]))
                              .group_by(Request.status)).all())
     chips = [("", "Tout", sum(counts.values()))] + [(k, label, sum(counts.get(x, 0) for x in st)) for k, label, st in TRIAGE]
+    chips.append(("ai", "Classées par l'IA", n_ai))
 
     r = next((x for x in items if x.id == id), None) or (items[0] if items else None)
     late_cases, soon_cases = case_management.cases_due(db)
     ctx = {"items": items, "cat": cat, "chips": chips, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1,
-           "late_cases": late_cases, "soon_cases": soon_cases}
+           "late_cases": late_cases, "soon_cases": soon_cases, "insights": insights,
+           "can_summarize": settings.llm_enabled and settings.llm_mode == "chat"}
     if r:
         i = items.index(r)
         after = items[i + 1] if i + 1 < len(items) else (items[i - 1] if i > 0 else None)
@@ -616,6 +622,28 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
     ctx["reanalysis_running"] = reanalysis.state["running"]
     ctx["rp"] = reanalysis.progress(with_models=False)
     return render(request, "tasks.html", db, **ctx)
+
+
+@app.post("/requests/{rid}/summarize")
+def request_summarize(request: HttpRequest, rid: int, next: str = Form(""), db: Session = Depends(get_db)):
+    """Résumé et conseil de l'IA pour la dernière réponse, sans changer le statut de la demande."""
+    r = _get(db, Request, rid)
+    replies = [e for e in r.events if e.kind == "reply"]  # (« next » est ici le paramètre du formulaire)
+    reply = replies[-1] if replies else None
+    if reply is None or not (settings.llm_enabled and settings.llm_mode == "chat"):
+        flash(request, "Il faut une réponse et un modèle conversationnel (Qwen…) dans Réglages › Automatismes.", "error")
+        return back(_safe_next(next) or f"/requests/{rid}")
+    headers, text = mailview.split_headers(reply.body or "")
+    res = llm.classify(headers.get("Objet", ""), mailview.strip_quoted(text))
+    if not res or not res.get("summary"):
+        flash(request, f"Le modèle {settings.llm_model} n'a pas répondu : vérifiez Ollama dans Réglages › Automatismes.", "error")
+    else:
+        note = f"Analyse IA : {res['summary']}" + (f" (dossier n° {res['ticket']})" if res.get("ticket") else "")
+        add_event(db, r, "info", note[:500])
+        if res.get("action"):
+            add_event(db, r, "info", f"Conseil IA : {res['action']}"[:500])
+        db.commit()
+    return back(_safe_next(next) or f"/requests/{rid}")
 
 
 # ------------------------------------------------------------- Réanalyse ----
