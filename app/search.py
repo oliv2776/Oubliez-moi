@@ -38,7 +38,7 @@ def global_search(request: Request, q: str = "", db: Session = Depends(get_db)):
         ).all()
         requests = db.scalars(
             select(PrivacyRequest).join(Broker).join(Profile)
-            .where(or_(PrivacyRequest.reference.ilike(like), Broker.name.ilike(like), Profile.full_name.ilike(like)))
+            .where(or_(PrivacyRequest.reference.ilike(like), Broker.name.ilike(like), Broker.email.ilike(like), Profile.full_name.ilike(like)))
             .order_by(PrivacyRequest.id.desc()).limit(8)
         ).all()
         senders = db.scalars(
