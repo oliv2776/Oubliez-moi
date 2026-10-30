@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Recherche{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Recherche globale</h1><p class="muted">Profils, demandes, courtiers et expéditeurs de vos boîtes mail.</p></div>
+</div>
+<form class="global-search-page" action="/search" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nom, e-mail, domaine ou référence…" minlength="2" autofocus>
+  <button class="btn primary">Rechercher</button>
+</form>
+{% if q|length < 2 %}
+<div class="card empty"><p>Saisissez au moins deux caractères pour lancer la recherche.</p></div>
+{% else %}
+{% set total = profiles|length + requests|length + brokers|length + senders|length %}
+{% if not total %}<div class="card empty"><p>Aucun résultat pour « {{ q }} ».</p></div>{% endif %}
+{% if profiles %}
+<div class="card"><h2>Profils <span class="tag">{{ profiles|length }}</span></h2>
+<table>{% for p in profiles %}<tr><td><a href="/profiles/{{ p.id }}"><strong>{{ p.full_name }}</strong></a></td><td class="small muted">{{ p.primary_email or "Aucune adresse e-mail" }}</td></tr>{% endfor %}</table></div>
+{% endif %}
+{% if requests %}
+<div class="card"><h2>Demandes <span class="tag">{{ requests|length }}</span></h2>
+<table>{% for r in requests %}<tr><td><a href="/requests/{{ r.id }}"><strong>{{ r.broker.name }}</strong></a><div class="small muted">{{ r.profile.full_name }} · {{ r.reference }}</div></td><td><span class="badge s-{{ r.status }}">{{ r.status_label }}</span></td></tr>{% endfor %}</table></div>
+{% endif %}
+{% if brokers %}
+<div class="card"><h2>Courtiers <span class="tag">{{ brokers|length }}</span></h2>
+<table>{% for b in brokers %}<tr><td><a href="/brokers?q={{ b.name|urlencode }}"><strong>{{ b.name }}</strong></a></td><td class="small muted">{{ b.email or b.webform or "—" }}</td><td><span class="tag">{{ "Actif" if b.enabled else "Désactivé" }}</span></td></tr>{% endfor %}</table></div>
+{% endif %}
+{% if senders %}
+<div class="card"><h2>Expéditeurs <span class="tag">{{ senders|length }}</span></h2>
+<table>{% for s in senders %}<tr><td><a href="/mailboxes?status=all&q={{ s.domain|urlencode }}"><strong>{{ s.name or s.domain }}</strong></a><div class="small muted">{{ s.address }} · {{ s.domain }}</div></td><td><span class="badge sb-{{ s.status }}">{{ s.status_label }}</span></td><td class="num">{{ s.count }} e-mails</td></tr>{% endfor %}</table></div>
+{% endif %}
+{% endif %}
+{% endblock %}

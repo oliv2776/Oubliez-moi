@@ -22,6 +22,12 @@
 </div>
 {% else %}
 
+<div class="grid k4 overview-kpis" style="margin-bottom:1rem">
+  <div class="kpi"><div class="v">{{ per_profile|length }}</div><div class="l"><a href="/profiles">Profils suivis</a></div></div>
+  <div class="kpi"><div class="v">{{ mailboxes_total }}</div><div class="l"><a href="/mailboxes">Boîtes mail connectées</a></div></div>
+  <div class="kpi"><div class="v">{{ senders_total }}</div><div class="l"><a href="/mailboxes?status=all">Expéditeurs détectés</a></div></div>
+  <div class="kpi warn"><div class="v">{{ senders_new }}</div><div class="l"><a href="/mailboxes?status=new">Expéditeurs à traiter</a></div></div>
+</div>
 <div class="grid k4" style="margin-bottom:1rem">
   <div class="kpi accent"><div class="v">{{ total.completed }}</div><div class="l">Suppressions confirmées</div></div>
   <div class="kpi"><div class="v">{{ total.sent }}</div><div class="l">En attente de réponse</div></div>
