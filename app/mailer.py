@@ -174,16 +174,19 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
     dmarc_pass = False
     trusted_authserv = settings.imap_authserv_id.strip().lower()
     if trusted_authserv:
+        trusted_results = []
         for auth_result in msg.get_all("Authentication-Results", []):
             value = str(auth_result).strip()
             authserv = value.split(";", 1)[0].strip().split()[0].lower() if value else ""
-            if authserv != trusted_authserv:
-                continue
+            if authserv == trusted_authserv:
+                trusted_results.append(value)
+        # Plusieurs résultats du même authserv-id peuvent signaler un header forgé
+        # conservé par le relais : dans le doute, ne pas authentifier.
+        if len(trusted_results) == 1:
+            value = trusted_results[0]
             has_dmarc = bool(re.search(r"(?:^|;)\s*dmarc\s*=\s*pass\b", value, re.I))
             has_aligned_mechanism = bool(re.search(r"(?:^|;)\s*(?:spf|dkim)\s*=\s*pass\b", value, re.I))
             dmarc_pass = has_dmarc and has_aligned_mechanism
-            if dmarc_pass:
-                break
     return ParsedMail(
         uid=uid,
         from_addr=sender,
