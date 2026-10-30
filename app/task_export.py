@@ -65,14 +65,18 @@ class Redactor:
                 names.add(full.strip())
                 names |= {part for part in re.split(r"[\s\-]+", full) if len(part) >= 3}
         for name in sorted(names, key=len, reverse=True):
-            self._add(r"(?<!\w)" + re.escape(name) + r"(?!\w)", "[MON_NOM]")
+            self._add(r"(?<!\w)" + _accent_insensitive(name) + r"(?!\w)", "[MON_NOM]")
+        # Partie avant « @ » de mes adresses, citée seule (rapports de non-distribution, en-têtes)
+        for local in sorted({e.split("@")[0] for e in self.own_emails if len(e.split("@")[0]) >= 6}, key=len, reverse=True):
+            self._add(r"(?<![\w.+-])" + re.escape(local) + r"(?![\w-])", "[MON_EMAIL]")
 
         for p in profiles:
             for raw in p.phones or []:
                 digits = re.sub(r"\D", "", raw or "")
                 if len(digits) >= 8:
                     core = digits[-9:]  # suffit à reconnaître +33 6…, 06…, 0033 6…
-                    self._add(r"(?<!\d)" + _SEP.join(core) + r"(?!\d)", "[MON_TÉLÉPHONE]")
+                    prefix = r"(?:(?:\+|00)\d{1,3}" + _SEP + r"(?:\(0\)" + _SEP + r")?|0" + _SEP + r")?"
+                    self._add(r"(?<!\d)" + prefix + _SEP.join(core) + r"(?!\d)", "[MON_TÉLÉPHONE]")
             for addr in p.addresses or []:
                 parts = [addr.strip()] + [x.strip() for x in re.split(r"[,\n]", addr or "")]
                 for part in sorted({x for x in parts if len(x) >= 5}, key=len, reverse=True):
@@ -117,6 +121,18 @@ class _Passthrough:
 
     def email(self, address, keep_domain=""):
         return address
+
+
+_ACCENTS = {"a": "aàâäáã", "e": "eéèêë", "i": "iîïíì", "o": "oôöóòõ", "u": "uùûüú", "c": "cç", "n": "nñ", "y": "yÿ"}
+
+
+def _accent_insensitive(text: str) -> str:
+    """Motif qui reconnaît le texte avec ou sans accents (« Deschênes » / « Deschenes »)."""
+    out = []
+    for ch in text:
+        base = next((b for b, variants in _ACCENTS.items() if ch.lower() in variants), None)
+        out.append(f"[{_ACCENTS[base]}{_ACCENTS[base].upper()}]" if base else (r"\s+" if ch.isspace() else re.escape(ch)))
+    return "".join(out)
 
 
 def _date_variants(value: str) -> list[str]:
