@@ -74,6 +74,9 @@ def send_message(msg: EmailMessage, force: bool = False) -> None:
     if settings.dry_run and not force:
         log.info("[DRY_RUN] E-mail non envoyé à %s : %s", msg["To"], msg["Subject"])
         return
+    from . import settings_store
+    if settings_store.secret_unavailable("smtp_password") and not settings.smtp_password:
+        raise SendError("Mot de passe SMTP chiffré illisible : restaurez ENCRYPTION_KEY ou saisissez à nouveau le mot de passe dans Réglages.")
     if not settings.smtp_configured:
         raise SendError("Messagerie non configurée : renseignez le serveur SMTP et l'adresse d'expédition dans Réglages")
     ctx = ssl.create_default_context()
