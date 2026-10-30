@@ -6,9 +6,9 @@ import html
 import imaplib
 import logging
 import re
+import smtplib
 
 import tldextract
-import smtplib
 import ssl
 from dataclasses import dataclass, field
 from email.message import EmailMessage
@@ -348,31 +348,30 @@ class Classification:
 
 
 _QUOTE_START_RE = re.compile(
-    r"(?im)^\\s*(?:[-_]{2,}\\s*(?:original message|message d'origine|message initial|forwarded message)\\s*[-_]*|"
-    r"begin forwarded message:|on .{1,240} wrote:|le .{1,240} a [ée]crit\\s*:|"
-    r"\\*{2,}\\s*(?:original message|message d'origine)\\s*\\*{2,})\\s*$"
+    r"(?im)^\s*(?:[-_]{2,}\s*(?:original message|message d'origine|message initial|forwarded message)\s*[-_]*|"
+    r"begin forwarded message:|on .{1,240} wrote:|le .{1,240} a [ée]crit\s*:|"
+    r"\*{2,}\s*(?:original message|message d'origine)\s*\*{2,})\s*$"
 )
 
 
 def latest_reply_text(body: str) -> str:
     """Écarte le bloc cité pour ne classer que la réponse la plus récente."""
-    lines = (body or "").replace("\\r\\n", "\\n").replace("\\r", "\\n").split("\\n")
+    lines = (body or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
     kept = []
     for index, line in enumerate(lines):
-        stripped = line.strip()
-        if not stripped:
+        if not line.strip():
             kept.append(line)
             continue
         if line.lstrip().startswith(">") or _QUOTE_START_RE.match(line):
             break
         # Outlook et certains clients français/allemands introduisent la citation
         # par un bloc d'en-têtes plutôt que par "On ... wrote:".
-        if re.match(r"(?i)^\\s*(?:from|de|von)\\s*:", line):
+        if re.match(r"(?i)^\s*(?:from|de|von)\s*:", line):
             following = " ".join(lines[index + 1:index + 5])
-            if re.search(r"(?i)\\b(?:sent|envoy[ée]|to|à|subject|objet|date)\\s*:", following):
+            if re.search(r"(?i)\b(?:sent|envoy[ée]|to|à|subject|objet|date)\s*:", following):
                 break
         kept.append(line)
-    return "\\n".join(kept).strip()
+    return "\n".join(kept).strip()
 
 
 def classify(m: ParsedMail) -> Classification:
