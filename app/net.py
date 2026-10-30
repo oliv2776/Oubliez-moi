@@ -72,6 +72,10 @@ class _PinnedHTTPConnection(http.client.HTTPConnection):
 
 
 class _PinnedHTTPSConnection(_PinnedHTTPConnection):
+    # Hérite de HTTPConnection (port 80 par défaut) : sans cette ligne, une URL https
+    # sans port explicite partait sur le port 80 → « SSL: WRONG_VERSION_NUMBER ».
+    default_port = http.client.HTTPS_PORT
+
     def __init__(self, host, *, pinned_ips: list[str], context: ssl.SSLContext, **kwargs):
         super().__init__(host, pinned_ips=pinned_ips, **kwargs)
         self._context = context
