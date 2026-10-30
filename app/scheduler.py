@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from . import backup, mailboxes, service
+from . import backup, mailboxes, migration, service
 from .config import settings
 from .db import SessionLocal, kv_get, kv_set, utcnow
 
@@ -72,6 +72,7 @@ def start() -> None:
     scheduler.add_job(_safe(service.send_digest), "cron", hour=8, minute=7, id="digest")
     scheduler.add_job(_safe(run_backup), "cron", hour=3, minute=37, id="backup")
     scheduler.add_job(_safe(mailboxes.scan_all), "cron", hour=5, minute=13, id="mailboxes")
+    scheduler.add_job(_safe(migration.inventory_all), "cron", hour=5, minute=41, id="migration")
     scheduler.start()
     log.info("Planificateur démarré : 1 e-mail toutes les %ss, relève IMAP toutes les %s min", interval, settings.imap_poll_minutes)
 

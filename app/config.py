@@ -91,6 +91,10 @@ class Settings:
     notify_gotify_token: str = field(default_factory=lambda: _str("NOTIFY_GOTIFY_TOKEN"))
     notify_email_digest: bool = field(default_factory=lambda: _bool("NOTIFY_EMAIL_DIGEST", False))
 
+    # Migration des comptes vers des alias Proton Pass / SimpleLogin
+    simplelogin_api_key: str = field(default_factory=lambda: _str("SIMPLELOGIN_API_KEY"))
+    simplelogin_url: str = field(default_factory=lambda: _str("SIMPLELOGIN_URL", "https://app.simplelogin.io"))
+
     # Comportement
     dry_run: bool = field(default_factory=lambda: _bool("DRY_RUN", True))
     send_per_hour: int = field(default_factory=lambda: max(1, _int("SEND_PER_HOUR", 30)))
@@ -183,12 +187,14 @@ EDITABLE: dict[str, type] = {
     "notify_ntfy_token": str,
     "notify_gotify_url": str,
     "notify_gotify_token": str,
+    "simplelogin_api_key": str,
+    "simplelogin_url": str,
     "notify_email_digest": bool,
     "backup_schedule": str,
     "backup_keep": int,
     "backup_encrypt": bool,
 }
-SECRET_KEYS = {"smtp_password", "imap_password", "notify_ntfy_token", "notify_gotify_token"}
+SECRET_KEYS = {"smtp_password", "imap_password", "notify_ntfy_token", "notify_gotify_token", "simplelogin_api_key"}
 
 
 settings = Settings()

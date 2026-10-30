@@ -40,9 +40,10 @@ PROVIDERS = {
     "outlook": {"label": "Hotmail / Outlook.com", "host": "outlook.office365.com", "port": 993, "security": "ssl", "verify_tls": True,
                 "auth": "oauth_ms", "folders": ["INBOX", "Junk"],
                 "help": "Pas de mot de passe : après l'ajout, cliquez sur « Connecter le compte Microsoft » et saisissez le code affiché."},
-    "proton": {"label": "Proton Mail (via Proton Mail Bridge)", "host": "", "port": 1143, "security": "starttls", "verify_tls": False,
-               "auth": "password", "folders": ["INBOX", "Spam"],
-               "help": "Adresse du Bridge sur votre réseau (ex. 172.17.0.1 ou nom du conteneur), identifiant et mot de passe affichés par la commande « info » du Bridge."},
+    "proton": {"label": "Proton Mail (via Proton Mail Bridge)", "host": "protonmail-bridge", "port": 143, "security": "starttls",
+               "verify_tls": False, "auth": "password", "folders": ["INBOX", "Spam"],
+               "help": "Service « protonmail-bridge » du docker-compose (profil proton) : serveur protonmail-bridge, port 143. "
+                       "Identifiant et mot de passe : ceux affichés par la commande « info » du Bridge, pas votre mot de passe Proton."},
     "icloud": {"label": "iCloud", "host": "imap.mail.me.com", "port": 993, "security": "ssl", "verify_tls": True,
                "auth": "password", "folders": ["INBOX", "Junk"],
                "help": "Mot de passe pour app créé sur account.apple.com."},

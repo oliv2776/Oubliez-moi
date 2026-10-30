@@ -341,3 +341,38 @@ table.senders td { vertical-align: middle; }
 
 /* Boîtes mail */
 .hint-line { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; margin: -.4rem 0 1rem; }
+
+/* Migration des comptes */
+.m-todo { background: var(--warn-soft); color: var(--warn); }
+.m-alias { background: var(--info-soft); color: var(--info); }
+.m-migrated { background: var(--ok-soft); color: var(--ok); }
+.m-abandoned, .m-ignored { background: var(--bg); color: var(--muted); border-color: var(--line); }
+table.mig td { vertical-align: top; }
+.mig-alias { font-weight: 600; overflow-wrap: anywhere; }
+.mig-subject { max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mig-guess { margin-top: .25rem; color: var(--muted); }
+.mig-manual { margin-top: .3rem; }
+.mig-manual summary { cursor: pointer; color: var(--accent); }
+.mig-alias-form { display: flex; gap: .35rem; margin-top: .35rem; }
+.mig-alias-form input { min-width: 0; padding: .3rem .5rem; font-size: .85rem; }
+table.mig-roles td { padding: .45rem .3rem; }
+table.mig-roles select { width: auto; }
+details.menu { display: inline-block; text-align: left; }
+details.menu > summary { list-style: none; cursor: pointer; }
+details.menu > summary::-webkit-details-marker { display: none; }
+/* Les actions s'ouvrent dans la cellule (pas en surimpression) : rien n'est rogné par le tableau. */
+details.menu .menu-list { margin-top: .35rem; min-width: 190px; padding: .25rem; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; }
+details.menu .menu-list form { margin: 0; }
+details.menu .menu-list button { display: block; width: 100%; text-align: left; padding: .45rem .6rem; border: 0; border-radius: 6px;
+  background: none; color: var(--ink); font: inherit; font-size: .88rem; cursor: pointer; }
+details.menu .menu-list button:hover, details.menu .menu-list button:focus-visible { background: var(--bg); }
+.filters input[type=checkbox] { min-width: 0; width: auto; }
+.filters .check { gap: .4rem; }
+@media (max-width: 720px) {
+  table.mig tr:first-child { display: none; }
+  table.mig tr { display: block; padding: .8rem 0; border-bottom: 1px solid var(--line); }
+  table.mig td { display: block; border: 0; padding: .15rem 0; }
+  table.mig td.num { text-align: left; padding-top: .4rem; }
+  .mig-subject { max-width: 100%; }
+}

@@ -122,7 +122,7 @@ def save_from_form(form: dict) -> list[str]:
         errors.append("Mode de rangement inconnu")
     if values.get("imap_file_mode", settings.imap_file_mode) != "off" and not values.get("imap_file_folder", settings.imap_file_folder):
         errors.append("Indiquez le nom du dossier ou du libellé de rangement")
-    for k in ("llm_url", "notify_ntfy_url", "notify_gotify_url", "app_url"):
+    for k in ("llm_url", "notify_ntfy_url", "notify_gotify_url", "app_url", "simplelogin_url"):
         if values.get(k) and not re.match(r"^https?://", values[k]):
             errors.append(f"L'adresse « {values[k]} » doit commencer par http:// ou https://")
         if values.get(k):

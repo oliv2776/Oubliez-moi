@@ -40,6 +40,22 @@ services:
     volumes:
       - ollama-data:/root/.ollama
 
+  # Proton Mail Bridge facultatif (offre Proton payante requise), pour lire la boîte Proton en IMAP.
+  # Image communautaire, non officielle. Première connexion (une seule fois) :
+  #   docker compose --profile proton run --rm protonmail-bridge init
+  #   puis dans le Bridge : login (adresse, mot de passe, code 2FA), info (identifiant et mot de passe IMAP), exit
+  # Démarrage : docker compose --profile proton up -d
+  # Dans Boîtes mail : fournisseur « Proton Mail », serveur protonmail-bridge, port 143, STARTTLS.
+  protonmail-bridge:
+    image: shenxn/protonmail-bridge:latest
+    container_name: protonmail-bridge
+    profiles: ["proton"]
+    restart: unless-stopped
+    # Aucun port publié : seul Oubliez-moi, sur le même réseau Docker, peut s'y connecter.
+    volumes:
+      - protonmail-bridge-data:/root
+
 volumes:
   oubliez-moi-data:
   ollama-data:
+  protonmail-bridge-data:
