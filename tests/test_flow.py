@@ -169,6 +169,21 @@ def test_reference_from_unrelated_domain_is_attached_but_not_trusted(client):
         assert any(e.kind == "warning" and "Réponse non vérifiée" in e.summary for e in req.events)
 
 
+def test_automatic_resends_stop_at_configured_cycle_limit(client):
+    from app.config import settings
+    with SessionLocal() as db:
+        broker = Broker(slug="resend-cap", name="Resend Cap", email="privacy@resend.example",
+                        countries=["fr"], categories=["custom"], source="custom")
+        profile = Profile(full_name="Cycle User", emails=["cycle@example.net"], phones=[], addresses=[], other_names=[])
+        db.add_all([broker, profile])
+        db.flush()
+        req = Request(profile_id=profile.id, broker_id=broker.id, reference="OUBLI-CAP123", status=COMPLETED,
+                      cycle=settings.max_automatic_resend_cycles, closed_at=utcnow() - timedelta(days=settings.resend_interval_days + 1))
+        db.add(req)
+        db.commit()
+    assert service.schedule_resends() == 0
+
+
 def test_deleting_custom_broker_archives_and_preserves_history(client):
     with SessionLocal() as db:
         broker = Broker(slug="custom-archive-test", name="Archive Test", email="privacy@archive.example",
