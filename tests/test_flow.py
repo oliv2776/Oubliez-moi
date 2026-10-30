@@ -141,10 +141,8 @@ def test_letters_en():
     assert "Article 17" in subject and "Acme Data" in body and "jane@x.com" in body
 
 
-def test_reference_from_unrelated_domain_is_not_attached(client):
-    from email.message import EmailMessage
-    from app import mailer, service
-
+def test_reference_from_unrelated_domain_is_attached_but_not_trusted(client):
+    """La référence identifie la demande, mais un domaine tiers ne peut pas la clôturer."""
     with SessionLocal() as db:
         broker = Broker(slug="custom-trusted", name="Trusted Broker", email="privacy@trusted.example",
                         web="https://trusted.example", countries=["fr"], categories=["custom"], source="custom")
@@ -160,8 +158,12 @@ def test_reference_from_unrelated_domain_is_not_attached(client):
         raw["Subject"] = "Re: OUBLI-ABC123"
         raw["Message-ID"] = "<forged@evil.example>"
         raw.set_content("Your data has been deleted.")
-        assert service.process_incoming(db, mailer.parse_mail(bytes(raw))) is None
-        assert db.get(Request, req.id).status == SENT
+
+        matched = service.process_incoming(db, mailer.parse_mail(bytes(raw)))
+
+        assert matched is not None and matched.id == req.id
+        assert db.get(Request, req.id).status != COMPLETED
+        assert any(e.kind == "warning" and "Réponse non vérifiée" in e.summary for e in req.events)
 
 
 def test_deleting_custom_broker_archives_and_preserves_history(client):
