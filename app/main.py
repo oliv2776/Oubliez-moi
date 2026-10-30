@@ -25,6 +25,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import __version__, backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store
 from .config import settings
+from .login_security import login_attempt_limiter
 from .db import (
     FAILED,
     NEEDS_ACTION,
@@ -211,6 +212,15 @@ def login_form(request: HttpRequest):
 
 @app.post("/login")
 def login(request: HttpRequest, username: str = Form(""), password: str = Form("")):
+    # Le pair TCP est utilisé, jamais un X-Forwarded-For fourni librement par le client.
+    client = request.client.host if request.client else "unknown"
+    retry_after = login_attempt_limiter.consume(client)
+    if retry_after:
+        return PlainTextResponse(
+            "Trop de tentatives de connexion. Réessayez plus tard.",
+            status_code=429,
+            headers={"Retry-After": str(retry_after), "Cache-Control": "no-store"},
+        )
     ok = bool(settings.admin_password) and hmac.compare_digest(username.encode(), settings.admin_user.encode()) & hmac.compare_digest(
         password.encode(), settings.admin_password.encode()
     )
@@ -219,6 +229,7 @@ def login(request: HttpRequest, username: str = Form(""), password: str = Form("
         msg = "Identifiants incorrects." if settings.admin_password else "ADMIN_PASSWORD n'est pas défini dans le fichier .env."
         flash(request, msg, "error")
         return back("/login")
+    login_attempt_limiter.reset(client)
     request.session["user"] = username
     return back("/")
 
