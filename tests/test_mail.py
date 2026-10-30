@@ -88,3 +88,43 @@ def test_bounce():
 def test_registered_domain():
     assert mailer.registered_domain("mail.criteo.com") == "criteo.com"
     assert mailer.registered_domain("https://www.experian.co.uk/path") == "experian.co.uk"
+
+
+def test_registered_domain_uses_public_suffix_list_and_private_suffixes():
+    assert mailer.registered_domain("mail.example.com.au") == "example.com.au"
+    assert mailer.registered_domain("mail.example.edu.au") == "example.edu.au"
+    assert mailer.registered_domain("tenant-one.github.io") == "tenant-one.github.io"
+    assert mailer.registered_domain("tenant-two.github.io") == "tenant-two.github.io"
+    assert mailer.registered_domain("https://www.experian.co.uk/path") == "experian.co.uk"
+    assert mailer.registered_domain("unknown.invalidtld") == ""
+
+
+def test_classification_ignores_quoted_old_deletion_when_latest_reply_requests_id():
+    body = (
+        "Bonjour, merci de nous transmettre une copie de votre pièce d'identité.\\n\\n"
+        "Le 12 octobre 2026, support@example.com a écrit :\\n"
+        "> Bonjour, vos données ont été supprimées de nos bases."
+    )
+    parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
+    assert mailer.classify(parsed).kind == "id_request"
+
+
+def test_classification_ignores_quoted_old_id_request_when_latest_reply_confirms_deletion():
+    body = (
+        "Bonjour, vos données ont été supprimées de nos bases.\\n\\n"
+        "-----Original Message-----\\n"
+        "From: support@example.com\\nSent: Monday\\nTo: user@example.com\\n"
+        "Subject: Requête\\nPlease send a copy of your ID."
+    )
+    parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
+    assert mailer.classify(parsed).kind == "completed_deleted"
+
+
+def test_multipart_alternative_body_is_not_duplicated():
+    msg = EmailMessage()
+    msg["From"] = "dpo@acme.com"
+    msg["Subject"] = "Réponse"
+    msg.set_content("Merci, nous avons reçu votre demande.")
+    msg.add_alternative("<p>Merci, nous avons reçu votre demande.</p>", subtype="html")
+    parsed = mailer.parse_mail(bytes(msg))
+    assert parsed.text.count("Merci, nous avons reçu votre demande.") == 1
