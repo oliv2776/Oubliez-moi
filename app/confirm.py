@@ -54,8 +54,16 @@ class ClickResult:
 
 
 def _host_allowed(host: str, broker_domains: set[str]) -> bool:
+    # En production, une adresse IP ne peut jamais constituer le domaine du courtier.
+    # ALLOW_PRIVATE est un commutateur réservé aux tests d'intégration locaux.
+    if ALLOW_PRIVATE:
+        try:
+            ipaddress.ip_address(host)
+            return True
+        except ValueError:
+            pass
     dom = registered_domain(host)
-    return dom in broker_domains or dom in PRIVACY_PLATFORMS
+    return bool(dom) and (dom in broker_domains or dom in PRIVACY_PLATFORMS)
 
 
 def _is_public(host: str) -> bool:

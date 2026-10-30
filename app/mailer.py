@@ -7,16 +7,26 @@ import imaplib
 import logging
 import re
 import smtplib
+
+import tldextract
 import ssl
 from dataclasses import dataclass, field
 from email.message import EmailMessage
 from email.policy import default as default_policy
 from email.utils import formataddr, getaddresses, make_msgid, formatdate
+from urllib.parse import urlsplit
 
 from .config import settings
 from .net import create_pinned_socket
 
 log = logging.getLogger(__name__)
+
+# Snapshot PSL embarqué : aucune requête réseau au démarrage ni pendant le traitement.
+# Les suffixes réservés servent uniquement aux adresses fictives des tests.
+_TLD_EXTRACT = tldextract.TLDExtract(
+    suffix_list_urls=(), include_psl_private_domains=True,
+    extra_suffixes=("example", "test", "invalid"),
+)
 
 
 class SendError(Exception):
@@ -164,20 +174,25 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         from_name = ", ".join(x for x in parts if x)
     refs = " ".join(str(msg.get(h, "")) for h in ("In-Reply-To", "References"))
     texts = []
+    # En multipart/alternative, ne traiter que la meilleure représentation du corps.
+    # Concaténer texte + HTML du même message dupliquait les phrases et les décisions.
+    try:
+        body_part = msg.get_body(preferencelist=("plain", "html"))
+        if body_part is not None:
+            body_content = body_part.get_content()
+            texts.append(body_content if body_part.get_content_type() == "text/plain" else html_to_text(body_content))
+    except (LookupError, UnicodeError, KeyError) as e:
+        log.debug("Corps du message illisible : %s", e)
+    # Les rapports de non-distribution contiennent parfois des informations utiles
+    # dans une partie dédiée, qui n'est pas le corps alternatif.
     for part in msg.walk():
-        ctype = part.get_content_type()
-        if part.is_multipart() or part.get_content_disposition() == "attachment" and not ctype.startswith("message/"):
+        if part.get_content_type() not in ("text/rfc822-headers", "message/delivery-status"):
             continue
         try:
-            if ctype == "text/plain":
-                texts.append(part.get_content())
-            elif ctype == "text/html":
-                texts.append(html_to_text(part.get_content()))
-            elif ctype in ("text/rfc822-headers", "message/delivery-status"):
-                payload = part.get_payload()
-                texts.append(payload if isinstance(payload, str) else str(payload))
-        except (LookupError, UnicodeError, KeyError) as e:  # encodage exotique
-            log.debug("Partie illisible : %s", e)
+            payload = part.get_payload()
+            texts.append(payload if isinstance(payload, str) else str(payload))
+        except (LookupError, UnicodeError, KeyError) as e:
+            log.debug("Partie de rapport illisible : %s", e)
     html_body = ""
     try:
         part = msg.get_body(preferencelist=("html",))
@@ -333,8 +348,36 @@ class Classification:
     reason: str = ""
 
 
+_QUOTE_START_RE = re.compile(
+    r"(?im)^\s*(?:[-_]{2,}\s*(?:original message|message d'origine|message initial|forwarded message)\s*[-_]*|"
+    r"begin forwarded message:|on .{1,240} wrote:|le .{1,240} a [ée]crit\s*:|"
+    r"\*{2,}\s*(?:original message|message d'origine)\s*\*{2,})\s*$"
+)
+
+
+def latest_reply_text(body: str) -> str:
+    """Écarte le bloc cité pour ne classer que la réponse la plus récente."""
+    lines = (body or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    kept = []
+    for index, line in enumerate(lines):
+        if not line.strip():
+            kept.append(line)
+            continue
+        if line.lstrip().startswith(">") or _QUOTE_START_RE.match(line):
+            break
+        # Outlook et certains clients français/allemands introduisent la citation
+        # par un bloc d'en-têtes plutôt que par "On ... wrote:".
+        if re.match(r"(?i)^\s*(?:from|de|von)\s*:", line):
+            following = " ".join(lines[index + 1:index + 5])
+            if re.search(r"(?i)\b(?:sent|envoy[ée]|to|à|subject|objet|date)\s*:", following):
+                break
+        kept.append(line)
+    return "\n".join(kept).strip()
+
+
 def classify(m: ParsedMail) -> Classification:
-    text = f"{m.subject}\n{m.text}"[:20000]
+    current_reply = latest_reply_text(m.text)
+    text = f"{m.subject}\\n{current_reply}"[:20000]
     if m.is_bounce:
         return Classification("bounce", "message de non-distribution")
     # Ordre important : les confirmations de suppression priment sur le reste.
@@ -396,15 +439,21 @@ FREEMAIL_DOMAINS = {
 
 
 def registered_domain(host: str) -> str:
-    """Approximation du domaine enregistré (exemple.co.uk -> exemple.co.uk, mail.exemple.fr -> exemple.fr)."""
-    host = (host or "").lower().strip().strip(".")
-    host = re.sub(r"^https?://", "", host).split("/")[0].split(":")[0]
-    if host.startswith("www."):
-        host = host[4:]
-    parts = host.split(".")
-    if len(parts) >= 3 and parts[-2] in {"co", "com", "org", "net", "gov", "ac", "gouv"} and len(parts[-1]) == 2:
-        return ".".join(parts[-3:])
-    return ".".join(parts[-2:])
+    """Renvoie le domaine enregistrable selon la Public Suffix List, ou vide si inconnu.
+
+    La liste privée est incluse pour éviter qu'un hébergement mutualisé (ex. github.io)
+    ne permette à deux locataires distincts de partager une identité de domaine.
+    """
+    value = (host or "").strip().lower().strip(".")
+    if not value:
+        return ""
+    # Accepte un nom d'hôte nu ou une URL, sans confondre port et partie du nom.
+    parsed = urlsplit(value if "://" in value else "//" + value)
+    hostname = (parsed.hostname or "").rstrip(".")
+    if not hostname:
+        return ""
+    result = _TLD_EXTRACT(hostname)
+    return result.top_domain_under_public_suffix.lower() if result.suffix else ""
 
 
 # ---------------------------------------------------------------- IMAP ----
