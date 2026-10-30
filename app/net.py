@@ -1,17 +1,10 @@
-"""HTTP sortant avec résolution DNS épinglée pour limiter le DNS rebinding.
-
-L'adresse IP utilisée pour la connexion est celle validée juste avant la requête ;
-la résolution n'est donc pas refaite par la couche socket après validation.
-Les redirections sont refusées par défaut : chaque nouvelle destination doit être
-validée explicitement par l'appelant.
-"""
+"""HTTP et sockets sortants avec résolution DNS épinglée contre le DNS rebinding."""
 from __future__ import annotations
 
 import http.client
 import ipaddress
 import socket
 import ssl
-import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -20,7 +13,8 @@ class UnsafeAddressError(OSError):
     """URL invalide, destination interdite ou hôte impossible à résoudre."""
 
 
-def _resolve_pinned(host: str, port: int, allow_private: bool = False) -> str:
+def _resolve_pinned_all(host: str, port: int, allow_private: bool = False) -> list[str]:
+    """Résout une seule fois et valide toutes les adresses retournées."""
     try:
         records = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except OSError as exc:
@@ -38,34 +32,48 @@ def _resolve_pinned(host: str, port: int, allow_private: bool = False) -> str:
             addresses.append(value)
     if not addresses:
         raise UnsafeAddressError(f"aucune adresse DNS pour {host}")
-    # Une seule IP est choisie et réutilisée pour la socket, sans seconde résolution.
-    return addresses[0]
+    return addresses
+
+
+def _resolve_pinned(host: str, port: int, allow_private: bool = False) -> str:
+    """Retourne la première IP validée (utile aux tests et diagnostics)."""
+    return _resolve_pinned_all(host, port, allow_private)[0]
 
 
 def create_pinned_socket(host: str, port: int, timeout=None, source_address=None, *, allow_private: bool = True):
-    """Ouvre une socket TCP vers l'IP résolue et épinglée (SMTP/IMAP configurés par l'administrateur)."""
-    try:
-        pinned_ip = _resolve_pinned(host, port, allow_private=allow_private)
-    except UnsafeAddressError as exc:
-        # Les clients SMTP/IMAP traduisent déjà les erreurs réseau en erreurs métier.
-        raise OSError(str(exc)) from exc
-    return socket.create_connection((pinned_ip, port), timeout, source_address)
+    """Ouvre une socket vers une des IP résolues, sans nouvelle résolution DNS."""
+    addresses = _resolve_pinned_all(host, port, allow_private=allow_private)
+    last_error = None
+    for address in addresses:
+        try:
+            return socket.create_connection((address, port), timeout, source_address)
+        except OSError as exc:
+            last_error = exc
+    raise last_error or OSError(f"connexion impossible à {host}:{port}")
 
 
 class _PinnedHTTPConnection(http.client.HTTPConnection):
-    def __init__(self, host, *, pinned_ip: str, **kwargs):
+    def __init__(self, host, *, pinned_ips: list[str], **kwargs):
         super().__init__(host, **kwargs)
-        self._pinned_ip = pinned_ip
+        self._pinned_ips = pinned_ips
 
     def connect(self):
-        self.sock = socket.create_connection((self._pinned_ip, self.port), self.timeout, self.source_address)
+        last_error = None
+        for address in self._pinned_ips:
+            try:
+                self.sock = socket.create_connection((address, self.port), self.timeout, self.source_address)
+                break
+            except OSError as exc:
+                last_error = exc
+        else:
+            raise last_error or OSError(f"connexion impossible à {self.host}:{self.port}")
         if self._tunnel_host:
             self._tunnel()
 
 
 class _PinnedHTTPSConnection(_PinnedHTTPConnection):
-    def __init__(self, host, *, pinned_ip: str, context: ssl.SSLContext, **kwargs):
-        super().__init__(host, pinned_ip=pinned_ip, **kwargs)
+    def __init__(self, host, *, pinned_ips: list[str], context: ssl.SSLContext, **kwargs):
+        super().__init__(host, pinned_ips=pinned_ips, **kwargs)
         self._context = context
 
     def connect(self):
@@ -88,18 +96,18 @@ def safe_urlopen(url_or_request, *, timeout: float = 20, allow_private: bool = F
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
     except ValueError as exc:
         raise UnsafeAddressError("port de destination invalide") from exc
-    pinned_ip = _resolve_pinned(parsed.hostname, port, allow_private=allow_private)
-    request.timeout = timeout
+    # Les adresses sont validées une fois puis utilisées directement par la socket.
+    pinned_ips = _resolve_pinned_all(parsed.hostname, port, allow_private=allow_private)
 
     class _HTTPHandler(urllib.request.HTTPHandler):
         def http_open(self, req):
-            return self.do_open(lambda host, **kw: _PinnedHTTPConnection(host, pinned_ip=pinned_ip, **kw), req)
+            return self.do_open(lambda host, **kw: _PinnedHTTPConnection(host, pinned_ips=pinned_ips, **kw), req)
 
     class _HTTPSHandler(urllib.request.HTTPSHandler):
         def https_open(self, req):
             tls = context or ssl.create_default_context()
             return self.do_open(
-                lambda host, **kw: _PinnedHTTPSConnection(host, pinned_ip=pinned_ip, context=tls, **kw), req
+                lambda host, **kw: _PinnedHTTPSConnection(host, pinned_ips=pinned_ips, context=tls, **kw), req
             )
 
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _HTTPHandler(), _HTTPSHandler(), _NoRedirect())
