@@ -13,6 +13,8 @@ import json
 import logging
 import re
 import urllib.request
+
+from .net import safe_urlopen
 import zipfile
 from pathlib import Path
 
@@ -130,7 +132,7 @@ def parse_zip(data: bytes) -> list[dict]:
 
 def fetch_remote(url: str = DATENANFRAGEN_ZIP_URL, timeout: int = 120) -> list[dict]:
     req = urllib.request.Request(url, headers={"User-Agent": "oubliez-moi-selfhosted"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with safe_urlopen(req, timeout=timeout, allow_private=False) as resp:
         data = resp.read()
     return parse_zip(data)
 
