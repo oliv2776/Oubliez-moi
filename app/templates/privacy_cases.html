@@ -41,9 +41,9 @@
 <form class="filters" method="get">
   <input type="search" name="q" value="{{ q }}" placeholder="Organisme, objet ou référence">
   <select name="status"><option value="">Tous les statuts</option>{% for key, label in CASE_STATUSES.items() %}<option value="{{ key }}" {{ 'selected' if status == key }}>{{ label }}</option>{% endfor %}</select>
-  <button class="btn">Filtrer</button>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
-<div class="card table-wrap">
+<div class="card table-wrap" data-results>
 {% if cases %}
 <table>
   <tr><th>Organisme / objet</th><th>Demande</th><th>Statut</th><th>Échéance</th></tr>

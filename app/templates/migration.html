@@ -70,7 +70,7 @@
   <div class="kpi"><div class="v">{{ counts.get('abandoned', 0) }}</div><div class="l">À abandonner</div></div>
 </div>
 
-<nav class="chips" aria-label="Filtrer">
+<nav class="chips" aria-label="Filtrer" data-results>
   {% for key, label, n in chips %}
   <a class="chip {{ 'active' if filter == key }}" href="/migration?filter={{ key }}{{ '&kind=' ~ kind if kind }}{{ '&q=' ~ q|urlencode if q }}">{{ label }} <span class="n">{{ n }}</span></a>
   {% endfor %}
@@ -78,11 +78,11 @@
 <form class="filters" method="get">
   <input type="hidden" name="filter" value="{{ filter }}">
   <input type="search" name="q" value="{{ q }}" placeholder="Service, domaine, alias…">
-  <label class="check" style="margin:0"><input type="checkbox" name="kind" value="account" {{ 'checked' if kind == 'account' }} onchange="this.form.submit()"> Comptes seulement <span class="hint">— sans les lettres d'information</span></label>
-  <button class="btn">Filtrer</button>
+  <label class="check" style="margin:0"><input type="checkbox" name="kind" value="account" {{ 'checked' if kind == 'account' }}> Comptes seulement <span class="hint">— sans les lettres d'information</span></label>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
 
-<div class="card">
+<div class="card" data-results>
 {% if accounts %}
 <table class="mig">
   <tr><th>Service</th><th class="hide-sm">Ancienne adresse</th><th>Alias</th><th>Statut</th><th></th></tr>
@@ -187,7 +187,9 @@
     }
     return fallback(text);
   }
-  document.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", async () => {
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("[data-copy]");
+    if (!btn) return;
     const label = btn.textContent;
     if (await copy(btn.dataset.copy)) {
       btn.textContent = "Copié";
@@ -197,7 +199,7 @@
       btn.textContent = "Sélectionné : Ctrl+C";
     }
     setTimeout(() => { btn.textContent = label; }, 1800);
-  }));
+  });
   // Suivi de l'inventaire en cours
   const live = document.getElementById("mig-live");
   if (live && !live.hidden) {

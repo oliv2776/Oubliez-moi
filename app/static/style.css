@@ -412,3 +412,9 @@ details.menu .menu-list button:hover, details.menu .menu-list button:focus-visib
 .brief-ai .brief-todo { background: var(--info-soft); }
 .brief-caution { color: var(--warn); margin: .55rem 0 0; max-width: 78ch; }
 .brief-ask { margin-top: .7rem; }
+/* Filtres instantanés : plus besoin du bouton (Entrée reste possible) */
+.js .filter-submit { display: none; }
+form.is-loading input[type="search"] { background-image: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
+  background-size: 200% 100%; animation: filtering 1s linear infinite; }
+@keyframes filtering { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { form.is-loading input[type="search"] { animation: none; } }

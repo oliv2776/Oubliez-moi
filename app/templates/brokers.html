@@ -22,8 +22,9 @@
     <option value="account" {{ 'selected' if state=='account' }}>Compte possible</option>
   </select>
   <select name="country"><option value="">Tous les pays</option>{% for c in countries %}<option value="{{ c }}" {{ 'selected' if country==c }}>{{ 'international' if c=='all' else c|upper }}</option>{% endfor %}</select>
-  <button class="btn">Filtrer</button>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
+<div data-results>
 {% if country %}
 <div class="card actions">
   <span>Pour tous les courtiers « {{ 'international' if country=='all' else country|upper }} » :</span>
@@ -48,5 +49,6 @@
   <tr><td colspan="6" class="empty">Aucun courtier.</td></tr>
   {% endfor %}
 </table>
+</div>
 </div>
 {% endblock %}

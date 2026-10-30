@@ -21,8 +21,9 @@
 <form class="filters" method="get">
   <input type="search" name="q" value="{{ q }}" placeholder="Domaine, expéditeur, organisme…">
   <select name="status"><option value="">Tous les liens</option><option value="review" {{ 'selected' if status=='review' }}>À vérifier</option>{% for key,label in LINK_STATUSES.items() %}<option value="{{ key }}" {{ 'selected' if status==key }}>{{ label }}</option>{% endfor %}</select>
-  <button class="btn">Filtrer</button>
+  <button class="btn filter-submit">Filtrer</button>
 </form>
+<div data-results>
 {% if suggestions_added %}<p class="small muted">{{ suggestions_added }} nouvelle(s) correspondance(s) exacte(s) proposée(s) à vérifier.</p>{% endif %}
 {% for row in rows %}
 <section class="card exposure-row">
@@ -67,5 +68,6 @@
 {% else %}
 <div class="card empty"><p>Aucun domaine observé pour le moment. Ajoutez une boîte mail et lancez une analyse pour commencer la cartographie.</p></div>
 {% endfor %}
+</div>
 <div class="banner info small">Méthode : les propositions automatiques reposent uniquement sur l’égalité exacte du domaine enregistrable (PSL) entre l’expéditeur et les coordonnées publiques du catalogue. Elles ne prouvent ni une transmission de données, ni l’appartenance à un groupe. Vérifiez les mentions légales et politiques de confidentialité avant confirmation. Les domaines inconnus restent non classés.</div>
 {% endblock %}

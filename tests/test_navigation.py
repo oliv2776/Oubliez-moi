@@ -33,3 +33,11 @@ def test_mobile_menu_and_login_page(client):
     from app.main import app
     with TestClient(app) as anonymous:
         assert '<aside class="sidebar"' not in anonymous.get("/login").text
+
+
+def test_filter_pages_support_instant_search(client):
+    """Chaque page filtrable marque ses résultats : le script les remplace pendant la frappe."""
+    for url in ("/requests", "/brokers", "/privacy-cases", "/exposures", "/mailboxes", "/search?q=ab"):
+        page = client.get(url).text
+        assert "data-results" in page and "filter-submit" in page, url
+    assert "form.filters, form.filters-live" in client.get("/").text
