@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -106,12 +107,32 @@ SYSTEM = (
 )
 
 
+# Requête en cours vers le modèle, affichée dans l'interface (« le modèle réfléchit depuis 23 s »).
+activity: dict = {}
+
+
 def _post(path: str, payload: dict, timeout: int) -> dict:
     req = urllib.request.Request(
         settings.llm_url.rstrip("/") + path, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}
     )
-    with safe_urlopen(req, timeout=timeout, allow_private=True) as resp:
-        return json.loads(resp.read())
+    activity.update(model=payload.get("model", settings.llm_model), since=time.time())
+    try:
+        with safe_urlopen(req, timeout=timeout, allow_private=True) as resp:
+            return json.loads(resp.read())
+    finally:
+        activity.clear()
+
+
+def loaded_models() -> list[dict] | None:
+    """Modèles chargés en mémoire par Ollama (/api/ps) ; None si Ollama ne répond pas."""
+    if not settings.llm_url:
+        return None
+    try:
+        with safe_urlopen(settings.llm_url.rstrip("/") + "/api/ps", timeout=3, allow_private=True) as resp:
+            models = json.loads(resp.read()).get("models", [])
+    except (OSError, ValueError):
+        return None
+    return [{"name": m.get("name", ""), "size_gb": round(int(m.get("size") or 0) / 1e9, 1)} for m in models]
 
 
 def _classify_decision(subject: str, text: str, timeout: int) -> dict | None:

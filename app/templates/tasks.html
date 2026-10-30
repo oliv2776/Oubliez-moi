@@ -14,10 +14,10 @@
   {% endfor %}
 </nav>
 
+{% include "_progress.html" %}
 {% if reanalysis_running %}
-<div class="banner info">Réanalyse des réponses en cours. <a href="/tasks/reanalysis">Suivre</a></div>
 {% elif reanalysis_count %}
-<div class="banner info"><strong>{{ reanalysis_count }} correction(s) proposée(s)</strong> par la réanalyse des réponses. <a href="/tasks/reanalysis">Les examiner</a></div>
+<div class="banner info"><strong>{{ reanalysis_count }} correction(s) proposée(s)</strong> par la réanalyse des réponses{% if rp.finished_ago is not none and rp.finished_ago < 3600 %} (terminée il y a {{ (rp.finished_ago // 60) or 1 }} min){% endif %}. <a href="/tasks/reanalysis">Les examiner</a></div>
 {% elif reanalysis_suggest %}
 <div class="banner info" style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
   <span>Le modèle d'IA a changé ({{ settings.llm_model }}) : les réponses en attente ont été classées avec l'ancien.</span>
@@ -66,6 +66,7 @@
           <p class="small muted" style="margin:0">{{ position }} sur {{ items|length }} · {{ r.profile.full_name }} · <span class="mono">{{ r.reference }}</span></p>
           <h2 style="margin:.15rem 0 0;font-size:1.35rem">{{ r.broker.name }} {{ badge(r.status) }}</h2>
           <p class="small muted" style="margin:.2rem 0 0">{{ r.broker.email or 'Formulaire en ligne uniquement' }}{% if r.sent_at %} · demande envoyée le {{ r.sent_at|d }}{% endif %}{% if r.reminder_count %} · relancée{% endif %}</p>
+          {% if why %}<p class="td-why">{{ why }}</p>{% endif %}
         </div>
         <div class="actions">
           <a class="btn sm" href="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ prev_id }}" {% if not prev_id %}aria-disabled="true" tabindex="-1" style="opacity:.4;pointer-events:none"{% endif %} data-key="k" title="Précédent (K)">↑</a>
@@ -74,6 +75,16 @@
         </div>
       </div>
     </div>
+
+    {% if latest_reply %}
+    <div class="card">
+      <h3>Ce que {{ r.broker.name }} a répondu</h3>
+      {% if ai_note %}<div class="ai-note">{{ ai_note }}</div>{% endif %}
+      {{ mail_view(latest_reply) }}
+      {% set n_replies = r.events|selectattr('kind', 'equalto', 'reply')|list|length %}
+      {% if n_replies > 1 %}<p class="small"><a href="/requests/{{ r.id }}">{{ n_replies - 1 }} autre(s) message(s) dans la fiche complète</a></p>{% endif %}
+    </div>
+    {% endif %}
 
     {# --- Barre de décision, adaptée à la situation --- #}
     <div class="card decision">
@@ -134,15 +145,6 @@
     </div>
     {% endif %}
 
-    {% if latest_reply %}
-    <div class="card">
-      <h3>Dernière réponse</h3>
-      {% if ai_note %}<div class="ai-note">{{ ai_note }}</div>{% endif %}
-      {{ mail_view(latest_reply) }}
-      {% set n_replies = r.events|selectattr('kind', 'equalto', 'reply')|list|length %}
-      {% if n_replies > 1 %}<p class="small"><a href="/requests/{{ r.id }}">{{ n_replies - 1 }} autre(s) message(s) dans la fiche complète</a></p>{% endif %}
-    </div>
-    {% endif %}
 
     {% if complaint %}
     <div class="card">

@@ -11,8 +11,15 @@
     <div class="mail-meta">{% if h.get('Objet') %}<span class="mail-subject">{{ h.get('Objet') }}</span> · {% endif %}{{ e.at|dt }}</div>
   </div>
   {% if e.kind == 'reply' %}
-  <iframe class="mail-frame" src="/events/{{ e.id }}/view" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" title="Contenu du message"></iframe>
-  {% if e.html %}<div class="mail-foot">Images et contenus distants bloqués pour éviter le pistage.</div>{% endif %}
+  {# Texte du message, lisible et aux couleurs de l'interface ; la mise en forme d'origine reste disponible. #}
+  <div class="mail-body" translate="no">{{ e.body|mailtext }}</div>
+  {% if e.html %}
+  <details class="mail-original">
+    <summary>Voir la mise en forme d'origine</summary>
+    <iframe class="mail-frame" src="/events/{{ e.id }}/view" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" title="Mise en forme d'origine du message" loading="lazy"></iframe>
+    <div class="mail-foot">Images et contenus distants bloqués pour éviter le pistage.</div>
+  </details>
+  {% endif %}
   {% else %}
   <div class="mail-body">{{ e.body|mailtext }}</div>
   {% endif %}
@@ -25,7 +32,10 @@
   function fit(f) {
     try {
       const d = f.contentDocument; if (!d || !d.body) return;
-      const set = () => { f.style.height = (d.body.scrollHeight + 4) + "px"; };
+      const set = () => {
+        const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight, d.body.offsetHeight);
+        f.style.height = Math.max(h + 4, 120) + "px";
+      };
       set();
       if (!f._ro) { f._ro = new ResizeObserver(set); f._ro.observe(d.body); }
     } catch (e) { f.style.height = "480px"; }

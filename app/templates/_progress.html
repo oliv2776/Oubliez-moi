@@ -1,0 +1,51 @@
+{# Avancement de la réanalyse et activité du modèle d'IA, mis à jour toutes les 2 secondes. #}
+<div class="card progress-card" id="rp" {{ '' if rp.running else 'hidden' }} aria-live="polite">
+  <div class="rp-top">
+    <strong id="rp-title">Réanalyse en cours</strong>
+    <span class="rp-count" id="rp-count">{{ rp.done }} / {{ rp.total or '…' }} réponses</span>
+  </div>
+  <div class="rp-bar" role="progressbar" aria-labelledby="rp-title" aria-valuemin="0" aria-valuemax="{{ rp.total or 1 }}" aria-valuenow="{{ rp.done }}">
+    <span id="rp-fill" style="width:{{ (100 * rp.done / rp.total)|round|int if rp.total else 0 }}%"></span>
+  </div>
+  <p class="rp-step" id="rp-step"></p>
+  <p class="rp-model small muted" id="rp-model"></p>
+</div>
+<script>
+(function () {
+  const box = document.getElementById("rp");
+  const $ = (id) => document.getElementById(id);
+  const mins = (s) => s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
+  let wasRunning = {{ 'true' if rp.running else 'false' }};
+  function draw(st) {
+    if (!st.running) {
+      if (wasRunning) location.reload();  // terminé : on affiche les propositions
+      return;
+    }
+    box.hidden = false;
+    const pct = st.total ? Math.round(100 * st.done / st.total) : 0;
+    $("rp-fill").style.width = pct + "%";
+    $("rp-count").textContent = `${st.done} / ${st.total || "…"} réponses`;
+    let step;
+    if (st.phase === "start" || st.phase === "mailbox") step = "Relecture des messages dans votre boîte, pour vérifier leurs expéditeurs…";
+    else if (st.llm_busy_for !== null) step = `${st.current || "Réponse"} : le modèle ${st.llm_busy_model} réfléchit depuis ${mins(st.llm_busy_for)}`;
+    else step = `${st.current || "Réponse"} : règles de classement`;
+    if (st.found) step += ` · ${st.found} correction(s) trouvée(s) jusqu'ici`;
+    if (st.started) step += ` · en cours depuis ${mins(Math.round(Date.now() / 1000 - st.started))}`;
+    $("rp-step").textContent = step;
+    let model = "";
+    if (st.llm_model) {
+      if (st.llm_loaded === null) model = `Ollama ne répond pas : les réponses ambiguës restent classées « à examiner ».`;
+      else if (st.llm_loaded.some((m) => m.name === st.llm_model || m.name.startsWith(st.llm_model + ":")))
+        model = `Modèle en mémoire : ${st.llm_model} (${st.llm_loaded.find((m) => m.name.startsWith(st.llm_model)).size_gb} Go). Comptez jusqu'à une minute par réponse ambiguë sur processeur.`;
+      else model = `Modèle ${st.llm_model} pas encore chargé : il le sera au premier cas ambigu (30 s à 1 min).`;
+    } else model = "Aucun modèle d'IA configuré : seules les règles de classement sont utilisées.";
+    $("rp-model").textContent = model;
+  }
+  async function tick() {
+    try { const st = await (await fetch("/tasks/reanalysis/status")).json(); draw(st); if (!st.running) return; } catch (e) { /* réessai */ }
+    setTimeout(tick, 2000);
+  }
+  if (wasRunning) tick();
+  document.addEventListener("reanalysis:start", () => { wasRunning = true; tick(); });
+})();
+</script>

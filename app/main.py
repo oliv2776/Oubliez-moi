@@ -513,7 +513,9 @@ def event_view(eid: int, db: Session = Depends(get_db)):
     ev = _get(db, Event, eid)
     return HTMLResponse(
         mailview.render_event(ev.body, ev.html),
-        headers={"Content-Security-Policy": mailview.CSP, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"},
+        # SAMEORIGIN : cette page est faite pour être affichée dans le cadre de l'application (DENY partout ailleurs).
+        headers={"Content-Security-Policy": mailview.CSP, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
+                 "X-Frame-Options": "SAMEORIGIN"},
     )
 
 
@@ -606,11 +608,13 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["form_help"] = _form_help(r)
         infos = [e for e in r.events if e.kind in ("info", "confirm")]
         ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.summary.startswith("Analyse IA")), None)
+        ctx["why"] = next((e.summary for e in reversed(r.events) if e.kind == "status"), None)
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
     ctx["reanalysis_count"] = len(reanalysis.load(db))
     ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
     ctx["reanalysis_running"] = reanalysis.state["running"]
+    ctx["rp"] = reanalysis.progress(with_models=False)
     return render(request, "tasks.html", db, **ctx)
 
 
@@ -618,13 +622,13 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
 
 @app.get("/tasks/reanalysis", response_class=HTMLResponse)
 def reanalysis_page(request: HttpRequest, db: Session = Depends(get_db)):
-    return render(request, "reanalysis.html", db, proposals=reanalysis.load(db), state=reanalysis.state,
+    return render(request, "reanalysis.html", db, proposals=reanalysis.load(db), rp=reanalysis.progress(),
                   model=reanalysis.current_model(), status_label=reanalysis.status_label)
 
 
 @app.get("/tasks/reanalysis/status")
 def reanalysis_status():
-    return JSONResponse(reanalysis.state)
+    return JSONResponse(reanalysis.progress())
 
 
 @app.post("/tasks/reanalysis/start")
@@ -667,8 +671,27 @@ def _snippet(r: Request) -> str:
         return "Formulaire en ligne à remplir"
     replies = [e for e in r.events if e.kind == "reply"]
     if replies:
-        return replies[-1].summary.split(" : ", 1)[-1]
+        return _first_words(replies[-1]) or replies[-1].summary.split(" : ", 1)[-1]
     return STATUS_LABELS.get(r.status, r.status)
+
+
+_GREETING = re.compile(r"^\s*(hi|hello|hey|dear|bonjour|bonsoir|madame|monsieur|hallo|guten tag|sehr geehrte)\b[^\n]{0,60}$", re.I)
+
+
+_QUOTE_INTRO = re.compile(r"^\s*(on|le|am)\b.{0,120}\b(wrote|a écrit|schrieb)\s*:\s*$", re.I)
+
+
+def _first_words(ev: Event, limit: int = 140) -> str:
+    """Début utile d'une réponse (sans en-têtes, citation ni formule d'appel) pour la liste « À traiter »."""
+    text = mailview.strip_quoted(mailview.split_headers(ev.body or "")[1])
+    lines = []
+    for ln in text.splitlines():
+        if ln.startswith(">") or _QUOTE_INTRO.match(ln):
+            break  # début du message cité
+        if ln.strip() and not _GREETING.match(ln):
+            lines.append(ln.strip())
+    out = " ".join(lines)
+    return out[:limit].rstrip() + ("…" if len(out) > limit else "")
 
 
 templates.env.globals["snippet"] = _snippet

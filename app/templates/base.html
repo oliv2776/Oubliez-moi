@@ -7,7 +7,10 @@
   <title>{% block title %}Oubliez-moi{% endblock %} · Oubliez-moi</title>
   <link rel="stylesheet" href="/static/style.css?v={{ version }}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='%2323524a' stroke-width='2.5'/></svg>">
-  <script>document.documentElement.classList.add("js")</script>
+  <script>
+    document.documentElement.classList.add("js");
+    try { const t = localStorage.getItem("oubliez-moi-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <script defer src="/static/i18n.js?v={{ version }}"></script>
 </head>
 {%- set ICONS = {
@@ -77,12 +80,29 @@
     <div class="sb-row">
       <label for="language-switch" class="sb-lang"><span class="visually-hidden">Langue</span>
         <select id="language-switch" aria-label="Language"><option value="fr">Français</option><option value="en">English</option></select></label>
+      <label for="theme-switch" class="sb-lang"><span class="visually-hidden">Thème</span>
+        <select id="theme-switch" aria-label="Thème"><option value="auto">Thème auto</option><option value="light">Clair</option><option value="dark">Sombre</option></select></label>
+    </div>
+    <div class="sb-row">
       <form method="post" action="/logout" class="inline"><button class="sb-logout">{{ icon('logout') }}<span>Déconnexion</span></button></form>
     </div>
   </div>
 </aside>
 <div class="sb-backdrop" hidden></div>
 <script>
+(function () {
+  const theme = document.getElementById("theme-switch");
+  if (theme) {
+    let saved = "auto";
+    try { saved = localStorage.getItem("oubliez-moi-theme") || "auto"; } catch (e) {}
+    theme.value = ["light", "dark"].includes(saved) ? saved : "auto";
+    theme.addEventListener("change", () => {
+      const v = theme.value;
+      if (v === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = v;
+      try { localStorage.setItem("oubliez-moi-theme", v); } catch (e) {}
+    });
+  }
+})();
 (function () {
   const body = document.body, btn = document.querySelector(".menu-btn"), sidebar = document.getElementById("sidebar");
   const backdrop = document.querySelector(".sb-backdrop"), closeBtn = document.querySelector(".sb-close");
