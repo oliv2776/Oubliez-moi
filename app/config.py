@@ -55,6 +55,8 @@ class Settings:
         default_factory=lambda: [f.strip() for f in _str("IMAP_FOLDERS", "INBOX").split(",") if f.strip()]
     )
     imap_poll_minutes: int = field(default_factory=lambda: _int("IMAP_POLL_MINUTES", 10))
+    # Identifiant exact du serveur de confiance dans Authentication-Results (ex. mx.example.net).
+    imap_authserv_id: str = field(default_factory=lambda: _str("IMAP_AUTHSERV_ID").lower())
     # Rangement des e-mails des courtiers dans la boîte : off | move | label (libellé Gmail)
     imap_file_mode: str = field(default_factory=lambda: _str("IMAP_FILE_MODE", "off").lower())
     imap_file_folder: str = field(default_factory=lambda: _str("IMAP_FILE_FOLDER", "Oubliez-moi"))
@@ -96,6 +98,8 @@ class Settings:
     auto_reminder: bool = field(default_factory=lambda: _bool("AUTO_REMINDER", True))
     reminder_wait_days: int = field(default_factory=lambda: _int("REMINDER_WAIT_DAYS", 15))
     resend_interval_days: int = field(default_factory=lambda: _int("RESEND_INTERVAL_DAYS", 90))
+    # Nombre maximal de cycles automatiques, cycle initial compris.
+    max_automatic_resend_cycles: int = field(default_factory=lambda: max(1, _int("MAX_AUTOMATIC_RESEND_CYCLES", 3)))
     auto_enroll_new_brokers: bool = field(default_factory=lambda: _bool("AUTO_ENROLL_NEW_BROKERS", True))
     auto_classify: bool = field(default_factory=lambda: _bool("AUTO_CLASSIFY", True))
     broker_countries: list[str] = field(default_factory=lambda: _list("BROKER_COUNTRIES", "fr,all"))
