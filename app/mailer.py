@@ -86,6 +86,7 @@ class ParsedMail:
     is_bounce: bool = False
     is_auto: bool = False
     date: str = ""
+    html: str = ""
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -102,7 +103,13 @@ def html_to_text(s: str) -> str:
 def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
     msg = email.message_from_bytes(raw, policy=default_policy)
     addrs = getaddresses([str(msg.get("From", ""))])
-    from_name, from_addr = addrs[0] if addrs else ("", "")
+    # Un nom d'affichage non entre guillemets contenant une virgule (« Acme, Inc. <dpo@acme.com> »)
+    # est découpé en plusieurs morceaux : on retient le premier qui ressemble à une adresse.
+    with_at = [a for a in addrs if "@" in a[1]]
+    from_name, from_addr = (with_at or addrs or [("", "")])[0]
+    if with_at and len(addrs) > 1:
+        parts = [n or a for n, a in addrs if "@" not in a] + ([from_name] if from_name else [])
+        from_name = ", ".join(x for x in parts if x)
     refs = " ".join(str(msg.get(h, "")) for h in ("In-Reply-To", "References"))
     texts = []
     for part in msg.walk():
@@ -119,6 +126,13 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
                 texts.append(payload if isinstance(payload, str) else str(payload))
         except (LookupError, UnicodeError, KeyError) as e:  # encodage exotique
             log.debug("Partie illisible : %s", e)
+    html_body = ""
+    try:
+        part = msg.get_body(preferencelist=("html",))
+        if part is not None:
+            html_body = part.get_content()
+    except (LookupError, UnicodeError, KeyError):
+        pass
     ctype = msg.get_content_type()
     auto_sub = str(msg.get("Auto-Submitted", "no")).lower()
     sender = from_addr.lower()
@@ -137,6 +151,7 @@ def parse_mail(raw: bytes, uid: str = "") -> ParsedMail:
         ),
         is_auto=auto_sub not in ("", "no") or bool(msg.get("X-Autoreply")) or bool(msg.get("X-Autorespond")),
         date=str(msg.get("Date", "")),
+        html=html_body,
     )
 
 

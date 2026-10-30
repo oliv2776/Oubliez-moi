@@ -15,7 +15,8 @@
 | **Relances et CNIL** | Une relance part automatiquement à l'expiration du délai légal. Sans réponse 15 jours plus tard, la demande passe « sans réponse » et Oubliez-moi prépare le texte de la plainte à la CNIL. |
 | **Renvoi périodique** | Comme Incogni : 90 jours après une suppression confirmée, la demande est renvoyée, parce que les courtiers recollectent les données. |
 | **Plusieurs profils** | Pour vous et vos proches (avec leur accord). |
-| **Liste « À traiter »** | Les formulaires en ligne à remplir, les confirmations à cliquer et les réponses ambiguës, au même endroit. |
+| **Page « À traiter »** | Les réponses à examiner, les actions requises, les délais dépassés et les échecs, dans une boîte de traitement : liste à gauche, message à droite, une décision en un clic (ou une touche du clavier) et passage automatique au suivant. |
+| **Lecture des e-mails** | Les réponses s'affichent avec leur mise en forme d'origine, nettoyées et isolées : scripts, formulaires, images et contenus distants sont bloqués, les pixels de pistage ne peuvent donc pas signaler que vous avez lu le message. Le message cité est replié. |
 | **Aide aux formulaires** | Pour les courtiers qui n'acceptent que leur formulaire en ligne : chaque information prête à copier en un clic (nom, prénom, e-mails, téléphones aux deux formats, adresse découpée), message de demande en français et en anglais, et délai d'un mois qui démarre quand vous confirmez l'envoi. |
 | **Compléments** | Vous ajoutez une adresse e-mail, un téléphone ou une ancienne adresse au profil après l'envoi ? Oubliez-moi repère les courtiers qui ne l'ont pas reçue et leur envoie un complément sous la même référence. |
 | **Protection de vos comptes** | Les organismes chez qui vous avez peut-être un vrai compte (instituts de panels, outils de prospection professionnels, cashback et affiliation, avis clients) sont signalés avant l'envoi, pour que vous puissiez les exclure. |

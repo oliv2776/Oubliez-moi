@@ -432,8 +432,11 @@ def process_incoming(db: Session, m: mailer.ParsedMail) -> Request | None:
         return None
     c = mailer.classify(m) if settings.auto_classify else mailer.Classification("reply")
     req.last_reply_at = utcnow()
-    body = f"De : {m.from_name} <{m.from_addr}>\nDate : {m.date}\nObjet : {m.subject}\n\n{m.text[:15000]}"
-    add_event(db, req, "reply", f"Réponse reçue de {m.from_addr} : {m.subject[:200]}", body)
+    sender = f"{m.from_name} <{m.from_addr}>" if m.from_name else m.from_addr
+    body = f"De : {sender}\nDate : {m.date}\nObjet : {m.subject}\n\n{m.text[:15000]}"
+    ev = add_event(db, req, "reply", f"Réponse reçue de {m.from_addr} : {m.subject[:200]}", body)
+    if m.html:
+        ev.html = m.html[:500_000]
 
     new_status = None
     if c.kind == "bounce":

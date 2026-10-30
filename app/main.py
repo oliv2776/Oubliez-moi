@@ -16,12 +16,13 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request as HttpReques
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import __version__, brokers as broker_catalog, letters, mailer, phones, scheduler, service, settings_store
+from . import __version__, brokers as broker_catalog, letters, mailer, mailview, phones, scheduler, service, settings_store
 from .config import settings
 from .db import (
     FAILED,
@@ -109,6 +110,16 @@ templates.env.filters["dt"] = fmt_dt
 templates.env.filters["d"] = fmt_d
 templates.env.filters["isodt"] = lambda v: fmt_dt(datetime.fromisoformat(v)) if v else "jamais"
 templates.env.filters["url"] = lambda v: v if v and re.match(r"(?i)^https?://", v) else "#"
+def _mailheaders(body):
+    h = dict(mailview.split_headers(body or "")[0])
+    sender = h.get("De", "").strip()
+    if sender.startswith("<") and sender.endswith(">"):
+        h["De"] = sender[1:-1]
+    return h
+
+
+templates.env.filters["mailheaders"] = _mailheaders
+templates.env.filters["mailtext"] = lambda body: Markup(mailview.text_to_html(mailview.split_headers(body or "")[1]))
 templates.env.filters["lines"] = lambda v: "\n".join(v or [])
 
 
@@ -372,26 +383,47 @@ def requests_list(request: HttpRequest, status: str = "", profile: int | None = 
 def request_detail(request: HttpRequest, rid: int, db: Session = Depends(get_db)):
     r = _get(db, Request, rid)
     complaint = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
-    form_help = None
-    if r.broker.webform and r.status not in ("completed", "cancelled"):
-        form_help = {
-            "fields": letters.form_fields(r),
-            "msg_fr": letters.form_message(r, "fr"),
-            "msg_en": letters.form_message(r, "en"),
-            "open": r.status == NEEDS_ACTION or (r.channel == "webform" and not r.sent_at),
-        }
-    return render(request, "request_detail.html", db, r=r, complaint=complaint, form_help=form_help)
+    return render(request, "request_detail.html", db, r=r, complaint=complaint, form_help=_form_help(r))
+
+
+def _form_help(r: Request) -> dict | None:
+    if not r.broker.webform or r.status in ("completed", "cancelled", "cnil"):
+        return None
+    return {
+        "fields": letters.form_fields(r),
+        "msg_fr": letters.form_message(r, "fr"),
+        "msg_en": letters.form_message(r, "en"),
+        "open": r.status == NEEDS_ACTION or (r.channel == "webform" and not r.sent_at),
+    }
+
+
+def _safe_next(url: str | None) -> str | None:
+    """N'accepte qu'une redirection interne (évite les redirections ouvertes)."""
+    if url and url.startswith("/") and not url.startswith("//") and "\\" not in url:
+        return url
+    return None
+
+
+@app.get("/events/{eid}/view", response_class=HTMLResponse)
+def event_view(eid: int, db: Session = Depends(get_db)):
+    """Contenu d'un message, servi isolé (cadre sandboxé + CSP sans aucun chargement externe)."""
+    ev = _get(db, Event, eid)
+    return HTMLResponse(
+        mailview.render_event(ev.body, ev.html),
+        headers={"Content-Security-Policy": mailview.CSP, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"},
+    )
 
 
 @app.post("/requests/{rid}/status")
-def request_status(request: HttpRequest, rid: int, status: str = Form(...), note: str = Form(""), db: Session = Depends(get_db)):
+def request_status(request: HttpRequest, rid: int, status: str = Form(...), note: str = Form(""), next: str = Form(""),
+                   db: Session = Depends(get_db)):
     r = _get(db, Request, rid)
     if status not in STATUS_LABELS:
         raise HTTPException(400)
     service.set_status(db, r, status, f"Statut changé manuellement : {STATUS_LABELS[status]}" + (f" — {note}" if note.strip() else ""))
     db.commit()
-    flash(request, f"Statut mis à jour : {STATUS_LABELS[status]}.")
-    return back(request.headers.get("referer") or f"/requests/{rid}")
+    flash(request, f"{r.broker.name} : {STATUS_LABELS[status]}.")
+    return back(_safe_next(next) or request.headers.get("referer") or f"/requests/{rid}")
 
 
 @app.post("/requests/{rid}/note")
@@ -404,7 +436,7 @@ def request_note(request: HttpRequest, rid: int, note: str = Form(...), db: Sess
 
 
 @app.post("/requests/{rid}/send-reminder")
-def request_reminder(request: HttpRequest, rid: int, db: Session = Depends(get_db)):
+def request_reminder(request: HttpRequest, rid: int, next: str = Form(""), db: Session = Depends(get_db)):
     r = _get(db, Request, rid)
     if not r.broker.email or not r.sent_at:
         flash(request, "Impossible de relancer : la demande n'a pas été envoyée par e-mail.", "error")
@@ -415,7 +447,7 @@ def request_reminder(request: HttpRequest, rid: int, db: Session = Depends(get_d
         flash(request, "Relance envoyée.")
     else:
         flash(request, f"Échec de la relance : {r.last_error}", "error")
-    return back(f"/requests/{rid}")
+    return back(_safe_next(next) or f"/requests/{rid}")
 
 
 @app.post("/requests/requeue-failed")
@@ -429,14 +461,62 @@ def requeue_failed(request: HttpRequest, db: Session = Depends(get_db)):
     return back("/requests?status=failed")
 
 
+TRIAGE = [
+    ("replied", "Réponses à examiner", [REPLIED]),
+    ("needs", "Actions requises", [NEEDS_ACTION]),
+    ("overdue", "Sans réponse", [OVERDUE]),
+    ("failed", "Échecs d'envoi", [FAILED]),
+]
+
+
 @app.get("/tasks", response_class=HTMLResponse)
-def tasks(request: HttpRequest, db: Session = Depends(get_db)):
-    def q(*statuses):
-        return db.scalars(
-            select(Request).options(selectinload(Request.broker), selectinload(Request.profile))
-            .where(Request.status.in_(statuses)).order_by(Request.id)
-        ).all()
-    return render(request, "tasks.html", db, replied=q(REPLIED), needs=q(NEEDS_ACTION), overdue=q(OVERDUE, "refused"), failed=q(FAILED))
+def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Session = Depends(get_db)):
+    cats = {k: st for k, _, st in TRIAGE}
+    statuses = cats.get(cat) or [x for st in cats.values() for x in st]
+    if cat not in cats:
+        cat = ""
+    activity = func.coalesce(Request.last_reply_at, Request.sent_at, Request.created_at)
+    items = db.scalars(
+        select(Request).options(selectinload(Request.broker), selectinload(Request.profile), selectinload(Request.events))
+        .where(Request.status.in_(statuses)).order_by(activity.desc(), Request.id.desc())
+    ).all()
+    counts = dict(db.execute(select(Request.status, func.count()).where(Request.status.in_([x for st in cats.values() for x in st]))
+                             .group_by(Request.status)).all())
+    chips = [("", "Tout", sum(counts.values()))] + [(k, label, sum(counts.get(x, 0) for x in st)) for k, label, st in TRIAGE]
+
+    r = next((x for x in items if x.id == id), None) or (items[0] if items else None)
+    ctx = {"items": items, "cat": cat, "chips": chips, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1}
+    if r:
+        i = items.index(r)
+        after = items[i + 1] if i + 1 < len(items) else (items[i - 1] if i > 0 else None)
+        prefix = f"/tasks?cat={cat}&" if cat else "/tasks?"
+        ctx["next_url"] = f"{prefix}id={after.id}" if after else (f"/tasks?cat={cat}" if cat else "/tasks")
+        ctx["prev_id"] = items[i - 1].id if i > 0 else None
+        ctx["next_id"] = items[i + 1].id if i + 1 < len(items) else None
+        ctx["position"] = i + 1
+        replies = [e for e in r.events if e.kind == "reply"]
+        sends = [e for e in r.events if e.kind in ("sent", "reminder", "supplement")]
+        ctx["latest_reply"] = replies[-1] if replies else None
+        ctx["latest_sent"] = sends[-1] if sends else None
+        ctx["form_help"] = _form_help(r)
+        ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
+    return render(request, "tasks.html", db, **ctx)
+
+
+def _snippet(r: Request) -> str:
+    if r.status == FAILED:
+        return r.last_error or "Échec d'envoi"
+    if r.status == OVERDUE:
+        return f"Aucune réponse, échéance dépassée le {fmt_d(r.due_at)}"
+    if r.channel == "webform" and not r.sent_at:
+        return "Formulaire en ligne à remplir"
+    replies = [e for e in r.events if e.kind == "reply"]
+    if replies:
+        return replies[-1].summary.split(" : ", 1)[-1]
+    return STATUS_LABELS.get(r.status, r.status)
+
+
+templates.env.globals["snippet"] = _snippet
 
 
 @app.get("/export.csv")

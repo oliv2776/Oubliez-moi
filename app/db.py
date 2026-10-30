@@ -40,6 +40,7 @@ REFUSED = "refused"          # refus du courtier
 OVERDUE = "overdue"          # aucune réponse après relance -> plainte CNIL possible
 FAILED = "failed"            # échec d'envoi
 CANCELLED = "cancelled"
+CNIL = "cnil"                # plainte déposée auprès de la CNIL
 
 STATUS_LABELS = {
     QUEUED: "En file d'attente",
@@ -51,9 +52,10 @@ STATUS_LABELS = {
     OVERDUE: "Sans réponse",
     FAILED: "Échec d'envoi",
     CANCELLED: "Annulée",
+    CNIL: "Plainte CNIL déposée",
 }
 OPEN_STATUSES = {QUEUED, SENT, REPLIED, NEEDS_ACTION, OVERDUE, FAILED}
-FINAL_STATUSES = {COMPLETED, REFUSED, CANCELLED}
+FINAL_STATUSES = {COMPLETED, REFUSED, CANCELLED, CNIL}
 
 
 class Profile(Base):
@@ -155,6 +157,7 @@ class Event(Base):
     kind: Mapped[str] = mapped_column(String(30))  # sent, reminder, reply, status, note, error, info
     summary: Mapped[str] = mapped_column(String(500))
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    html: Mapped[str | None] = mapped_column(Text, nullable=True)  # partie HTML brute d'une réponse reçue
 
     request: Mapped[Request] = relationship(back_populates="events")
 
@@ -184,6 +187,7 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 # SQLAlchemy ne modifie pas les tables existantes, on les ajoute donc à la main.
 MIGRATIONS = [
     ("requests", "supplement_pending", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("events", "html", "TEXT"),
 ]
 
 

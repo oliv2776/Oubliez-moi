@@ -1,0 +1,40 @@
+{# Affichage d'un message (réponse reçue ou courrier envoyé). #}
+{% macro mail_view(e) -%}
+{% set h = e.body|mailheaders %}
+<div class="mail">
+  <div class="mail-head">
+    {% if e.kind == 'reply' %}
+      <div class="mail-from">{{ h.get('De', '') }}</div>
+    {% else %}
+      <div class="mail-from">Vous → {{ e.request.broker.email or e.request.broker.name }}</div>
+    {% endif %}
+    <div class="mail-meta">{% if h.get('Objet') %}<span class="mail-subject">{{ h.get('Objet') }}</span> · {% endif %}{{ e.at|dt }}</div>
+  </div>
+  {% if e.kind == 'reply' %}
+  <iframe class="mail-frame" src="/events/{{ e.id }}/view" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" title="Contenu du message"></iframe>
+  {% if e.html %}<div class="mail-foot">Images et contenus distants bloqués pour éviter le pistage.</div>{% endif %}
+  {% else %}
+  <div class="mail-body">{{ e.body|mailtext }}</div>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro mail_script() -%}
+<script>
+(function () {
+  function fit(f) {
+    try {
+      const d = f.contentDocument; if (!d || !d.body) return;
+      const set = () => { f.style.height = (d.documentElement.scrollHeight + 2) + "px"; };
+      set();
+      if (!f._ro) { f._ro = new ResizeObserver(set); f._ro.observe(d.body); }
+    } catch (e) { f.style.height = "480px"; }
+  }
+  document.querySelectorAll("iframe.mail-frame").forEach(f => {
+    f.addEventListener("load", () => fit(f));
+    if (f.contentDocument && f.contentDocument.readyState === "complete") fit(f);
+  });
+  document.querySelectorAll("details").forEach(d => d.addEventListener("toggle", () => d.querySelectorAll("iframe.mail-frame").forEach(fit)));
+})();
+</script>
+{%- endmacro %}

@@ -1,0 +1,67 @@
+{# Aide au remplissage d'un formulaire en ligne. Variables : r, form_help, next_url (facultatif). #}
+{% if form_help %}
+<details class="card formhelp" id="formulaire" {{ 'open' if form_help.open }}>
+  <summary><h2>Remplir le formulaire en ligne</h2></summary>
+  <ol class="steps">
+    <li>
+      <a class="btn primary sm" href="{{ r.broker.webform|url }}" target="_blank" rel="noopener noreferrer">Ouvrir le formulaire ↗</a>
+      <span class="small muted">s'ouvre dans un nouvel onglet ; gardez celui-ci à côté</span>
+    </li>
+    <li>
+      Copiez chaque information dans le champ correspondant. Ne remplissez que ce que le formulaire demande.
+      <table class="copytable">
+        {% for label, value in form_help.fields %}
+        <tr><th>{{ label }}</th><td class="mono">{{ value }}</td>
+            <td class="num"><button type="button" class="btn sm copy" data-copy="{{ value }}">Copier</button></td></tr>
+        {% endfor %}
+      </table>
+    </li>
+    <li>
+      Choix habituels dans les listes : type de demande <strong>suppression</strong> (<em>delete</em>, <em>erasure</em>), vous êtes <strong>la personne concernée</strong> (<em>data subject</em>), pays de résidence dans <strong>l'Union européenne</strong>, réglementation <strong>RGPD</strong> (<em>GDPR</em>). S'il y a un champ libre, collez ce message :
+      <div class="msgtabs">
+        <div class="actions" style="margin:.5rem 0 .3rem">
+          <button type="button" class="btn sm copy" data-copy="{{ form_help.msg_fr }}">Copier le message en français</button>
+          <button type="button" class="btn sm copy" data-copy="{{ form_help.msg_en }}">Copier le message en anglais</button>
+        </div>
+        <pre style="max-height:none">{{ form_help.msg_fr if r.language == 'fr' else form_help.msg_en }}</pre>
+      </div>
+    </li>
+    <li>Si le site envoie un e-mail de confirmation, il arrivera sur l'adresse saisie dans le formulaire : cliquez sur le lien qu'il contient, sinon la demande n'est pas prise en compte.</li>
+    <li>
+      {% if r.status != 'sent' %}
+      <form method="post" action="/requests/{{ r.id }}/status" class="actions">
+        <input type="hidden" name="status" value="sent">
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+        <input type="text" name="note" placeholder="N° de confirmation ou de ticket (facultatif)" style="flex:1;min-width:220px">
+        <button class="btn primary">J'ai envoyé le formulaire</button>
+      </form>
+      <p class="small muted" style="margin-top:.4rem">Le délai légal d'un mois démarre à ce moment-là ; la demande passera en « Sans réponse » s'il expire.</p>
+      {% else %}
+      <p class="small">Formulaire marqué comme envoyé : réponse attendue avant le {{ r.due_at|d }}.</p>
+      {% endif %}
+    </li>
+  </ol>
+</details>
+{% endif %}
+<script>
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  return legacyCopy(text);
+}
+function legacyCopy(text) {
+  // Repli pour un accès en HTTP simple (réseau local), où l'API presse-papiers est bloquée
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } finally { ta.remove(); }
+  return Promise.resolve();
+}
+document.querySelectorAll("button.copy").forEach(btn => btn.addEventListener("click", () => {
+  const label = btn.textContent;
+  copyText(btn.dataset.copy).then(() => {
+    btn.textContent = "Copié ✓"; btn.classList.add("done");
+    const row = btn.closest("tr"); if (row) row.classList.add("copied");
+    setTimeout(() => btn.textContent = label, 1500);
+  }).catch(() => { btn.textContent = "Échec"; });
+}));
+</script>

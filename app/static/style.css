@@ -95,6 +95,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .s-replied, .s-needs_action { background: var(--warn-soft); color: var(--warn); }
 .s-completed { background: var(--ok-soft); color: var(--ok); }
 .s-refused, .s-overdue, .s-failed { background: var(--bad-soft); color: var(--bad); }
+.s-cnil { background: var(--info-soft); color: var(--info); }
 .s-cancelled { background: var(--bg); color: var(--muted); text-decoration: line-through; }
 .tag { display: inline-block; font-size: .72rem; padding: 0 .4rem; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); margin-right: .2rem; }
 
@@ -179,3 +180,47 @@ table.copytable td.num { width: 1%; }
 details.formhelp { max-width: 900px; }
 table.copytable tr.copied td.mono { color: var(--muted); }
 .btn.done { color: var(--ok); border-color: var(--ok); }
+
+/* Messages */
+.mail { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); margin: .5rem 0; }
+.mail-head { padding: .6rem .9rem; border-bottom: 1px solid var(--line); background: var(--bg); }
+.mail-from { font-weight: 600; font-size: .9rem; overflow-wrap: anywhere; }
+.mail-meta { color: var(--muted); font-size: .82rem; }
+.mail-subject { color: var(--ink); }
+.mail-frame { display: block; width: 100%; height: 160px; border: 0; background: #fff; }
+.mail-foot { font-size: .75rem; color: var(--muted); padding: .35rem .9rem; border-top: 1px solid var(--line); background: var(--bg); }
+.mail-body { padding: .8rem 1rem; font-size: .92rem; overflow-wrap: anywhere; }
+.mail-body p { margin: 0 0 .75rem; }
+.mail-body blockquote { margin: .5rem 0; padding-left: .8rem; border-left: 3px solid var(--line); color: var(--muted); }
+.mail-body details summary { font-size: .82rem; }
+.note-form { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: 1rem; }
+.note-form textarea { min-height: 38px; }
+
+/* Page À traiter */
+.chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.chip { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-weight: 600; font-size: .88rem; }
+.chip:hover { text-decoration: none; color: var(--ink); border-color: var(--muted); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip .n { font-variant-numeric: tabular-nums; opacity: .8; }
+.triage { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 1rem; align-items: start; }
+.triage-list { position: sticky; top: 74px; max-height: calc(100vh - 92px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.triage-item { display: block; padding: .7rem .9rem; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; color: var(--ink); }
+.triage-item:last-child { border-bottom: 0; }
+.triage-item:hover { text-decoration: none; background: var(--bg); }
+.triage-item.active { background: var(--accent-soft); border-left-color: var(--accent); }
+.ti-top { display: flex; justify-content: space-between; gap: .5rem; }
+.ti-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ti-date { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+.ti-snippet { color: var(--muted); font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: .1rem 0 .3rem; }
+.ti-bottom { display: flex; gap: .5rem; align-items: center; }
+.triage-detail { min-width: 0; }
+.decision { border-color: var(--accent); }
+.decision .dq { font-weight: 600; margin: 0 0 .8rem; }
+.decision-note { margin-top: .7rem; }
+kbd { font: 600 .7rem ui-monospace, Menlo, monospace; padding: .05rem .3rem; border: 1px solid currentColor; border-radius: 4px; opacity: .55; margin-left: .2rem; }
+.kbd-hint { font-size: .78rem; color: var(--muted); margin: .7rem 0 0; }
+@media (max-width: 900px) {
+  .triage { grid-template-columns: 1fr; }
+  .triage-list { position: static; max-height: 38vh; }
+  .kbd-hint, kbd { display: none; }
+}
