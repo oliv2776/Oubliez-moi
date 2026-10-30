@@ -389,6 +389,9 @@ def registered_domain(host: str) -> str:
 # ---------------------------------------------------------------- IMAP ----
 
 def _imap_connect() -> imaplib.IMAP4:
+    from . import settings_store
+    if settings_store.secret_unavailable("imap_password"):
+        raise RuntimeError("Mot de passe IMAP chiffré illisible : restaurez ENCRYPTION_KEY ou saisissez à nouveau le mot de passe dans Réglages.")
     if settings.imap_security == "ssl":
         conn = _PinnedIMAP4_SSL(settings.imap_host, settings.imap_port, ssl_context=ssl.create_default_context(), timeout=60)
     else:
