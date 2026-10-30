@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 from . import __version__
 from .config import settings
 from .db import (
-    FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Broker, ExposureLink, Sender, SessionLocal, utcnow,
+    FAILED, NEEDS_ACTION, OVERDUE, REPLIED, Broker, ExposureLink, Request as PrivacyRequest, Sender, SessionLocal, utcnow,
 )
 from .mailer import registered_domain
 from .main_templates import templates
@@ -99,8 +99,8 @@ def discover_candidates(db: Session) -> int:
 
 
 def _render(request: Request, name: str, db: Session, **context):
-    todo = db.scalar(select(func.count()).select_from(__import__("app.db", fromlist=["Request"]).Request).where(
-        __import__("app.db", fromlist=["Request"]).Request.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
+    todo = db.scalar(select(func.count(PrivacyRequest.id)).where(
+        PrivacyRequest.status.in_([NEEDS_ACTION, REPLIED, OVERDUE, FAILED])
     )) or 0
     return templates.TemplateResponse(request, name, {
         **context, "request": request, "settings": settings, "version": __version__,
