@@ -326,7 +326,7 @@ def unsubscribe(s: Sender) -> tuple[str, str]:
             if s.unsub_url or s.unsub_mailto:
                 return "manual", f"désinscription en un clic refusée (HTTP {e.code}) : terminez avec le lien"
             return "failed", f"le site a répondu {e.code}"
-        except OSError as e:
+        except (OSError, ValueError) as e:
             return "failed", f"site injoignable : {getattr(e, 'reason', e)}"
     if s.unsub_url:
         return "manual", "ce site demande d'ouvrir sa page de désinscription"
