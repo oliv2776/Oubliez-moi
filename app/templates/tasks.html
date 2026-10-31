@@ -25,9 +25,17 @@
 
 <nav class="chips" aria-label="Filtrer">
   {% for key, label, n in chips %}
-  <a href="/tasks{{ '?cat=' ~ key if key }}" class="chip {{ 'active' if cat == key }}">{{ label }} <span class="n">{{ n }}</span></a>
+  <a href="/tasks{{ '?cat=' ~ key if key }}" class="chip {{ 'active' if cat == key or (key == 'needs' and cat.startswith('needs:')) }}">{{ label }} <span class="n">{{ n }}</span></a>
   {% endfor %}
 </nav>
+{% if subchips %}
+<nav class="chips subchips" aria-label="Type d'action">
+  <a href="/tasks?cat=needs" class="chip {{ 'active' if cat == 'needs' }}">Toutes les actions</a>
+  {% for key, label, n in subchips %}
+  <a href="/tasks?cat={{ key }}" class="chip {{ 'active' if cat == key }}">{{ label }} <span class="n">{{ n }}</span></a>
+  {% endfor %}
+</nav>
+{% endif %}
 
 {% if device_count %}
 <div class="banner info" style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
@@ -76,7 +84,7 @@
     <a class="triage-item {{ 'active' if r and it.id == r.id }}" href="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ it.id }}" {% if r and it.id == r.id %}aria-current="true"{% endif %}>
       <div class="ti-top"><span class="ti-name">{{ it.broker.name }}</span><span class="ti-date">{{ (it.last_reply_at or it.sent_at or it.created_at)|d }}</span></div>
       <div class="ti-snippet">{{ snippet(it) }}</div>
-      <div class="ti-bottom">{{ badge(it.status) }}{% if insights[it.id] and insights[it.id].by_ai %}<span class="tag-ai" title="Classée par l'IA">IA</span>{% endif %}{% if multi_profiles %}<span class="small muted">{{ it.profile.full_name }}</span>{% endif %}</div>
+      <div class="ti-bottom">{% if action_of[it.id] %}<span class="badge s-needs_action" title="Action requise">{{ action_short[action_of[it.id]] }}</span>{% else %}{{ badge(it.status) }}{% endif %}{% if insights[it.id] and insights[it.id].by_ai %}<span class="tag-ai" title="Classée par l'IA">IA</span>{% endif %}{% if multi_profiles %}<span class="small muted">{{ it.profile.full_name }}</span>{% endif %}</div>
     </a>
     {% endfor %}
   </aside>
@@ -111,7 +119,7 @@
       {% if not ins.ai_summary %}<p class="small muted" style="margin:0 0 .2rem">Début du message :</p>{% endif %}
       <p class="brief-summary" translate="no">{{ ins.summary }}</p>
       <div class="brief-todo">
-        <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
+        <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{% if proposed and not ins.ai_action %}Une réponse type est prête ci-dessous : relisez-la et cliquez « Envoyer cette réponse ». La demande repassera en attente de leur réponse.{% else %}{{ ins.action }}{% endif %}</span>
       </div>
       {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
       {% if proposed %}

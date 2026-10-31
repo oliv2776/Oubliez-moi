@@ -284,6 +284,7 @@ ID_RE = _P(
     r"cop(y|ies) of (your |a |an )?(valid )?(government[- ]issued )?(photo )?(id\b|identity|passport|driv)", r"proof of (your )?identity",
     r"photo id", r"identity document", r"pi[eè]ce d'identit[eé]", r"justificatif d'identit[eé]", r"copie de (votre |la )?(carte|passeport)",
     r"identit[äa]tsnachweis", r"ausweiskopie", r"kopie (ihres|des) (personal)?ausweis",
+    r"identi(ty|fication) (verification )?form\b", r"formulaire (d'identification|de v[ée]rification d'identit[ée])", r"identit[äa]tsformular",
 )
 CONFIRM_RE = _P(
     r"confirm (your |the )?(e-?mail|request|address|identity) by clicking", r"(click|tap) (on )?(the|this) (following |below )?(link|button) to (confirm|verify|validate)",

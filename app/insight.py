@@ -140,3 +140,24 @@ def for_request(r: Request) -> Insight | None:
         ins.caution = ("L'expéditeur n'a pas pu être authentifié : vérifiez que ce message vient bien du courtier avant "
                        "de suivre ses instructions. " + ins.caution).strip()
     return ins
+
+
+# Classements génériques qu'un classement plus précis des règles actuelles peut remplacer.
+_GENERIC = {"needs_action", "reply"}
+
+
+def refine(ins: Insight | None, current: str | None) -> None:
+    """Met « En bref » à jour avec le classement actuel des règles quand il est plus précis que celui enregistré.
+
+    Le résumé et le conseil de l'IA sont gardés ; seule la marche à suivre par défaut change.
+    """
+    if ins is None or not current or current == ins.kind or current in _GENERIC:
+        return
+    if ins.by_ai and ins.kind not in _GENERIC:
+        return  # l'IA a tranché sur une catégorie précise : on ne la contredit pas ici
+    ins.kind = current
+    ins.label = mailer.KIND_LABELS.get(current, current)
+    fallback, caution = ACTIONS.get(current, ACTIONS["reply"])
+    if not ins.ai_action:
+        ins.action = fallback
+    ins.caution = caution if not ins.unverified else ins.caution

@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import case_assistant, case_management, device_ids, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
+from . import actions, case_assistant, case_management, device_ids, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -580,8 +580,11 @@ TRIAGE = [
 @app.get("/tasks", response_class=HTMLResponse)
 def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Session = Depends(get_db)):
     cats = {k: st for k, _, st in TRIAGE}
-    statuses = cats.get(cat) or [x for st in cats.values() for x in st]
-    if cat not in cats and cat != "ai":
+    sub = cat.split(":", 1)[1] if cat.startswith("needs:") else ""
+    if sub and sub not in actions.LABELS:
+        cat, sub = "needs", ""
+    statuses = cats.get("needs" if sub else cat) or [x for st in cats.values() for x in st]
+    if cat not in cats and cat != "ai" and not sub:
         cat = ""
     activity = func.coalesce(Request.last_reply_at, Request.sent_at, Request.created_at)
     items = db.scalars(
@@ -589,6 +592,11 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         .where(Request.status.in_(statuses)).order_by(activity.desc(), Request.id.desc())
     ).all()
     insights = {x.id: insight.for_request(x) for x in items}
+    # Classement actuel de la dernière réponse : précise « action demandée » et les classements d'anciennes versions.
+    kinds = {x.id: actions.current_kind(x) for x in items}
+    for x in items:
+        insight.refine(insights[x.id], kinds[x.id])
+    action_of = {x.id: actions.action_type(x, kinds[x.id]) for x in items}
     n_ai = sum(1 for v in insights.values() if v and v.by_ai)
     if cat == "ai":  # réponses classées par l'IA
         items = [x for x in items if insights[x.id] and insights[x.id].by_ai]
@@ -596,10 +604,20 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
                              .group_by(Request.status)).all())
     chips = [("", "Tout", sum(counts.values()))] + [(k, label, sum(counts.get(x, 0) for x in st)) for k, label, st in TRIAGE]
     chips.append(("ai", "Classées par l'IA", n_ai))
+    subchips = []
+    if cat == "needs" or sub:
+        n = {}
+        for x in items:
+            if action_of[x.id]:
+                n[action_of[x.id]] = n.get(action_of[x.id], 0) + 1
+        subchips = [(f"needs:{k}", label, n[k]) for k, label, _, _ in actions.ACTION_TYPES if n.get(k)]
+        if sub:
+            items = [x for x in items if action_of[x.id] == sub]
 
     r = next((x for x in items if x.id == id), None) or (items[0] if items else None)
     late_cases, soon_cases = case_management.cases_due(db)
-    ctx = {"items": items, "cat": cat, "chips": chips, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1,
+    ctx = {"items": items, "cat": cat, "chips": chips, "subchips": subchips, "action_of": action_of,
+           "action_short": actions.SHORT, "r": r, "next_url": None, "multi_profiles": len({x.profile_id for x in items}) > 1,
            "late_cases": late_cases, "soon_cases": soon_cases, "insights": insights,
            "can_summarize": settings.llm_enabled and settings.llm_mode == "chat"}
     if r:

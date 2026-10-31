@@ -437,3 +437,7 @@ form.is-loading input[type="search"] { background-image: linear-gradient(90deg, 
 .device-table td { vertical-align: top; }
 .device-link { margin-bottom: .25rem; overflow-wrap: anywhere; }
 .device-link .tag { font-size: .72rem; }
+
+/* Types d'action (À traiter › Actions requises) */
+.chips.subchips { margin-top: -.35rem; padding-left: .9rem; border-left: 2px solid var(--line); }
+.chips.subchips .chip { font-size: .8rem; padding: .2rem .6rem; }
