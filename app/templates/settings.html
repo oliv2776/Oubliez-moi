@@ -9,6 +9,7 @@
     {% if settings.smtp_configured %}<span class="badge s-completed">Envoi configuré</span>{% else %}<span class="badge s-failed">Envoi à configurer</span>{% endif %}
     {% if settings.dry_run %}<span class="badge s-needs_action">Simulation</span>{% else %}<span class="badge s-sent">Envoi réel</span>{% endif %}
     {% if settings.imap_configured %}<span class="badge s-completed">Relève active</span>{% else %}<span class="badge s-queued">Relève désactivée</span>{% endif %}
+    <a class="btn sm" href="/settings/energy">Sobriété énergétique</a>
   </div>
 </div>
 

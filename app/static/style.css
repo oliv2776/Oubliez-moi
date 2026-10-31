@@ -441,3 +441,17 @@ form.is-loading input[type="search"] { background-image: linear-gradient(90deg, 
 /* Types d'action (À traiter › Actions requises) */
 .chips.subchips { margin-top: -.35rem; padding-left: .9rem; border-left: 2px solid var(--line); }
 .chips.subchips .chip { font-size: .8rem; padding: .2rem .6rem; }
+
+/* Sobriété énergétique */
+.energy-list { display: grid; gap: .8rem; margin-bottom: 1rem; }
+.energy-check { margin: 0; border-left: 4px solid var(--line); }
+.energy-check.e-ok { border-left-color: var(--ok, #2f7d4f); }
+.energy-check.e-warn { border-left-color: var(--warn, #b7791f); }
+.energy-check.e-info { border-left-color: var(--accent); }
+.energy-head { display: flex; align-items: center; gap: .6rem; }
+.energy-head h2 { margin: 0; font-size: 1rem; flex: 1; }
+.energy-icon { width: 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: .85rem; background: var(--line); }
+.e-ok .energy-icon { background: var(--ok, #2f7d4f); color: #fff; }
+.e-warn .energy-icon { background: var(--warn, #b7791f); color: #fff; }
+.e-info .energy-icon { background: var(--accent); color: #fff; }
+.energy-check pre { white-space: pre-wrap; font-size: .82rem; }
