@@ -290,6 +290,10 @@ CONFIRM_RE = _P(
     r"please (confirm|verify) (your |the )?(e-?mail|request|address)", r"verification link", r"confirmation link",
     r"cliquez sur le lien (ci-dessous |suivant )?pour (confirmer|valider|v[ée]rifier)", r"confirmer votre (demande|adresse)", r"valider votre (demande|adresse)",
     r"lien de (confirmation|validation|v[ée]rification)", r"best[äa]tigen sie (ihre|die) (anfrage|e-?mail)", r"best[äa]tigungslink",
+    # Le lien est dans un autre message (« follow the prompt in the email you received from… »)
+    r"follow(ing)? the (prompt|link|instructions|steps) (in|from) the (e-?mail|message) (you (have )?received|we (have )?sent)",
+    r"(click|use|open) the (verification |confirmation )?link (in|from) the (e-?mail|message) (you (have )?received|we (have )?sent)",
+    r"(en suivant|cliquez sur|ouvrez) le lien (re[çc]u|envoy[ée]|figurant) (dans|par) (l'|un |le )?(e-?mail|courriel|message)",
 )
 VERIFY_RE = _P(
     r"verify your identity", r"identity verification", r"v[ée]rifier votre identit[ée]", r"confirmer votre identit[ée]",
