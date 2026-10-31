@@ -192,6 +192,7 @@ def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
         "stream": False,
         "format": "json",
         "options": {"temperature": 0},
+        "keep_alive": "5m",  # déchargé après 5 min sans analyse (prime sur un OLLAMA_KEEP_ALIVE permanent)
         **({"think": False} if settings.llm_model.startswith("qwen3") else {}),
         "messages": [
             {"role": "system", "content": SYSTEM},

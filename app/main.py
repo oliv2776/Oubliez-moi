@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import actions, case_assistant, case_management, device_ids, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
+from . import actions, case_assistant, case_management, device_ids, energy, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -1172,6 +1172,20 @@ def brokers_update(request: HttpRequest):
 
 
 # ------------------------------------------------------------- Réglages ----
+
+@app.get("/settings/energy", response_class=HTMLResponse)
+def energy_page(request: HttpRequest, db: Session = Depends(get_db)):
+    checks = energy.checks(db)
+    return render(request, "energy.html", db, checks=checks,
+                  n_warn=sum(1 for c in checks if c.status == "warn"), n_ok=sum(1 for c in checks if c.status == "ok"))
+
+
+@app.post("/settings/energy/test-llm")
+def energy_test_llm(request: HttpRequest):
+    err = energy.warm_up_model()
+    flash(request, f"Test impossible : {err}" if err else "Modèle chargé : voici où il tourne.", "error" if err else "ok")
+    return back("/settings/energy")
+
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: HttpRequest, db: Session = Depends(get_db)):

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Sobriété énergétique{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/settings">Réglages</a></p>
+    <h1>Sobriété énergétique</h1>
+    <p class="muted" style="margin:0">Ce qui, dans l'appli, l'IA locale et le serveur, peut consommer plus que nécessaire. Rien n'est modifié ici : les corrections du serveur sont des commandes à lancer vous-même.</p>
+  </div>
+  <div class="status-line small">
+    {% if n_warn %}<span class="badge s-needs_action">{{ n_warn }} à améliorer</span>{% endif %}
+    <span class="badge s-completed">{{ n_ok }} en ordre</span>
+  </div>
+</div>
+
+<div class="energy-list">
+{% for c in checks %}
+  <div class="card energy-check e-{{ c.status }}">
+    <div class="energy-head">
+      <span class="energy-icon" aria-hidden="true">{{ {'ok': '✓', 'warn': '!', 'info': 'i', 'unknown': '?'}[c.status] }}</span>
+      <h2>{{ c.title }}</h2>
+      <span class="small muted energy-state">{{ {'ok': 'En ordre', 'warn': 'À améliorer', 'info': 'Suggestion', 'unknown': 'Non vérifiable'}[c.status] }}</span>
+    </div>
+    <p>{{ c.detail }}</p>
+    {% if c.link %}<p class="small"><a href="{{ c.link[0] }}">{{ c.link[1] }} →</a></p>{% endif %}
+    {% if c.fix and c.status != 'ok' %}
+    <details {{ 'open' if c.status == 'warn' }}><summary>Commandes à lancer sur le serveur</summary>
+      <pre translate="no">{{ c.fix }}</pre>
+      <button type="button" class="btn sm copy" data-copy="{{ c.fix }}">Copier</button>
+    </details>
+    {% endif %}
+    {% if c.extra.test %}
+    <form method="post" action="/settings/energy/test-llm" class="inline" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Chargement du modèle… (jusqu\'à une minute)';">
+      <button class="btn sm">Tester maintenant ({{ settings.llm_model }})</button>
+    </form>
+    {% endif %}
+  </div>
+{% endfor %}
+</div>
+<p class="small muted">Les réglages du serveur sont lus en lecture seule depuis le conteneur (/sys). Une ligne « Non vérifiable » signifie que l'information n'y est pas visible, pas qu'il y a un problème.</p>
+<script>
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-copy]"); if (!btn) return;
+  try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = "Copié"; } catch (e) { btn.textContent = "Copie impossible"; }
+});
+</script>
+{% endblock %}
