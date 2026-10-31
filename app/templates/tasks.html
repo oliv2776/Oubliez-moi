@@ -114,6 +114,18 @@
         <strong>{{ "Conseil de l'IA" if ins.ai_action else "À faire" }} :</strong> <span {{ 'translate=no' if ins.ai_action }}>{{ ins.action }}</span>
       </div>
       {% if ins.caution %}<p class="brief-caution small">{{ ins.caution }}</p>{% endif %}
+      {% if proposed %}
+      <div class="proposed-reply">
+        <p class="small" style="margin:.5rem 0 .3rem"><strong>Réponse type prête</strong> ({{ proposed.label }}), à envoyer à {{ proposed.to }} :</p>
+        <details><summary>Voir le message</summary><pre translate="no">Objet : {{ proposed.subject }}
+
+{{ proposed.body }}</pre></details>
+        <form method="post" action="/requests/{{ r.id }}/send-proposed" class="inline">
+          <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
+          <button class="btn primary sm">Envoyer cette réponse</button>
+        </form>
+      </div>
+      {% endif %}
       {% if confirm_from %}
       <div class="confirm-from">
         <p class="small" style="margin:.5rem 0 .3rem"><strong>À envoyer depuis {{ confirm_from.address }}</strong> à {{ confirm_from.to }} — les réponses reviendront à votre adresse habituelle.</p>

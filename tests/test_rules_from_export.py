@@ -87,9 +87,9 @@ def test_device_identifier_requested(text):
 
 @pytest.mark.parametrize("text, expected", [
     ("Les données avec lesquelles vous nous avez adressé votre demande ne figure pas dans notre base de données.\n"
-     "Pour répondre positivement à votre demande pourriez-vous nous confirmer l'adresse email concernée ?", "needs_action"),
+     "Pour répondre positivement à votre demande pourriez-vous nous confirmer l'adresse email concernée ?", "clarification"),
     ("Nous ne parvenons pas à trouver de compte associé à votre adresse. Pourriez-vous nous indiquer votre nom "
-     "d'utilisateur ?", "needs_action"),
+     "d'utilisateur ?", "clarification"),
     ("We could not identify any matching personal data associated with this email\naddress. Your request also refers "
      "to another address.\nWe therefore ask you to send a brief confirmation from that\naddress.", "needs_action"),
     ("Thank you for your email. We have reviewed your request. We did not identify any such personal data, other than "

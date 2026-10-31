@@ -629,14 +629,14 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         if req.status != SENT:
             set_status(db, req, SENT, why)
         add_event(db, req, "info", f"Prolongation annoncée (RGPD art. 12.3 : deux mois de plus au maximum) : nouvelle échéance le {new_due:%d/%m/%Y}")
-    elif c.kind in ("id_request", "legit_refusal", "residence_question"):
+    elif c.kind in ("id_request", "legit_refusal", "residence_question", "clarification"):
         if settings.auto_replies and _can_auto_reply(req, c.kind) and _send_auto_reply(db, req, c.kind, m):
             if c.kind == "legit_refusal":
                 req.due_at = utcnow() + timedelta(days=settings.response_days)
             if req.status != SENT:
                 set_status(db, req, SENT, why + " — réponse automatique envoyée")
         else:
-            set_status(db, req, NEEDS_ACTION if c.kind == "id_request" else REPLIED, why)
+            set_status(db, req, NEEDS_ACTION if c.kind in ("id_request", "clarification") else REPLIED, why)
     elif c.kind == "confirm_link":
         links = confirm.candidate_links(m.links, req.broker.email, req.broker.web)
         if not links:  # « suivez le lien de l'e-mail que vous avez reçu » : il est dans une réponse précédente
@@ -745,6 +745,35 @@ def earlier_confirm_link(req: Request) -> dict | None:
     return None
 
 
+AUTO_REPLY_KINDS = ("id_request", "legit_refusal", "residence_question", "clarification")
+
+
+def proposed_reply(req: Request) -> dict | None:
+    """Réponse type que l'appli peut envoyer pour la dernière réponse (classement actuel), si elle n'est pas déjà partie."""
+    from .reanalysis import _from_event
+    replies = [e for e in req.events if e.kind == "reply"]
+    if not replies or not req.broker.email:
+        return None
+    m = _from_event(replies[-1])
+    c = mailer.classify(m)
+    if c.kind not in AUTO_REPLY_KINDS or not _can_auto_reply(req, c.kind):
+        return None
+    subject, body = letters.auto_reply_letter(req, c.kind, m.subject, mailer.latest_reply_text(m.text))
+    return {"kind": c.kind, "label": mailer.KIND_LABELS[c.kind], "to": _auto_reply_recipient(req, m),
+            "subject": subject, "body": body, "mail": m}
+
+
+def _auto_reply_recipient(req: Request, m: mailer.ParsedMail) -> str | None:
+    to = m.reply_to or m.from_addr
+    # On ne répond qu'au domaine du courtier (ou d'une plateforme RGPD connue) : un message falsifié
+    # ne doit pas pouvoir détourner une réponse, qui contient vos coordonnées, vers une autre adresse.
+    allowed = {d for d in (mailer.registered_domain((req.broker.email or "").split("@")[-1]),
+                           mailer.registered_domain(req.broker.web or "")) if d} | confirm.PRIVACY_PLATFORMS
+    if not to or _NOREPLY_RE.match(to.split("@")[0]) or mailer.registered_domain(to.split("@")[-1]) not in allowed:
+        to = req.broker.email
+    return to
+
+
 def _can_auto_reply(req: Request, kind: str) -> bool:
     """Garde-fou anti-boucle : une seule réponse automatique par motif, trois au maximum par demande."""
     autos = [e for e in req.events if e.kind == "auto_reply"]
@@ -753,16 +782,10 @@ def _can_auto_reply(req: Request, kind: str) -> bool:
 
 
 def _send_auto_reply(db: Session, req: Request, kind: str, m: mailer.ParsedMail) -> bool:
-    to = m.reply_to or m.from_addr
-    # On ne répond qu'au domaine du courtier (ou d'une plateforme RGPD connue) : un message falsifié
-    # ne doit pas pouvoir détourner une réponse, qui contient vos coordonnées, vers une autre adresse.
-    allowed = {d for d in (mailer.registered_domain((req.broker.email or "").split("@")[-1]),
-                           mailer.registered_domain(req.broker.web or "")) if d} | confirm.PRIVACY_PLATFORMS
-    if not to or _NOREPLY_RE.match(to.split("@")[0]) or mailer.registered_domain(to.split("@")[-1]) not in allowed:
-        to = req.broker.email
+    to = _auto_reply_recipient(req, m)
     if not to:
         return False
-    subject, body = letters.auto_reply_letter(req, kind, m.subject)
+    subject, body = letters.auto_reply_letter(req, kind, m.subject, mailer.latest_reply_text(m.text))
     msg = mailer.build_message(to, subject, body, from_name=req.profile.full_name, in_reply_to=m.message_id or None)
     try:
         mailer.send_message(msg)

@@ -623,6 +623,7 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
     ctx["device_count"] = len(device_ids.candidates(db))
     ctx["confirm_from"] = service.confirm_from_plan_for(db, r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
+    ctx["proposed"] = service.proposed_reply(r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
     ctx["reanalysis_count"] = len(reanalysis.load(db))
     ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
     ctx["reanalysis_running"] = reanalysis.state["running"]
@@ -639,6 +640,22 @@ def tasks_export(request: HttpRequest, db: Session = Depends(get_db)):
     name = f"oubliez-moi-analyse-{datetime.now():%Y%m%d-%H%M}.json"
     return StreamingResponse(iter([payload]), media_type="application/json; charset=utf-8",
                              headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"})
+
+
+@app.post("/requests/{rid}/send-proposed")
+def request_send_proposed(request: HttpRequest, rid: int, next: str = Form(""), db: Session = Depends(get_db)):
+    """Envoie la réponse type proposée (pièce d'identité, pays, intérêt légitime, question simple)."""
+    r = _get(db, Request, rid)
+    p = service.proposed_reply(r)
+    if p is None or not p["to"]:
+        flash(request, "Aucune réponse type à envoyer pour ce message (ou elle est déjà partie).", "error")
+    elif service._send_auto_reply(db, r, p["kind"], p["mail"]):
+        service.set_status(db, r, SENT, f"Réponse type envoyée ({p['label']})")
+        flash(request, f"Réponse envoyée à {p['to']}.")
+    else:
+        flash(request, f"Échec de l'envoi : {r.events[-1].summary if r.events else ''}", "error")
+    db.commit()
+    return back(_safe_next(next) or f"/requests/{rid}")
 
 
 @app.post("/requests/{rid}/confirm-from")
