@@ -156,8 +156,11 @@ def _re_subject(their_subject: str | None, fallback: str) -> str:
     return subj if subj.lower().startswith(("re:", "re :", "aw:", "tr:")) else f"Re: {subj}"
 
 
-def auto_reply_letter(req: Request, kind: str, their_subject: str | None = None) -> tuple[str, str]:
-    """Réponses automatiques aux situations courantes. kind : id_request | legit_refusal | residence_question."""
+def auto_reply_letter(req: Request, kind: str, their_subject: str | None = None, their_text: str = "") -> tuple[str, str]:
+    """Réponses automatiques aux situations courantes.
+
+    kind : id_request | legit_refusal | residence_question | clarification (question simple, voir mailer.clarification_topic).
+    """
     from .config import settings
 
     p, ref = req.profile, req.reference
@@ -248,8 +251,61 @@ Yours faithfully,
 
 {sig}
 """
+    elif kind == "clarification":
+        return _clarification_letter(req, their_subject, their_text, sent, sig)
     else:
         raise ValueError(kind)
+    return subject, body
+
+
+def _clarification_letter(req: Request, their_subject: str | None, their_text: str, sent: str, sig: str) -> tuple[str, str]:
+    """Réponse type à une question simple : rien de plus que ce que contenait la demande."""
+    from .mailer import clarification_topic
+    p, ref, broker = req.profile, req.reference, req.broker.name
+    topic = clarification_topic(their_text) or "unknown_details"
+    emails = " ; ".join(p.emails or []) or "—"
+    if req.language == "fr":
+        subject = _re_subject(their_subject, f"Demande d'effacement – Réf. {ref}")
+        answer = {
+            "relationship": f"En réponse à votre question : je ne suis ni salarié ni client de {broker}. Je suis un particulier "
+                            "dont vous êtes susceptible de détenir des données personnelles, notamment à des fins de "
+                            "prospection ou de publicité.",
+            "which_email": f"Les adresses e-mail concernées par ma demande sont : {emails}. Je vous remercie de traiter la "
+                           "demande pour chacune d'elles.",
+            "unknown_details": "Je ne dispose pas de ces informations : à ma connaissance, je n'ai pas de compte ni de "
+                               "relation commerciale avec vous, et mes données ont pu vous être transmises par un tiers. "
+                               "L'article 12, paragraphe 2, du RGPD vous impose de faciliter l'exercice de mes droits.",
+        }[topic]
+        body = f"""Madame, Monsieur,
+
+{answer}
+
+Je vous remercie d'effectuer la recherche dans l'ensemble de vos traitements à partir des éléments d'identification figurant dans ma demande du {sent} (réf. {ref}), d'effacer les données trouvées et de me le confirmer par écrit. Si vous ne détenez aucune donnée me concernant, merci de me le confirmer également.
+
+Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.
+
+{sig}
+"""
+    else:
+        subject = _re_subject(their_subject, f"Erasure request – Ref. {ref}")
+        answer = {
+            "relationship": f"In answer to your question: I am neither an employee nor a customer of {broker}. I am a private "
+                            "individual whose personal data you may hold, in particular for marketing or advertising purposes.",
+            "which_email": f"The email addresses concerned by my request are: {emails}. Please process the request for each of them.",
+            "unknown_details": "I do not have this information: to my knowledge I have no account or business relationship "
+                               "with you, and my data may have been passed on to you by a third party. Article 12(2) GDPR "
+                               "requires you to facilitate the exercise of my rights.",
+        }[topic]
+        body = f"""Dear Sir or Madam,
+
+{answer}
+
+Please search all of your processing operations using the identifying details provided in my request of {sent} (ref. {ref}), erase any data found and confirm this in writing. If you hold no data concerning me, please confirm that as well.
+
+Yours faithfully,
+
+{sig}
+"""
     return subject, body
 
 

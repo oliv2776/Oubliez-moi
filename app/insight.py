@@ -42,6 +42,8 @@ ACTIONS = {
                 "Ouvrez le lien de son message, remplissez le formulaire avec l'aide « Formulaire » plus bas, puis cliquez "
                 "« C'est fait, j'attends leur réponse ».",
                 "Vérifiez que le lien mène bien au site du courtier avant d'y saisir vos informations."),
+    "clarification": ("Le courtier pose une question simple (votre lien avec l'entreprise, l'adresse concernée, un "
+                      "compte…). Une réponse type est prête plus bas : relisez-la et envoyez-la d'un clic.", ""),
     "confirm_from_address": ("Le courtier veut une confirmation écrite envoyée depuis l'autre adresse de votre demande, "
                              "pour vérifier qu'elle est bien à vous. Utilisez le bouton « Envoyer la confirmation » "
                              "ci-dessous, ou envoyez ce texte vous-même depuis cette adresse, puis cliquez « C'est fait, "

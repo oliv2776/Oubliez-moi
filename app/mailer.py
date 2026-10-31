@@ -380,6 +380,43 @@ ASK_RE = _P(
     r"nous vous (remercions|prions|demandons) de (bien vouloir )?(nous )?(confirmer|indiquer|pr[ée]ciser|communiquer|transmettre|lancer|faire)",
     r"bitte (teilen|senden|best[äa]tigen|nennen) sie",
 )
+# Questions simples auxquelles une réponse type suffit (voir clarification_topic).
+CLARIFY_TOPICS = (
+    ("relationship", _P(
+        r"relationship (with|to) [^.\n]{0,60}(employee|customer|consumer|client|vendor|candidate)",
+        r"(are you|whether you are|if you are) (an? |our )?(current |former )?(employee|customer|client|consumer|candidate)",
+        r"(êtes-vous|si vous êtes|[ée]tiez-vous) (un |une |notre )?(client|salari[ée]|employ[ée]|collaborat|candidat)",
+        r"(votre )?(lien|relation) avec (notre|la) (soci[ée]t[ée]|entreprise|groupe)",
+    )),
+    ("unknown_details", _P(
+        r"\b(user ?name|account (name|number|id)|customer (number|id)|membership number|order number)\b",
+        r"\b(work|business|professional|corporate) e-?mail( address)?\b",
+        r"nom d'utilisateur|identifiant de connexion|num[ée]ro (de )?(client|compte|commande|adh[ée]rent)|e-?mail professionnel|adresse professionnelle",
+        r"\b(agence|campagne|campaign|advertis(ing|ement) campaign)\b[^.\n]{0,80}", r"p[ée]riode concern[ée]e|time ?frame concerned|period concerned",
+        r"\bbenutzername|kundennummer|kundenkonto\b",
+    )),
+    ("which_email", _P(
+        r"(confirm|indicate|provide|tell us|specify)[^.\n]{0,40}\b(e-?mail )?address(es)? (concerned|in question|you used|used|associated)",
+        r"(confirmer|indiquer|pr[ée]ciser|communiquer)[^.\n]{0,40}l'adresse (e-?mail |[ée]lectronique )?(concern[ée]e|utilis[ée]e|en question)",
+    )),
+)
+
+
+def normalize_reply(text: str) -> str:
+    """Apostrophes typographiques et lignes coupées à 72 caractères recollées (les paragraphes restent séparés)."""
+    text = (text or "").replace("\u2019", "'")
+    return re.sub(r"[ \t]+", " ", re.sub(r"(?<!\n)[ \t]*\n[ \t]*(?!\n)", " ", text))
+
+
+def clarification_topic(text: str) -> str | None:
+    """Sujet de la question simple posée par le courtier : relationship | unknown_details | which_email."""
+    text = normalize_reply(text)
+    for topic, rx in CLARIFY_TOPICS:
+        if rx.search(text):
+            return topic
+    return None
+
+
 # Ce que dit le courtier juste après « aucune donnée » quand il attend encore quelque chose.
 _BUT_RE = re.compile(r"\b(however|but|nevertheless|cependant|toutefois|n[ée]anmoins|jedoch|allerdings)\b", re.I)
 # Délais et incidents de distribution temporaires, ou limités à un membre d'une liste de diffusion.
@@ -433,6 +470,7 @@ KIND_LABELS = {
     "ack": "accusé de réception",
     "webform": "formulaire ou portail exigé",
     "confirm_from_address": "confirmation depuis une autre adresse demandée",
+    "clarification": "question simple sur votre demande",
     "device_id": "identifiant publicitaire demandé",
     "delivery_issue": "incident de distribution temporaire",
     "reply": "réponse à examiner",
@@ -484,9 +522,7 @@ def latest_reply_text(body: str) -> str:
 
 
 def classify(m: ParsedMail) -> Classification:
-    current_reply = latest_reply_text(m.text).replace("\u2019", "'")
-    # Lignes coupées à 72 caractères : on recolle les phrases (les paragraphes restent séparés).
-    current_reply = re.sub(r"[ \t]+", " ", re.sub(r"(?<!\n)[ \t]*\n[ \t]*(?!\n)", " ", current_reply))
+    current_reply = normalize_reply(latest_reply_text(m.text))
     text = f"{m.subject}\n{current_reply}"[:20000]
     if m.is_bounce:
         hit = DELIVERY_ISSUE_RE.search(f"{m.subject}\n{current_reply[:1500]}")
@@ -527,6 +563,11 @@ def classify(m: ParsedMail) -> Classification:
         return Classification("residence_question", hit.group(0))
     hit = ASK_RE.search(text)
     if hit or vetoed:
+        # Une question à laquelle une réponse type suffit (lien avec l'entreprise, adresse concernée, compte…)
+        for _topic, rx in CLARIFY_TOPICS:
+            q = rx.search(text)
+            if q:
+                return Classification("clarification", q.group(0))
         return Classification("needs_action", hit.group(0) if hit else f"{vetoed}, mais…")
     hit = ACK_RE.search(text) or (ACK_WEAK_RE.search(text) if len(current_reply) <= ACK_WEAK_MAX else None)
     if hit or m.is_auto:
