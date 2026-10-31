@@ -198,11 +198,12 @@
       {% include "_formhelp.html" %}
     {% endif %}
 
-    {% if confirm_link and r.status == 'needs_action' %}
+    {% if (confirm_link or earlier_link) and r.status == 'needs_action' %}
     <div class="card">
       <h3>Lien de confirmation</h3>
-      <p class="small">{{ confirm_link.summary }}</p>
-      <p><a class="btn sm primary" href="{{ confirm_link.body|url }}" target="_blank" rel="noopener noreferrer nofollow">Ouvrir le lien ↗</a>
+      {% if confirm_link %}<p class="small">{{ confirm_link.summary }}</p>
+      {% else %}<p class="small">Reçu le {{ earlier_link.at|d }}{% if earlier_link.sender %} de <span translate="no">{{ earlier_link.sender }}</span>{% endif %}{% if earlier_link.subject %} (« <span translate="no">{{ earlier_link.subject }}</span> »){% endif %}, sur <strong translate="no">{{ earlier_link.url|host }}</strong>.</p>{% endif %}
+      <p><a class="btn sm primary" href="{{ (confirm_link.body if confirm_link else earlier_link.url)|url }}" target="_blank" rel="noopener noreferrer nofollow">Ouvrir le lien ↗</a>
          <span class="small muted">puis revenez cliquer « C'est fait, j'attends leur réponse »</span></p>
     </div>
     {% endif %}

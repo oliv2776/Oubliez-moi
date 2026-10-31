@@ -639,6 +639,9 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
             set_status(db, req, NEEDS_ACTION if c.kind == "id_request" else REPLIED, why)
     elif c.kind == "confirm_link":
         links = confirm.candidate_links(m.links, req.broker.email, req.broker.web)
+        if not links:  # « suivez le lien de l'e-mail que vous avez reçu » : il est dans une réponse précédente
+            earlier = earlier_confirm_link(req)
+            links = [earlier["url"]] if earlier else []
         if settings.auto_confirm_links and links:
             res = confirm.click(links[0], confirm.broker_domains(req.broker.email, req.broker.web))
             add_event(db, req, "confirm", f"Lien de confirmation ouvert automatiquement : {res.detail}", res.url)
@@ -724,6 +727,22 @@ def send_confirm_from(db: Session, req: Request, plan: dict) -> tuple[bool, str]
               f"{prefix}Confirmation envoyée depuis {plan['address']} à {plan['to']} "
               f"({mailer.KIND_LABELS['confirm_from_address']})", f"Objet : {plan['subject']}\n\n{plan['body']}")
     return True, ""
+
+
+def earlier_confirm_link(req: Request) -> dict | None:
+    """Lien de confirmation reçu dans une réponse de ce courtier et jamais ouvert (le plus récent d'abord).
+
+    Sert quand un courtier écrit « suivez le lien de l'e-mail que vous avez reçu de … » : le lien est
+    dans un autre message de la même demande. Mêmes garde-fous que pour un lien du message courant.
+    """
+    opened = {e.body for e in req.events if e.kind == "confirm" and e.body}
+    for ev in reversed([e for e in req.events if e.kind == "reply"]):
+        headers, text = mailview.split_headers(ev.body or "")
+        links = mailer.extract_links(ev.html or "", mailer.latest_reply_text(text))
+        for url in confirm.candidate_links(links, req.broker.email, req.broker.web):
+            if url not in opened:
+                return {"url": url, "at": ev.at, "sender": headers.get("De", ""), "subject": headers.get("Objet", "")}
+    return None
 
 
 def _can_auto_reply(req: Request, kind: str) -> bool:

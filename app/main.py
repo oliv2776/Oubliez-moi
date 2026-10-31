@@ -193,6 +193,7 @@ templates.env.filters["dt"] = fmt_dt
 templates.env.filters["d"] = fmt_d
 templates.env.filters["isodt"] = lambda v: fmt_dt(datetime.fromisoformat(v)) if v else "jamais"
 templates.env.filters["url"] = lambda v: v if v and re.match(r"(?i)^https?://", v) else "#"
+templates.env.filters["host"] = lambda v: (urlsplit(v).hostname or "") if v else ""
 def _mailheaders(body):
     h = dict(mailview.split_headers(body or "")[0])
     sender = h.get("De", "").strip()
@@ -618,6 +619,7 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.summary.startswith("Analyse IA")), None)
         ctx["why"] = next((e.summary for e in reversed(r.events) if e.kind == "status"), None)
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
+        ctx["earlier_link"] = service.earlier_confirm_link(r) if r.status == NEEDS_ACTION and not ctx["confirm_link"] else None
         ctx["complaint"] = letters.cnil_complaint_text(r) if r.status in (OVERDUE, "refused") else None
     ctx["device_count"] = len(device_ids.candidates(db))
     ctx["confirm_from"] = service.confirm_from_plan_for(db, r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
