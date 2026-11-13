@@ -5,8 +5,8 @@ Le classement est refait avec les règles actuelles sur la dernière réponse : 
 """
 from __future__ import annotations
 
-from . import mailer
 from .db import NEEDS_ACTION, Request
+from . import rules
 
 # (clé, libellé de la catégorie, libellé court pour la liste, catégories de réponse)
 ACTION_TYPES = [
@@ -35,7 +35,7 @@ def kind_of_reply(ev) -> str:
     key = (ev.id, hash(ev.body))
     if key in _kind_cache:
         return _kind_cache[key]
-    kind = mailer.classify(_from_event(ev)).kind
+    kind = rules.classify(_from_event(ev)).kind
     if len(_kind_cache) >= _CACHE_MAX:
         _kind_cache.clear()
     _kind_cache[key] = kind

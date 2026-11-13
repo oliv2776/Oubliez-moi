@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session, selectinload
 from . import confirm, history, insight, mailer, mailview
 from .db import COMPLETED, NEEDS_ACTION, REPLIED, STATUS_LABELS, Request
 from .web import get_db, render
+from . import rules
 
 router = APIRouter()
 NOTE = "identifiants publicitaires réinitialisés (téléphone, navigateur), opposition faite si proposée"
@@ -56,7 +57,7 @@ def useful_links(req: Request, limit: int = 4) -> list[dict]:
     text = mailview.split_headers(ev.body or "")[1]
     own = confirm.broker_domains(req.broker.email, req.broker.web)
     out, seen = [], set()
-    for url, label in mailer.extract_links(ev.html or "", mailer.latest_reply_text(text)):
+    for url, label in mailer.extract_links(ev.html or "", rules.latest_reply_text(text)):
         host = (urlsplit(url).hostname or "").lower()
         key = (host, urlsplit(url).path.rstrip("/"))
         if not host or key in seen or _USELESS.search(url) or not (_USEFUL.search(url) or _USEFUL.search(label or "")):

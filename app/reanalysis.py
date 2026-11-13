@@ -26,6 +26,7 @@ from .db import (
     COMPLETED, FAILED, NEEDS_ACTION, OVERDUE, REPLIED, SENT, STATUS_LABELS, Event, Request, SessionLocal,
     add_event, kv_get, kv_set, utcnow,
 )
+from . import rules
 
 log = logging.getLogger(__name__)
 PROPOSALS_KEY = "reanalysis:proposals"
@@ -136,7 +137,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
             m = mailer.parse_mail(raw) if raw else _from_event(ev)
             c, note, advice = classify_reply(m)
             if c.kind == "bounce" and _list_member_bounce(req, m):
-                c = mailer.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
+                c = rules.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
             trusted = (bool(raw) and _sender_matches_broker(req, m.from_addr, m.dmarc_pass)) or verified_at_reception(req, ev)
             kind = c.kind
             if kind in SENSITIVE and not trusted:
@@ -151,7 +152,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
                 proposals.append({
                     "request_id": req.id, "event_id": ev.id, "broker": req.broker.name, "reference": req.reference,
                     "from_status": req.status, "to_status": target, "kind": kind,
-                    "label": mailer.KIND_LABELS.get(kind, kind), "reason": c.reason or "", "note": note or "",
+                    "label": rules.KIND_LABELS.get(kind, kind), "reason": c.reason or "", "note": note or "",
                     "advice": advice or "",
                     "trusted": trusted, "from_mailbox": bool(raw), "downgraded": kind != c.kind,
                 })

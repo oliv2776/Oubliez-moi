@@ -159,7 +159,7 @@ def _re_subject(their_subject: str | None, fallback: str) -> str:
 def auto_reply_letter(req: Request, kind: str, their_subject: str | None = None, their_text: str = "") -> tuple[str, str]:
     """Réponses automatiques aux situations courantes.
 
-    kind : id_request | legit_refusal | residence_question | clarification (question simple, voir mailer.clarification_topic).
+    kind : id_request | legit_refusal | residence_question | clarification (question simple, voir rules.clarification_topic).
     """
     from .config import settings
 
@@ -260,7 +260,7 @@ Yours faithfully,
 
 def _clarification_letter(req: Request, their_subject: str | None, their_text: str, sent: str, sig: str) -> tuple[str, str]:
     """Réponse type à une question simple : rien de plus que ce que contenait la demande."""
-    from .mailer import clarification_topic
+    from .rules import clarification_topic
     p, ref, broker = req.profile, req.reference, req.broker.name
     topic = clarification_topic(their_text) or "unknown_details"
     emails = " ; ".join(p.emails or []) or "—"

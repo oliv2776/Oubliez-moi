@@ -36,6 +36,7 @@ from .db import (
     new_reference,
     utcnow,
 )
+from . import rules
 
 log = logging.getLogger(__name__)
 _send_lock = threading.Lock()
@@ -544,19 +545,19 @@ def process_incoming(db: Session, m: mailer.ParsedMail) -> Request | None:
     return req
 
 
-def classify_reply(m: mailer.ParsedMail) -> tuple[mailer.Classification, str | None, str | None]:
+def classify_reply(m: mailer.ParsedMail) -> tuple[rules.Classification, str | None, str | None]:
     """Classement d'une réponse (mots-clés, puis IA locale si ambiguë), sans aucun effet.
 
     Renvoie (classement, note IA, conseil IA). Le conseil n'existe qu'avec un modèle conversationnel.
     """
     if not settings.auto_classify:
-        return mailer.Classification("reply"), None, None
-    c = mailer.classify(m)
+        return rules.Classification("reply"), None, None
+    c = rules.classify(m)
     note = advice = None
     if c.kind == "reply" and settings.llm_enabled:
         res = llm.classify(m.subject, mailview.strip_quoted(m.text))
         if res:
-            label = mailer.KIND_LABELS.get(res["category"], res["category"])
+            label = rules.KIND_LABELS.get(res["category"], res["category"])
             if res["summary"]:
                 note = f"Analyse IA : {res['summary']}"
             else:  # modèle de décision : pas de texte, on affiche la catégorie et sa probabilité
@@ -571,12 +572,12 @@ def classify_reply(m: mailer.ParsedMail) -> tuple[mailer.Classification, str | N
                 if res["category"] in AI_NEVER_ALONE:
                     # L'IA n'est consultée que lorsque les règles n'ont rien reconnu : sa seule lecture, que le
                     # texte du courtier peut orienter, ne suffit pas à clore une demande. Vous tranchez.
-                    return mailer.Classification("reply", f"IA, {proba} : « {label} » à confirmer"), note, advice
-                return mailer.Classification(res["category"], f"IA, {proba}"), note, advice
+                    return rules.Classification("reply", f"IA, {proba} : « {label} » à confirmer"), note, advice
+                return rules.Classification(res["category"], f"IA, {proba}"), note, advice
     return c, note, advice
 
 
-def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classification:
+def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> rules.Classification:
     c, note, advice = classify_reply(m)
     if note:
         add_event(db, req, "info", note, actor=history.AI, category=history.SUMMARY)
@@ -587,7 +588,7 @@ def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classif
 
 def _list_member_bounce(req: Request, m: mailer.ParsedMail) -> bool:
     """Échec limité à des membres d'une liste de diffusion du courtier : son adresse a bien reçu le message."""
-    failed = mailer.bounced_recipients(m.text)
+    failed = rules.bounced_recipients(m.text)
     broker = (req.broker.email or "").lower()
     if not failed or not broker or broker in failed:
         return False
@@ -598,7 +599,7 @@ def _list_member_bounce(req: Request, m: mailer.ParsedMail) -> bool:
 def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
     c = _classify(db, req, m)
     if c.kind == "bounce" and _list_member_bounce(req, m):
-        c = mailer.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
+        c = rules.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
     sender_trusted = _sender_matches_broker(req, m.from_addr, m.dmarc_pass)
     if not sender_trusted:
         # Une référence permet d'identifier le ticket, pas d'authentifier son expéditeur.
@@ -606,8 +607,8 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         if c.kind in ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce"):
             add_event(db, req, "warning", f"Réponse non vérifiée de {m.from_addr} : décision sensible non appliquée "
                                           f"({_untrusted_reason(m)})")
-            c = mailer.Classification("reply", "expéditeur non vérifié")
-    label = mailer.KIND_LABELS.get(c.kind, c.kind)
+            c = rules.Classification("reply", "expéditeur non vérifié")
+    label = rules.KIND_LABELS.get(c.kind, c.kind)
     why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
     who = {"actor": history.classifier(c.reason.startswith("IA")), "category": c.kind}
 
@@ -682,20 +683,20 @@ def confirm_from_plan(db: Session, req: Request, subject: str, text: str, messag
     """
     from . import mailboxes
     m = mailer.ParsedMail(uid="", from_addr="", from_name="", subject=subject, message_id=message_id or "", text=text)
-    c = mailer.classify(m)
+    c = rules.classify(m)
     if c.kind != "confirm_from_address":
         return None
-    current = mailer.latest_reply_text(text)
+    current = rules.latest_reply_text(text)
     mine = [e.lower() for e in (req.profile.emails or []) if e]
     main = (settings.smtp_from or "").lower()
     # L'adresse citée dans la phrase reconnue d'abord, sinon une adresse du profil citée dans la réponse.
-    cited = [a for a in mailer.emails_in(c.reason) + mailer.emails_in(current) if a in mine and a != main]
+    cited = [a for a in rules.emails_in(c.reason) + rules.emails_in(current) if a in mine and a != main]
     if not cited:
         return None
     address = cited[0]
     allowed = {d for d in (mailer.registered_domain((req.broker.email or "").split("@")[-1]),
                            mailer.registered_domain(req.broker.web or "")) if d} | confirm.PRIVACY_PLATFORMS
-    targets = [a for a in mailer.emails_in(current)
+    targets = [a for a in rules.emails_in(current)
                if a not in mine and not _NOREPLY_RE.match(a.split("@")[0]) and mailer.registered_domain(a.split("@")[-1]) in allowed]
     to = targets[0] if targets else req.broker.email
     if not to:
@@ -733,7 +734,7 @@ def send_confirm_from(db: Session, req: Request, plan: dict) -> tuple[bool, str]
     prefix = "[SIMULATION] " if settings.dry_run else ""
     add_event(db, req, "auto_reply",
               f"{prefix}Confirmation envoyée depuis {plan['address']} à {plan['to']} "
-              f"({mailer.KIND_LABELS['confirm_from_address']})", f"Objet : {plan['subject']}\n\n{plan['body']}")
+              f"({rules.KIND_LABELS['confirm_from_address']})", f"Objet : {plan['subject']}\n\n{plan['body']}")
     return True, ""
 
 
@@ -746,7 +747,7 @@ def earlier_confirm_link(req: Request) -> dict | None:
     opened = {e.body for e in req.events if e.kind == "confirm" and e.body}
     for ev in reversed([e for e in req.events if e.kind == "reply"]):
         headers, text = mailview.split_headers(ev.body or "")
-        links = mailer.extract_links(ev.html or "", mailer.latest_reply_text(text))
+        links = mailer.extract_links(ev.html or "", rules.latest_reply_text(text))
         for url in confirm.candidate_links(links, req.broker.email, req.broker.web):
             if url not in opened:
                 return {"url": url, "at": ev.at, "sender": headers.get("De", ""), "subject": headers.get("Objet", "")}
@@ -763,11 +764,11 @@ def proposed_reply(req: Request) -> dict | None:
     if not replies or not req.broker.email:
         return None
     m = _from_event(replies[-1])
-    c = mailer.classify(m)
+    c = rules.classify(m)
     if c.kind not in AUTO_REPLY_KINDS or not _can_auto_reply(req, c.kind):
         return None
-    subject, body = letters.auto_reply_letter(req, c.kind, m.subject, mailer.latest_reply_text(m.text))
-    return {"kind": c.kind, "label": mailer.KIND_LABELS[c.kind], "to": _auto_reply_recipient(req, m),
+    subject, body = letters.auto_reply_letter(req, c.kind, m.subject, rules.latest_reply_text(m.text))
+    return {"kind": c.kind, "label": rules.KIND_LABELS[c.kind], "to": _auto_reply_recipient(req, m),
             "subject": subject, "body": body, "mail": m}
 
 
@@ -785,7 +786,7 @@ def _auto_reply_recipient(req: Request, m: mailer.ParsedMail) -> str | None:
 def _can_auto_reply(req: Request, kind: str) -> bool:
     """Garde-fou anti-boucle : une seule réponse automatique par motif, trois au maximum par demande."""
     autos = [e for e in req.events if e.kind == "auto_reply"]
-    label = mailer.KIND_LABELS[kind]
+    label = rules.KIND_LABELS[kind]
     return len(autos) < MAX_AUTO_REPLIES and not any(label in e.summary for e in autos)
 
 
@@ -793,7 +794,7 @@ def _send_auto_reply(db: Session, req: Request, kind: str, m: mailer.ParsedMail)
     to = _auto_reply_recipient(req, m)
     if not to:
         return False
-    subject, body = letters.auto_reply_letter(req, kind, m.subject, mailer.latest_reply_text(m.text))
+    subject, body = letters.auto_reply_letter(req, kind, m.subject, rules.latest_reply_text(m.text))
     msg = mailer.build_message(to, subject, body, from_name=req.profile.full_name, in_reply_to=m.message_id or None)
     try:
         mailer.send_message(msg)
@@ -802,7 +803,7 @@ def _send_auto_reply(db: Session, req: Request, kind: str, m: mailer.ParsedMail)
         return False
     req.message_ids = [*(req.message_ids or []), msg["Message-ID"]]
     prefix = "[SIMULATION] " if settings.dry_run else ""
-    add_event(db, req, "auto_reply", f"{prefix}Réponse automatique envoyée à {to} ({mailer.KIND_LABELS[kind]})",
+    add_event(db, req, "auto_reply", f"{prefix}Réponse automatique envoyée à {to} ({rules.KIND_LABELS[kind]})",
               f"Objet : {subject}\n\n{body}")
     return True
 

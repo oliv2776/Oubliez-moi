@@ -14,6 +14,7 @@ from . import mailer
 from .case_management import CaseEvent, PrivacyCase
 from .db import utcnow
 from .web import get_db, render
+from . import rules
 
 router = APIRouter()
 DRAFT_KINDS = {"initial", "followup", "appeal"}
@@ -114,15 +115,15 @@ def analyze_reply(request: Request, case_id: int, subject: str = Form(""),
     parsed = mailer.ParsedMail(uid="manual", from_addr=case.organization.contact_email or "",
                                from_name=case.organization.name, subject=subject.strip()[:300],
                                message_id="", text=text)
-    result = mailer.classify(parsed)
+    result = rules.classify(parsed)
     action, caution = ANALYSIS_ACTIONS.get(result.kind, ANALYSIS_ACTIONS["reply"])
-    summary = f"Analyse indicative : {mailer.KIND_LABELS.get(result.kind, result.kind)}"
+    summary = f"Analyse indicative : {rules.KIND_LABELS.get(result.kind, result.kind)}"
     detail = f"Catégorie : {result.kind}\nIndice détecté : {result.reason[:180] or 'aucun'}\nAction suggérée : {action}\nPrécaution : {caution}"
     db.add(CaseEvent(case=case, kind="assistant_analysis", summary=summary, body=detail))
     db.commit()
     case = _case(db, case_id)
     return _render(request, db, case, kind="initial", draft_text=build_draft(case, "initial"),
-                   analysis={"label": mailer.KIND_LABELS.get(result.kind, result.kind),
+                   analysis={"label": rules.KIND_LABELS.get(result.kind, result.kind),
                              "action": action, "caution": caution, "reason": result.reason})
 
 

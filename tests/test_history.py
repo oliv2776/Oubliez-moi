@@ -63,5 +63,5 @@ def test_reply_classification_is_computed_once(client, monkeypatch):
         db.commit()
         ev = db.query(Event).filter_by(request_id=rid).one()
         assert actions.kind_of_reply(ev) == "webform"
-        monkeypatch.setattr(actions.mailer, "classify", lambda m: 1 / 0)  # un second calcul échouerait
+        monkeypatch.setattr(actions.rules, "classify", lambda m: 1 / 0)  # un second calcul échouerait
         assert actions.kind_of_reply(ev) == "webform"

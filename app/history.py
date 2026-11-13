@@ -28,7 +28,7 @@ def classifier(by_ai: bool, reanalysis: bool = False) -> str:
 def infer(kind: str | None, summary: str | None) -> tuple[str | None, str | None]:
     """(auteur, catégorie) déduits du texte d'un événement, pour les historiques antérieurs aux colonnes."""
     from .db import STATUS_LABELS
-    from .mailer import KIND_LABELS
+    from .rules import KIND_LABELS
     s = summary or ""
     if kind == "status":
         if s.startswith(_MANUAL):

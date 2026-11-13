@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from . import history, mailer, mailview
 from .config import settings
 from .db import STATUS_LABELS, Request
+from . import rules
 
 # Que faire, selon ce que dit la réponse (utilisé quand l'IA n'a pas donné de conseil).
 ACTIONS = {
@@ -98,7 +99,7 @@ def for_request(r: Request) -> Insight | None:
     for e in after:
         if e.kind == "status" and e.actor in history.AUTOMATIC:
             if e.category and not e.category.startswith(history.STATUS_PREFIX):
-                ins.kind, ins.label = e.category, mailer.KIND_LABELS.get(e.category, e.category)
+                ins.kind, ins.label = e.category, rules.KIND_LABELS.get(e.category, e.category)
             elif e.category:  # anciens historiques : seul le statut obtenu était noté
                 ins.label = STATUS_LABELS.get(e.category[len(history.STATUS_PREFIX):], ins.label)
             if e.actor in history.BY_AI:
@@ -125,7 +126,7 @@ def for_request(r: Request) -> Insight | None:
         elif e.kind == "warning" and e.category == history.UNVERIFIED:
             ins.unverified = True
     if not ins.label:
-        ins.label = mailer.KIND_LABELS.get(ins.kind, ins.kind)
+        ins.label = rules.KIND_LABELS.get(ins.kind, ins.kind)
     text = mailview.split_headers(reply.body or "")[1]
     if not ins.summary:
         ins.summary = _first_sentences(text)
@@ -154,7 +155,7 @@ def refine(ins: Insight | None, current: str | None) -> None:
     if ins.by_ai and ins.kind not in _GENERIC:
         return  # l'IA a tranché sur une catégorie précise : on ne la contredit pas ici
     ins.kind = current
-    ins.label = mailer.KIND_LABELS.get(current, current)
+    ins.label = rules.KIND_LABELS.get(current, current)
     fallback, caution = ACTIONS.get(current, ACTIONS["reply"])
     if not ins.ai_action:
         ins.action = fallback

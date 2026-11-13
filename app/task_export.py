@@ -39,6 +39,7 @@ README = (
     "ce qui a été décidé à la réception (règles ou IA). Les textes ne contiennent que la partie nouvelle "
     "de la réponse, sans notre demande citée. Catégories possibles : voir « categories »."
 )
+from . import rules
 
 
 class Redactor:
@@ -149,7 +150,7 @@ def _iso(dt: datetime | None) -> str | None:
 
 def _reply(e, red) -> dict:
     headers, text = mailview.split_headers(e.body or "")
-    current = mailer.latest_reply_text(text) or mailview.strip_quoted(text)
+    current = rules.latest_reply_text(text) or mailview.strip_quoted(text)
     return {
         "recue_le": _iso(e.at),
         "de": red.text(headers.get("De", "")),
@@ -167,8 +168,8 @@ def _rules_now(e) -> dict:
     m = mailer.ParsedMail(uid="", from_addr=(sender.group(0).lower() if sender else ""), from_name="",
                           subject=headers.get("Objet", ""), message_id="", text=text)
     m.is_bounce = m.from_addr.startswith(("mailer-daemon@", "postmaster@"))
-    c = mailer.classify(m)
-    return {"categorie": c.kind, "libelle": mailer.KIND_LABELS.get(c.kind, c.kind), "declencheur": c.reason or None}
+    c = rules.classify(m)
+    return {"categorie": c.kind, "libelle": rules.KIND_LABELS.get(c.kind, c.kind), "declencheur": c.reason or None}
 
 
 def _status_change(r: Request, red) -> dict | None:
@@ -269,7 +270,7 @@ def build(db: Session, anonymize: bool = True, sections: set[str] | None = None)
             "reponses_automatiques": settings.auto_replies,
             "liens_confirmes_automatiquement": settings.auto_confirm_links,
         },
-        "categories": mailer.KIND_LABELS,
+        "categories": rules.KIND_LABELS,
         "statuts": STATUS_LABELS,
         "a_lire": README,
     }
