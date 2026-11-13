@@ -177,6 +177,10 @@ Puis **Boîtes mail › Ajouter une boîte › Proton Mail** : serveur `protonma
 - **CSRF** : toute requête qui modifie des données doit venir de l'application elle-même : `Origin` (ou `Referer`) identique à l'adresse utilisée pour l'ouvrir ou à `APP_URL`, ou, à défaut, `Sec-Fetch-Site: same-origin` envoyé par le navigateur. Les pages sont servies avec `Referrer-Policy: same-origin` : aucun Referer ne part vers l'extérieur, mais le navigateur continue d'envoyer `Origin` à l'application (avec `no-referrer`, il enverrait `Origin: null` et plus aucun formulaire ne passerait). Renseigner `APP_URL` n'empêche pas de passer par l'IP locale.
 - **DNS rebinding / SSRF** : les requêtes HTTP sortantes épinglent l'adresse IP résolue pour la connexion, refusent les IP non publiques pour les destinations non fiables et ne suivent jamais une redirection sans la revérifier (seuls les liens de confirmation en suivent, étape par étape).
 - **Authentification des réponses** : pour autoriser la clôture automatique d'une demande, réglez l'identifiant du serveur qui ajoute `Authentication-Results` (Réglages › Relève des réponses, bouton de détection automatique, ou `IMAP_AUTHSERV_ID`). L'application exige un résultat DMARC pass émis par cet identifiant, avec `header.from` correspondant au domaine de `From` et un SPF (`smtp.mailfrom`) ou DKIM (`header.d`, ou `header.i` chez Gmail) réussi et aligné. Les résultats dupliqués ou non alignés sont refusés, et l'historique de la demande indique pourquoi une réponse n'a pas été retenue. Outlook/Hotmail n'écrivent pas d'identifiant : avec ces boîtes, les décisions sensibles restent manuelles.
+- **Scripts** : une Content-Security-Policy n'autorise que les scripts de l'application, par un jeton renouvelé à chaque page.
+- **IA locale** : elle classe, résume et conseille, mais ne clôt jamais une demande à elle seule ; une clôture automatique exige qu'une règle l'ait reconnue et que l'expéditeur soit authentifié.
+- **Conservation** : Réglages › Sécurité et sauvegardes permet d'effacer, N mois après la clôture, le contenu des e-mails des demandes terminées ou annulées (désactivé par défaut ; `RETENTION_MONTHS`). Les demandes refusées ou portées devant la CNIL ne sont jamais touchées.
+- **Conteneur** : système de fichiers en lecture seule, aucune capacité Linux, pas d'élévation de privilèges, mémoire plafonnée (voir `docker-compose.yml`).
 - **Renouvellements** : les renvois automatiques sont limités à trois cycles au total par courtier et profil par défaut (cycle initial compris). Modifiez `MAX_AUTOMATIC_RESEND_CYCLES` si nécessaire ; `1` désactive tout renouvellement automatique.
 - **Sauvegardes** : indiquez dans `.env` un dossier de votre pool (`BACKUP_PATH=/mnt/tank/backups/oubliez-moi`), rendez-le accessible à l'utilisateur du conteneur (`sudo chown 10001 …`), puis `docker compose up -d`. Dans **Réglages → Sécurité et sauvegardes** : fréquence (chaque nuit par défaut), nombre de sauvegardes gardées, chiffrement, bouton « Sauvegarder maintenant » et liste des sauvegardes.
 - **Restauration** :
@@ -265,7 +269,7 @@ git pull && docker compose up -d --build
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-python -m pyflakes app tests   # même contrôle que la CI
+ruff check app tests tools      # même contrôle que la CI
 pytest -q
 
 # Lancer en local (simulation, données dans ./data)
@@ -276,21 +280,27 @@ Structure :
 
 ```
 app/
-  main.py        routes web (FastAPI + Jinja2) et sécurité HTTP (CSRF, en-têtes, connexion)
-  web.py         gabarits, rendu et compteur « À traiter » communs à toutes les pages
+  main.py        application, sécurité HTTP (CSRF, en-têtes, politique de scripts) et connexion
+  routes/        pages par domaine : profils, demandes, à traiter, boîtes mail, courtiers, réglages
+  web.py         gabarits, filtres, rendu et petits outils communs à toutes les pages
   case_management.py, case_assistant.py   dossiers RGPD (suivi, échéances, assistant, export)
   exposures.py, search.py                  cartographie des expositions, recherche globale
   confirm.py     ouverture prudente des liens de confirmation
   net.py         requêtes sortantes (IP épinglée, anti-SSRF)
   service.py     campagnes, envoi, relances, rattachement des réponses
-  mailer.py      SMTP, IMAP, analyse et classement des réponses
+  mailer.py      SMTP, IMAP, lecture des e-mails
+  rules.py       règles de classement des réponses (mots-clés)
+  history.py     qui a décidé quoi dans l'historique (colonnes actor / category des événements)
   letters.py     modèles de courriers (FR/EN) et texte de plainte CNIL
   brokers.py     import du catalogue Datenanfragen
   scheduler.py   tâches périodiques (APScheduler)
   db.py          modèle SQLite (SQLAlchemy)
   seed/          catalogue embarqué (généré depuis Datenanfragen)
 tests/           tests pytest
+tools/           replay_export.py : rejoue les règles sur un export « À traiter »
 ```
+
+Le [journal des versions](CHANGELOG.md) liste les changements ; chaque version est étiquetée (`vX.Y.Z`).
 
 Pour régénérer le catalogue embarqué depuis un clone de `datenanfragen/data` :
 

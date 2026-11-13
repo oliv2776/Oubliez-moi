@@ -3,7 +3,7 @@ import html
 import json
 import os
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
@@ -87,7 +87,7 @@ def _ollama(models):
 
 
 def _model(vram_share, minutes):
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
+    expires = (datetime.now(UTC) + timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
     return {"name": "qwen3:8b", "size": 6_000_000_000, "size_vram": int(6_000_000_000 * vram_share),
             "expires_at": expires, "details": {"parameter_size": "8.2B"}}
 

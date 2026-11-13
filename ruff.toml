@@ -1,0 +1,18 @@
+# Lint : erreurs réelles (noms indéfinis, imports inutiles), pièges courants et modernisation.
+# La mise en forme n'est pas imposée ; les lignes longues du projet sont acceptées.
+target-version = "py312"
+line-length = 160
+
+[lint]
+select = ["F", "E9", "E7", "W6", "B", "UP", "S", "C4", "RET5", "PIE"]
+ignore = [
+  "B008",    # Depends(...) en valeur par défaut : c'est l'usage de FastAPI
+  "S101",    # assert dans les tests
+  "S311",    # random hors cryptographie
+  "S310",    # toutes les requêtes sortantes passent par net.safe_urlopen, qui n'admet que http(s)
+  "S110",    # fermeture IMAP « au mieux » après une erreur déjà traitée
+  "S704",    # Markup sur du HTML produit par mailview, qui échappe le texte
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S", "B", "E7", "C4", "UP031"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 import string
 from importlib import import_module
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 from sqlalchemy import (
     JSON,
@@ -25,7 +25,7 @@ from .config import settings
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
@@ -76,7 +76,7 @@ class Profile(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    requests: Mapped[list["Request"]] = relationship(back_populates="profile", cascade="all, delete-orphan")
+    requests: Mapped[list[Request]] = relationship(back_populates="profile", cascade="all, delete-orphan")
 
     @property
     def primary_email(self) -> str | None:
@@ -103,7 +103,7 @@ class Broker(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
-    requests: Mapped[list["Request"]] = relationship(back_populates="broker", cascade="all, delete-orphan")
+    requests: Mapped[list[Request]] = relationship(back_populates="broker", cascade="all, delete-orphan")
 
     @property
     def channel(self) -> str:
@@ -139,7 +139,7 @@ class Request(Base):
 
     profile: Mapped[Profile] = relationship(back_populates="requests")
     broker: Mapped[Broker] = relationship(back_populates="requests")
-    events: Mapped[list["Event"]] = relationship(
+    events: Mapped[list[Event]] = relationship(
         back_populates="request", cascade="all, delete-orphan", order_by="Event.at"
     )
 
@@ -201,7 +201,7 @@ class Mailbox(Base):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
-    senders: Mapped[list["Sender"]] = relationship(back_populates="mailbox", cascade="all, delete-orphan")
+    senders: Mapped[list[Sender]] = relationship(back_populates="mailbox", cascade="all, delete-orphan")
 
 
 SENDER_STATUSES = {

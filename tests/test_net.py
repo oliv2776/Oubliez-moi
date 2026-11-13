@@ -93,7 +93,7 @@ def _self_signed(tmp_path, name="localhost"):
     from cryptography.x509.oid import NameOID
     key = ec.generate_private_key(ec.SECP256R1())
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject).public_key(key.public_key())
             .serial_number(x509.random_serial_number()).not_valid_before(now - datetime.timedelta(minutes=1))
             .not_valid_after(now + datetime.timedelta(days=1))

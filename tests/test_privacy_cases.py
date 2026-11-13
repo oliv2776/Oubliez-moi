@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from app.case_management import Organization, PrivacyCase, add_months
 from app.db import Profile, SessionLocal
@@ -42,7 +42,7 @@ def test_create_and_track_rgpd_case(client):
 
     with SessionLocal() as db:
         case = db.get(PrivacyCase, case_id)
-        case.sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        case.sent_at = datetime.now(UTC).replace(tzinfo=None)
         case.deadline_at = add_months(case.sent_at, 1)
         db.commit()
     assert client.post(f"/privacy-cases/{case_id}/extend", data={"note": "Dossier complexe"},
@@ -102,7 +102,7 @@ def test_overdue_case_shown_counted_and_notified_once(client, monkeypatch):
     _late_case("Organisme clos", status="completed")  # clos : jamais signalé
     with SessionLocal() as db:
         soon = PrivacyCase(organization=Organization(name="Organisme bientôt"), request_type="erasure", status="sent",
-                           deadline_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=3))
+                           deadline_at=datetime.now(UTC).replace(tzinfo=None) + timedelta(days=3))
         db.add(soon)
         db.commit()
         late, upcoming = cases_due(db)
@@ -119,7 +119,7 @@ def test_overdue_case_shown_counted_and_notified_once(client, monkeypatch):
         assert case.overdue_notified_at is not None
         assert [e.kind for e in case.events].count("deadline") == 1
         # Alerte envoyée il y a un mois, puis prolongation dont l'échéance vient aussi de passer : nouvelle alerte
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         case.overdue_notified_at = now - timedelta(days=30)
         case.extended_deadline_at = now - timedelta(days=1)
         db.commit()

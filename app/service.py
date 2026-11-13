@@ -979,7 +979,7 @@ def stats(db: Session, profile_id: int | None = None) -> dict:
     q = select(Request.status, func.count()).group_by(Request.status)
     if profile_id:
         q = q.where(Request.profile_id == profile_id)
-    counts = {s: 0 for s in STATUS_LABELS}
+    counts = dict.fromkeys(STATUS_LABELS, 0)
     counts.update(dict(db.execute(q).all()))
     total = sum(counts.values())
     done = counts[COMPLETED]

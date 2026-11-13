@@ -12,7 +12,7 @@ import os
 import re
 import socket
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from sqlalchemy import select
 
@@ -109,7 +109,7 @@ def _expires_in(model: dict) -> float | None:
         when = datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", raw.replace("Z", "+00:00")))
     except ValueError:
         return None
-    return (when - datetime.now(timezone.utc)).total_seconds()
+    return (when - datetime.now(UTC)).total_seconds()
 
 
 VULKAN_FIX = """# Ollama 0.12.11 ou plus récent ; pilotes Vulkan de Mesa :

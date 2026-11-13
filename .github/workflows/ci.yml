@@ -27,8 +27,10 @@ jobs:
             requirements.txt
             requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - name: Lint (imports inutilisés, noms indéfinis)
-        run: python -m pyflakes app tests
+      - name: Lint (erreurs, pièges courants, sécurité)
+        run: ruff check app tests tools
+      - name: Dépendances sans vulnérabilité connue
+        run: pip-audit -r requirements.txt
       - name: Compilation
         run: python -m compileall -q app
       - name: Tests
@@ -50,12 +52,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: version
+        run: echo "version=$(sed -n 's/__version__ = "\(.*\)"/\1/p' app/__init__.py)" >> "$GITHUB_OUTPUT"
       - id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.version }},enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
@@ -68,3 +73,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Pose l'étiquette vX.Y.Z de la version en cours sur main : chaque version reste retrouvable
+  # (git checkout v1.24.0, ou image ghcr.io/…:1.24.0) pour revenir en arrière.
+  tag:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Étiquette de version
+        run: |
+          version="v$(sed -n 's/__version__ = "\(.*\)"/\1/p' app/__init__.py)"
+          if git ls-remote --exit-code --tags origin "$version" >/dev/null; then
+            echo "$version existe déjà"
+          else
+            git tag "$version" && git push origin "$version"
+          fi
