@@ -4,7 +4,7 @@ import pytest
 from app import mailer, settings_store
 from app.config import settings
 from app.db import SessionLocal, kv_get
-from app.main import _authserv_feedback
+from app.routes.settings import _authserv_feedback
 
 GMAIL_DIRECT = (
     "mx.google.com;\r\n       dkim=pass header.i=@acxiom.com header.s=s1 header.b=AbCdEf;\r\n"

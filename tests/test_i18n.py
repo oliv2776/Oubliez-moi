@@ -24,7 +24,7 @@ def test_no_duplicate_keys():
 def test_every_key_still_exists_in_the_interface():
     """Si un texte change dans un gabarit, sa traduction doit être mise à jour (sinon elle ne s'applique plus)."""
     corpus = "".join(html.unescape(f.read_text(encoding="utf-8"))
-                     for f in [*(APP / "templates").glob("*.html"), *APP.glob("*.py")])
+                     for f in [*(APP / "templates").glob("*.html"), *APP.rglob("*.py")])
     stale = [fr for fr, _ in _pairs() if fr not in corpus]
     assert not stale, f"Traductions orphelines (texte introuvable dans l'interface) : {stale}"
 
