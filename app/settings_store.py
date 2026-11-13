@@ -116,6 +116,8 @@ def save_from_form(form: dict) -> list[str]:
         errors.append("Fréquence de sauvegarde inconnue")
     if "backup_keep" in values and not 1 <= values["backup_keep"] <= 365:
         errors.append("Le nombre de sauvegardes conservées doit être compris entre 1 et 365")
+    if "retention_months" in values and not 0 <= values["retention_months"] <= 120:
+        errors.append("La durée de conservation doit être comprise entre 0 (illimitée) et 120 mois")
     if "llm_mode" in values and values["llm_mode"] not in {"decision", "chat"}:
         errors.append("Type de modèle inconnu")
     if "imap_file_mode" in values and values["imap_file_mode"] not in {"off", "move", "label"}:

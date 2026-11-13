@@ -13,6 +13,7 @@ from . import brokers as broker_catalog
 from . import case_management, confirm, history, letters, llm, mailer, mailview, notify, phones
 from .config import settings
 from .db import (
+    CANCELLED,
     COMPLETED,
     FAILED,
     FINAL_STATUSES,
@@ -938,6 +939,39 @@ def set_status(db: Session, req: Request, status: str, note: str | None = None,
         req.last_error = None
     add_event(db, req, "status", note or f"Statut : {STATUS_LABELS.get(old, old)} → {STATUS_LABELS.get(status, status)}",
               actor=actor, category=category)
+
+
+PURGEABLE_STATUSES = (COMPLETED, CANCELLED)   # jamais REFUSED ni CNIL : les échanges y servent de preuve
+PURGED = "purged"
+
+
+def purge_old_messages() -> int:
+    """Efface le contenu des messages des demandes closes depuis plus de `retention_months` mois.
+
+    Les événements restent (dates, résumés d'une ligne) ; seuls le texte et le HTML des e-mails disparaissent.
+    Renvoie le nombre de demandes concernées.
+    """
+    months = settings.retention_months
+    if months <= 0:
+        return 0
+    limit = utcnow() - timedelta(days=round(months * 30.44))
+    done = 0
+    with SessionLocal() as db:
+        q = (select(Request).options(selectinload(Request.events))
+             .where(Request.status.in_(PURGEABLE_STATUSES), Request.closed_at.is_not(None), Request.closed_at < limit))
+        for req in db.scalars(q):
+            holding = [e for e in req.events if e.body or e.html]
+            if not holding:
+                continue
+            for e in holding:
+                e.body = e.html = None
+            add_event(db, req, "info", f"Contenu des messages effacé (conservation limitée à {months} mois après la clôture)",
+                      actor=history.SYSTEM, category=PURGED)
+            done += 1
+        db.commit()
+    if done:
+        log.info("Conservation : contenu des messages effacé pour %s demande(s)", done)
+    return done
 
 
 def stats(db: Session, profile_id: int | None = None) -> dict:
