@@ -192,6 +192,7 @@ def _classify_chat(subject: str, text: str, timeout: int) -> dict | None:
         "stream": False,
         "format": "json",
         "options": {"temperature": 0},
+        "keep_alive": "5m",  # déchargé après 5 min sans analyse (prime sur un OLLAMA_KEEP_ALIVE permanent)
         **({"think": False} if settings.llm_model.startswith("qwen3") else {}),
         "messages": [
             {"role": "system", "content": SYSTEM},
@@ -257,7 +258,7 @@ def test() -> str:
         hint = "Ollama 0.35 ou plus récent et un modèle de décision (tev1:4b, nimble) installés ?" if settings.llm_mode != "chat" \
             else "modèle installé avec ollama pull ?"
         raise RuntimeError(f"pas de réponse exploitable de {settings.llm_url} pour « {settings.llm_model} » ({hint})")
-    from .mailer import KIND_LABELS
+    from .rules import KIND_LABELS
     detail = f" — {res['summary']}" if res["summary"] else ""
     return (f"Modèle opérationnel : « {KIND_LABELS.get(res['category'], res['category'])} » "
             f"(probabilité {round(res['confidence'] * 100)} %){detail}")

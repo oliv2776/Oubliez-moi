@@ -30,7 +30,7 @@
 <form method="post" action="/tasks/device-ids/close" class="card">
   <h2 style="margin-top:0">{{ items|length }} courtier(s) concerné(s)</h2>
   <table class="device-table">
-    <thead><tr><th style="width:2rem"><input type="checkbox" checked aria-label="Tout cocher" onclick="this.closest('table').querySelectorAll('tbody input[type=checkbox]').forEach((c) => c.checked = this.checked)"></th>
+    <thead><tr><th style="width:2rem"><input type="checkbox" checked aria-label="Tout cocher" data-check-all></th>
       <th>Courtier</th><th>Liens cités dans sa réponse</th></tr></thead>
     <tbody>
     {% for r, links in items %}

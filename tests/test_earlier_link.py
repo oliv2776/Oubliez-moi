@@ -7,6 +7,7 @@ import pytest
 from app import confirm, mailer, service
 from app.config import settings
 from app.db import NEEDS_ACTION, SENT, Broker, Event, Profile, Request, SessionLocal
+from app import rules
 
 VERIFY = ("De : Branch Privacy Team <privacy-requests@branch-ex.example>\nDate : hier\nObjet : Privacy Request: Verify Your Email\n\n"
           "Please verify your email address by following this link:\nhttps://branch-ex.datagrail.io/verification?token=abc123\n"
@@ -35,7 +36,7 @@ def _request(slug, events=()):
 
 def test_follow_the_prompt_is_a_confirmation_request():
     m = mailer.ParsedMail(uid="", from_addr="privacy@branch.io", from_name="", subject="Re: x", message_id="", text=FOLLOW)
-    assert mailer.classify(m).kind == "confirm_link"
+    assert rules.classify(m).kind == "confirm_link"
 
 
 @pytest.fixture

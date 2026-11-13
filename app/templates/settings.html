@@ -9,6 +9,7 @@
     {% if settings.smtp_configured %}<span class="badge s-completed">Envoi configuré</span>{% else %}<span class="badge s-failed">Envoi à configurer</span>{% endif %}
     {% if settings.dry_run %}<span class="badge s-needs_action">Simulation</span>{% else %}<span class="badge s-sent">Envoi réel</span>{% endif %}
     {% if settings.imap_configured %}<span class="badge s-completed">Relève active</span>{% else %}<span class="badge s-queued">Relève désactivée</span>{% endif %}
+    <a class="btn sm" href="/settings/energy">Sobriété énergétique</a>
   </div>
 </div>
 
@@ -348,6 +349,9 @@
       </div>
     </div>
     <label class="check"><input type="checkbox" name="backup_encrypt" value="true" {{ 'checked' if settings.backup_encrypt }}> Chiffrer les sauvegardes (recommandé : illisibles sans la clé)</label>
+    <label for="retention_months" style="margin-top:.9rem">Conservation des messages <span class="hint">— en mois, 0 = sans limite</span></label>
+    <input id="retention_months" type="text" inputmode="numeric" name="retention_months" value="{{ settings.retention_months }}" style="max-width:120px">
+    <p class="small muted" style="margin-top:.4rem">Passé ce délai après la clôture, le contenu des e-mails (vos courriers et les réponses des courtiers) des demandes terminées ou annulées est effacé chaque nuit ; l'historique et les dates sont gardés. Les demandes refusées ou portées devant la CNIL ne sont jamais touchées. Cet effacement est définitif, sauf dans vos sauvegardes antérieures.</p>
     <div class="actions" style="margin-top:.9rem">
       <button class="btn sm" formaction="/settings/backup-now">Enregistrer et sauvegarder maintenant</button>
     </div>
@@ -386,12 +390,12 @@ docker compose start oubliez-moi</pre>
 </form>
 
 {% if overridden %}
-<form method="post" action="/settings/reset" class="small" onsubmit="return confirm('Effacer les réglages saisis ici et revenir aux valeurs du fichier .env ?')">
+<form method="post" action="/settings/reset" class="small" data-confirm="Effacer les réglages saisis ici et revenir aux valeurs du fichier .env ?">
   <button class="btn sm link">Revenir aux valeurs du fichier .env</button>
 </form>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   const $ = (id) => document.getElementById(id);
   // --- Onglets ---

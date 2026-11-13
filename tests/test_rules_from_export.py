@@ -13,11 +13,12 @@ OUR_LETTER = (
     "2016/679), I request that Acme erase all personal data concerning me.\n\nPlease confirm in writing that my data "
     "has been erased, or that you hold no data concerning me."
 )
+from app import rules
 
 
 def kind(text, subject="Re: Request for erasure", sender="privacy@acme.example", bounce=False):
     m = mailer.ParsedMail(uid="", from_addr=sender, from_name="", subject=subject, message_id="", text=text, is_bounce=bounce)
-    return mailer.classify(m).kind
+    return rules.classify(m).kind
 
 
 # ------------------------------------------------------ notre lettre citée ---
@@ -37,7 +38,7 @@ def kind(text, subject="Re: Request for erasure", sender="privacy@acme.example",
 def test_our_quoted_letter_never_closes_the_request(quote):
     """« my data has been erased » vient de notre lettre : la réponse au-dessus est un simple accusé."""
     assert kind("Hi,\n\nWe have passed your request to our Legal team and will email you with an update.\n\n" + quote) == "ack"
-    assert "Pursuant" not in mailer.latest_reply_text("Thanks.\n\n" + quote)
+    assert "Pursuant" not in rules.latest_reply_text("Thanks.\n\n" + quote)
 
 
 def test_question_above_a_swedish_quote():
@@ -134,10 +135,10 @@ def test_delay_and_full_mailbox_are_not_failures():
 
 
 def test_bounced_recipients():
-    assert mailer.bounced_recipients(
+    assert rules.bounced_recipients(
         "Delivery has failed to these recipients or groups:\n\njdoe@acme.com<mailto:jdoe@acme.com>\nThe email system...") \
         == {"jdoe@acme.com"}
-    assert mailer.bounced_recipients("Your message to privacy@acme.example couldn't be delivered.") == {"privacy@acme.example"}
+    assert rules.bounced_recipients("Your message to privacy@acme.example couldn't be delivered.") == {"privacy@acme.example"}
 
 
 def test_delivery_status_part_is_readable_text():

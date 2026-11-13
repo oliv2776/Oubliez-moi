@@ -20,12 +20,13 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from . import mailer
+from . import history, mailer
 from .config import settings
 from .db import (
     COMPLETED, FAILED, NEEDS_ACTION, OVERDUE, REPLIED, SENT, STATUS_LABELS, Event, Request, SessionLocal,
     add_event, kv_get, kv_set, utcnow,
 )
+from . import rules
 
 log = logging.getLogger(__name__)
 PROPOSALS_KEY = "reanalysis:proposals"
@@ -33,7 +34,6 @@ MODEL_KEY = "reanalysis:model"        # modèle avec lequel la dernière réanal
 ELIGIBLE = (REPLIED, NEEDS_ACTION, SENT, OVERDUE)
 # Clôtures et échecs décidés par l'automatisme (jamais ceux décidés à la main) : à revérifier aussi.
 AUTO_DECIDED = (COMPLETED, FAILED)
-_AUTO_PREFIXES = ("Classement automatique", "Réanalyse")
 SENSITIVE = ("completed_no_data", "completed_deleted", "confirm_link", "extension", "bounce")
 
 _lock = threading.Lock()
@@ -58,8 +58,8 @@ def _target(kind: str, current: str) -> str | None:
 
 def decided_automatically(req: Request) -> bool:
     """Le dernier changement de statut vient du classement automatique ou d'une réanalyse, pas de l'utilisateur."""
-    last = next((e for e in reversed(req.events) if e.kind == "status"), None)
-    return bool(last and (last.summary or "").startswith(_AUTO_PREFIXES))
+    last = history.last_status(req)
+    return bool(last and last.actor in history.AUTOMATIC)
 
 
 _BOUNCE_SENDER = re.compile(r"^(mailer-daemon|postmaster|non-?delivery|mail-?daemon)@", re.I)
@@ -80,8 +80,8 @@ def _from_event(ev: Event) -> mailer.ParsedMail:
                              message_id=ev.message_id or "", text=text, date=meta.get("Date", ""), html=ev.html or "")
 
 
-# Libellés d'un classement automatique qui exigeait un expéditeur authentifié (anciens libellés de statut inclus).
-_SENSITIVE_LABELS = tuple(mailer.KIND_LABELS[k] for k in SENSITIVE) + (STATUS_LABELS[COMPLETED], STATUS_LABELS[FAILED])
+# Classements qui exigeaient un expéditeur authentifié (anciens historiques : seul le statut était noté).
+_SENSITIVE_CATEGORIES = {*SENSITIVE, history.STATUS_PREFIX + COMPLETED, history.STATUS_PREFIX + FAILED}
 
 
 def verified_at_reception(req: Request, ev: Event) -> bool:
@@ -98,13 +98,10 @@ def verified_at_reception(req: Request, ev: Event) -> bool:
     for e in events[i + 1:]:
         if e.kind == "reply":
             break
-        if e.kind == "warning" and (e.summary or "").startswith("Réponse non vérifiée"):
+        if e.kind == "warning" and e.category == history.UNVERIFIED:
             return False
-        summary = e.summary or ""
-        if e.kind == "status" and summary.startswith("Classement automatique : ") and "non vérifié" not in summary:
-            label = summary[len("Classement automatique : "):]
-            if label.startswith(_SENSITIVE_LABELS):
-                return True
+        if e.kind == "status" and e.actor in history.AT_RECEPTION and e.category in _SENSITIVE_CATEGORIES:
+            return True
     return False
 
 
@@ -140,7 +137,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
             m = mailer.parse_mail(raw) if raw else _from_event(ev)
             c, note, advice = classify_reply(m)
             if c.kind == "bounce" and _list_member_bounce(req, m):
-                c = mailer.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
+                c = rules.Classification("delivery_issue", "échec pour un membre de la liste de diffusion du courtier")
             trusted = (bool(raw) and _sender_matches_broker(req, m.from_addr, m.dmarc_pass)) or verified_at_reception(req, ev)
             kind = c.kind
             if kind in SENSITIVE and not trusted:
@@ -155,7 +152,7 @@ def analyse(request_ids: list[int] | None = None) -> list[dict]:
                 proposals.append({
                     "request_id": req.id, "event_id": ev.id, "broker": req.broker.name, "reference": req.reference,
                     "from_status": req.status, "to_status": target, "kind": kind,
-                    "label": mailer.KIND_LABELS.get(kind, kind), "reason": c.reason or "", "note": note or "",
+                    "label": rules.KIND_LABELS.get(kind, kind), "reason": c.reason or "", "note": note or "",
                     "advice": advice or "",
                     "trusted": trusted, "from_mailbox": bool(raw), "downgraded": kind != c.kind,
                 })
@@ -245,7 +242,8 @@ def apply(db, request_ids: list[int]) -> tuple[int, int]:
             req.last_error = "Adresse e-mail du courtier invalide (message de non-distribution)"
         elif p["from_status"] == FAILED:
             req.last_error = None
-        set_status(db, req, p["to_status"], why)
+        set_status(db, req, p["to_status"], why, category=p["kind"],
+                   actor=history.classifier(p["reason"].startswith("IA"), reanalysis=True))
         if p["kind"] == "extension":
             base = req.sent_at or utcnow()
             req.due_at = max(due or utcnow(), base + timedelta(days=settings.response_days + 60))

@@ -149,7 +149,7 @@
 </div>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   function bindSenders() {
   const form = document.getElementById("senders-form");

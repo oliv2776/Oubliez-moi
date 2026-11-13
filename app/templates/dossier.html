@@ -27,7 +27,7 @@
 </head>
 <body>
 <div class="toolbar">
-  <button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+  <button data-print>Imprimer / Enregistrer en PDF</button>
   <a href="/requests/{{ r.id }}">← Retour à la demande</a>
   <span style="color:#666">Joignez ce PDF à votre plainte sur cnil.fr</span>
 </div>
@@ -76,5 +76,6 @@
 {% else %}
 <p>Aucune réponse reçue de l'organisme.</p>
 {% endfor %}
+<script nonce="{{ request.state.csp_nonce }}">document.querySelector("[data-print]").addEventListener("click", () => window.print());</script>
 </body>
 </html>

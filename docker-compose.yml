@@ -14,6 +14,16 @@ services:
       # Par défaut, accessible uniquement depuis le serveur (127.0.0.1).
       # Pour y accéder depuis votre réseau local, mettez BIND_ADDRESS=0.0.0.0 dans .env.
       - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-27480}:27480"
+    # Durcissement : l'appli n'écrit que dans /data et /backups (et /tmp, en mémoire), sans aucun privilège.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    pids_limit: 256
     volumes:
       - oubliez-moi-data:/data
       # Sauvegardes : indiquez dans .env un dossier de votre pool (BACKUP_PATH=/mnt/tank/backups/oubliez-moi),

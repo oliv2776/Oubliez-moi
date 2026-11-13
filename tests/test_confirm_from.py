@@ -6,6 +6,7 @@ import pytest
 from app import letters, mailboxes, mailer, oauth_ms, service
 from app.config import settings
 from app.db import NEEDS_ACTION, SENT, Broker, Mailbox, Profile, Request, SessionLocal
+from app import rules
 
 SMARTCLIP = """Dear Mr Deschênes,
 We have completed our checks for the email address
@@ -44,7 +45,7 @@ def _request(slug, with_mailbox=True):
 def test_classified_and_planned():
     m = mailer.ParsedMail(uid="", from_addr="privacy@confirm-a.example", from_name="", subject="Re: x", message_id="",
                           text=SMARTCLIP)
-    assert mailer.classify(m).kind == "confirm_from_address"
+    assert rules.classify(m).kind == "confirm_from_address"
 
 
 @pytest.fixture

@@ -1,6 +1,7 @@
 from email.message import EmailMessage
 
 from app import mailer
+from app import rules
 
 
 def _raw(subject, body, sender="dpo@broker.example", **headers):
@@ -17,20 +18,20 @@ def _raw(subject, body, sender="dpo@broker.example", **headers):
 
 def test_classify_deleted_fr():
     m = mailer.parse_mail(_raw("Re: Réf. OUBLI-ABC123", "Bonjour, vos données ont été supprimées de nos bases."))
-    assert mailer.classify(m).kind == "completed_deleted"
+    assert rules.classify(m).kind == "completed_deleted"
     assert mailer.find_references(m) == {"OUBLI-ABC123"}
 
 
 def test_classify_no_data_en():
     m = mailer.parse_mail(_raw("Your request", "We do not hold any personal data about you."))
-    assert mailer.classify(m).kind == "completed_no_data"
+    assert rules.classify(m).kind == "completed_no_data"
 
 
 def test_classify_id_request():
     m = mailer.parse_mail(_raw("Request", "To proceed, please verify your identity by sending a copy of your ID."))
-    assert mailer.classify(m).kind == "id_request"
+    assert rules.classify(m).kind == "id_request"
     m = mailer.parse_mail(_raw("Demande", "Merci de nous transmettre une copie de votre pièce d'identité."))
-    assert mailer.classify(m).kind == "id_request"
+    assert rules.classify(m).kind == "id_request"
 
 
 def test_classify_new_kinds():
@@ -47,7 +48,7 @@ def test_classify_new_kinds():
         "Your data has been deleted. If you have questions, please verify your identity with us.": "completed_deleted",
     }
     for text, kind in cases.items():
-        assert mailer.classify(mailer.parse_mail(_raw("Re", text))).kind == kind, text
+        assert rules.classify(mailer.parse_mail(_raw("Re", text))).kind == kind, text
 
 
 def test_links_extracted():
@@ -62,15 +63,15 @@ def test_links_extracted():
 
 def test_classify_ack():
     m = mailer.parse_mail(_raw("Accusé de réception", "Nous avons bien reçu votre demande et y répondrons sous 30 jours."))
-    assert mailer.classify(m).kind == "ack"
+    assert rules.classify(m).kind == "ack"
 
 
 def test_classify_other():
     m = mailer.parse_mail(_raw("Question", "Nous étudions votre message."))
-    assert mailer.classify(m).kind == "reply"
+    assert rules.classify(m).kind == "reply"
     # Une question du courtier attend une réponse de votre part.
     m = mailer.parse_mail(_raw("Question", "Pourriez-vous préciser votre ancienne adresse ?"))
-    assert mailer.classify(m).kind == "needs_action"
+    assert rules.classify(m).kind == "needs_action"
 
 
 def test_html_body():
@@ -80,12 +81,12 @@ def test_html_body():
     m.set_content("<p>Your data <b>has been deleted</b>.</p>", subtype="html")
     p = mailer.parse_mail(bytes(m))
     assert "has been deleted" in p.text
-    assert mailer.classify(p).kind == "completed_deleted"
+    assert rules.classify(p).kind == "completed_deleted"
 
 
 def test_bounce():
     m = mailer.parse_mail(_raw("Undelivered Mail Returned to Sender", "Réf. OUBLI-ZZZ999 user unknown", sender="MAILER-DAEMON@mx.example"))
-    assert m.is_bounce and mailer.classify(m).kind == "bounce"
+    assert m.is_bounce and rules.classify(m).kind == "bounce"
 
 
 def test_registered_domain():
@@ -109,7 +110,7 @@ def test_classification_ignores_quoted_old_deletion_when_latest_reply_requests_i
         "> Bonjour, vos données ont été supprimées de nos bases."
     )
     parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
-    assert mailer.classify(parsed).kind == "id_request"
+    assert rules.classify(parsed).kind == "id_request"
 
 
 def test_classification_ignores_quoted_old_id_request_when_latest_reply_confirms_deletion():
@@ -120,7 +121,7 @@ def test_classification_ignores_quoted_old_id_request_when_latest_reply_confirms
         "Subject: Requête\nPlease send a copy of your ID."
     )
     parsed = mailer.parse_mail(_raw("Re: Votre demande", body))
-    assert mailer.classify(parsed).kind == "completed_deleted"
+    assert rules.classify(parsed).kind == "completed_deleted"
 
 
 def test_multipart_alternative_body_is_not_duplicated():

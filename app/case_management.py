@@ -43,7 +43,7 @@ class Organization(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
-    cases: Mapped[list["PrivacyCase"]] = relationship(back_populates="organization")
+    cases: Mapped[list[PrivacyCase]] = relationship(back_populates="organization")
 
 
 class PrivacyCase(Base):
@@ -65,7 +65,7 @@ class PrivacyCase(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     organization: Mapped[Organization] = relationship(back_populates="cases")
     profile: Mapped[Profile | None] = relationship()
-    events: Mapped[list["CaseEvent"]] = relationship(
+    events: Mapped[list[CaseEvent]] = relationship(
         back_populates="case", cascade="all, delete-orphan", order_by="CaseEvent.at"
     )
 

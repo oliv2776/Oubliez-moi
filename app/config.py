@@ -82,6 +82,8 @@ class Settings:
     backup_schedule: str = field(default_factory=lambda: _str("BACKUP_SCHEDULE", "daily").lower())  # off | daily | weekly
     backup_keep: int = field(default_factory=lambda: _int("BACKUP_KEEP", 14))
     backup_encrypt: bool = field(default_factory=lambda: _bool("BACKUP_ENCRYPT", True))
+    # Conservation : contenu des messages des demandes terminées ou annulées effacé après N mois (0 = jamais)
+    retention_months: int = field(default_factory=lambda: _int("RETENTION_MONTHS", 0))
 
     # Notifications
     app_url: str = field(default_factory=lambda: _str("APP_URL"))
@@ -193,6 +195,7 @@ EDITABLE: dict[str, type] = {
     "backup_schedule": str,
     "backup_keep": int,
     "backup_encrypt": bool,
+    "retention_months": int,
 }
 SECRET_KEYS = {"smtp_password", "imap_password", "notify_ntfy_token", "notify_gotify_token", "simplelogin_api_key"}
 

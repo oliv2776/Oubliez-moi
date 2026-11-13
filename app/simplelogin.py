@@ -14,7 +14,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from sqlalchemy import select
 
@@ -87,7 +87,7 @@ def activities(alias_id: int) -> list[dict]:
 
 def _ts(value) -> datetime | None:
     try:
-        return datetime.fromtimestamp(int(value), tz=timezone.utc).replace(tzinfo=None) if value else None
+        return datetime.fromtimestamp(int(value), tz=UTC).replace(tzinfo=None) if value else None
     except (TypeError, ValueError, OverflowError):
         return None
 

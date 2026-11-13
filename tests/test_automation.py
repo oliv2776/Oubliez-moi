@@ -249,8 +249,11 @@ def test_local_ai_classifies_ambiguous_reply(client):
         _reply(rid, "Bonjour, nous avons fait le nécessaire concernant votre profil. Cordialement.", msgid="<ai@b.example>")
         with SessionLocal() as db:
             r = db.get(Request, rid)
-            assert r.status == "completed"
+            # L'IA seule ne clôt jamais : la demande attend votre confirmation, avec son analyse.
+            assert r.status == "replied"
             assert any(e.summary.startswith("Analyse IA") and "A-42" in e.summary for e in r.events)
+            last = [e for e in r.events if e.kind == "status"][-1]
+            assert (last.actor, last.category) == ("ai", "reply") and "à confirmer" in last.summary
     finally:
         settings.llm_url = ""
         settings.llm_mode, settings.llm_model = "decision", "tev1:4b"
@@ -312,12 +315,12 @@ def test_decision_model_classifies_with_probability(client):
     settings.llm_url = f"http://127.0.0.1:{srv.server_port}"
     settings.llm_mode, settings.llm_model = "decision", "tev1:4b"
     try:
-        # Probabilité 91 % : appliqué ; le numéro de dossier vient du texte
+        # Probabilité 91 % : retenu, mais une clôture proposée par l'IA seule attend votre confirmation
         rid = _sent_request(32)
         _reply(rid, "Hello, we hold nothing about you anymore. Our reference: CS-55120.", msgid="<dec1@b.example>")
         with SessionLocal() as db:
             r = db.get(Request, rid)
-            assert r.status == "completed"
+            assert r.status == "replied"
             note = [e.summary for e in r.events if e.summary.startswith("Analyse IA")][0]
             assert "aucune donnée" in note and "91 %" in note and "CS-55120" in note
         # Probabilité 40 % : sous le seuil, la réponse reste à examiner

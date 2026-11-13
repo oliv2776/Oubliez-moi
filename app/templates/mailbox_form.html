@@ -122,13 +122,13 @@
 </form>
 
 {% if mb %}
-<form method="post" action="/mailboxes/{{ mb.id }}/delete" class="panel-narrow" style="margin-top:1rem" onsubmit="return confirm('Retirer cette boîte d\'Oubliez-moi ? La boîte elle-même ne sera pas modifiée.')">
+<form method="post" action="/mailboxes/{{ mb.id }}/delete" class="panel-narrow" style="margin-top:1rem" data-confirm="Retirer cette boîte d'Oubliez-moi ? La boîte elle-même ne sera pas modifiée.">
   <button class="btn sm danger">Retirer cette boîte</button>
   <span class="small muted">Supprime aussi la liste de ses expéditeurs dans Oubliez-moi.{% if mb.linked_settings %} La relève des réponses des courtiers continue.{% endif %}</span>
 </form>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   const PROVIDERS = {{ PROVIDERS|tojson }};
   const $ = id => document.getElementById(id);

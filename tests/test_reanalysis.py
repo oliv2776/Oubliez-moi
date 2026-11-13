@@ -78,10 +78,12 @@ def test_new_model_reclassifies_ambiguous_reply(client, imap, monkeypatch):
     monkeypatch.setattr(settings, "llm_model", "qwen3:8b")
     monkeypatch.setattr(llm, "classify", lambda subject, text, **kw: {
         "category": "completed_no_data", "confidence": 0.88, "summary": "Aucune donnée vous concernant.", "ticket": None})
-    rid, _ = _request("replied", TEXT_AMBIGUOUS, "<amb@acme-re.example>", "re-d")
+    rid, _ = _request("sent", TEXT_AMBIGUOUS, "<amb@acme-re.example>", "re-d")
     imap["<amb@acme-re.example>"] = _raw("<amb@acme-re.example>", TEXT_AMBIGUOUS)
     p = reanalysis.analyse([rid])[0]
-    assert p["to_status"] == "completed" and p["note"] == "Analyse IA : Aucune donnée vous concernant."
+    # L'IA seule ne propose jamais une clôture : la réponse vous est soumise, avec son analyse.
+    assert p["to_status"] == "replied" and p["note"] == "Analyse IA : Aucune donnée vous concernant."
+    assert "à confirmer" in p["reason"]
 
 
 def test_apply_changes_status_only(client, imap):

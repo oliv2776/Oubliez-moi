@@ -7,6 +7,7 @@ import pytest
 from app import letters, mailer, service
 from app.config import settings
 from app.db import NEEDS_ACTION, SENT, Broker, Event, Profile, Request, SessionLocal
+from app import rules
 
 OMNICOM = ("Dear Olivier,\nThank you for your data subject requested dated October 29, 2026. In order to start processing "
            "your erasure of personal data, we do need to confirm your relationship with Omnicom Media Group as either an "
@@ -22,7 +23,7 @@ DEMANDBASE = ("In order to proceed, could you please respond by confirming your 
 
 
 def kind(text):
-    return mailer.classify(mailer.ParsedMail(uid="", from_addr="a@b.example", from_name="", subject="Re", message_id="", text=text))
+    return rules.classify(mailer.ParsedMail(uid="", from_addr="a@b.example", from_name="", subject="Re", message_id="", text=text))
 
 
 @pytest.mark.parametrize("text, topic", [
@@ -31,7 +32,7 @@ def kind(text):
 ])
 def test_simple_questions(text, topic):
     assert kind(text).kind == "clarification"
-    assert mailer.clarification_topic(text) == topic
+    assert rules.clarification_topic(text) == topic
 
 
 def test_information_without_question_is_not_a_question():

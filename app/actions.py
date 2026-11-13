@@ -5,8 +5,8 @@ Le classement est refait avec les règles actuelles sur la dernière réponse : 
 """
 from __future__ import annotations
 
-from . import mailer
 from .db import NEEDS_ACTION, Request
+from . import rules
 
 # (clé, libellé de la catégorie, libellé court pour la liste, catégories de réponse)
 ACTION_TYPES = [
@@ -23,13 +23,29 @@ SHORT = {key: short for key, _, short, _ in ACTION_TYPES}
 _BY_KIND = {kind: key for key, _, _, kinds in ACTION_TYPES for kind in kinds}
 
 
+# (id, empreinte du texte) -> classement. Les règles ne changent pas tant que l'appli tourne ; l'empreinte
+# couvre le cas d'un identifiant réutilisé après une suppression.
+_kind_cache: dict[tuple, str] = {}
+_CACHE_MAX = 20000
+
+
+def kind_of_reply(ev) -> str:
+    """Classement d'une réponse enregistrée par les règles actuelles, calculé une seule fois par réponse."""
+    from .reanalysis import _from_event
+    key = (ev.id, hash(ev.body))
+    if key in _kind_cache:
+        return _kind_cache[key]
+    kind = rules.classify(_from_event(ev)).kind
+    if len(_kind_cache) >= _CACHE_MAX:
+        _kind_cache.clear()
+    _kind_cache[key] = kind
+    return kind
+
+
 def current_kind(req: Request) -> str | None:
     """Classement de la dernière réponse par les règles actuelles (None s'il n'y a pas de réponse)."""
-    from .reanalysis import _from_event
     replies = [e for e in req.events if e.kind == "reply"]
-    if not replies:
-        return None
-    return mailer.classify(_from_event(replies[-1])).kind
+    return kind_of_reply(replies[-1]) if replies else None
 
 
 def action_type(req: Request, kind: str | None) -> str | None:

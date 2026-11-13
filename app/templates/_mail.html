@@ -27,7 +27,7 @@
 {%- endmacro %}
 
 {% macro mail_script() -%}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   function fit(f) {
     try {

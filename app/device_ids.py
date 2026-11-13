@@ -15,9 +15,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from . import confirm, insight, mailer, mailview
+from . import confirm, history, insight, mailer, mailview
 from .db import COMPLETED, NEEDS_ACTION, REPLIED, STATUS_LABELS, Request
 from .web import get_db, render
+from . import rules
 
 router = APIRouter()
 NOTE = "identifiants publicitaires réinitialisés (téléphone, navigateur), opposition faite si proposée"
@@ -38,12 +39,8 @@ def asks_for_device_id(req: Request) -> bool:
     ins = insight.for_request(req)
     if ins and ins.kind == "device_id":
         return True
-    ev = _last_reply(req)
-    if ev is None:
-        return False
-    headers, text = mailview.split_headers(ev.body or "")
-    m = mailer.ParsedMail(uid="", from_addr="", from_name="", subject=headers.get("Objet", ""), message_id="", text=text)
-    return mailer.classify(m).kind == "device_id"
+    from .actions import current_kind
+    return current_kind(req) == "device_id"
 
 
 def candidates(db: Session) -> list[Request]:
@@ -60,7 +57,7 @@ def useful_links(req: Request, limit: int = 4) -> list[dict]:
     text = mailview.split_headers(ev.body or "")[1]
     own = confirm.broker_domains(req.broker.email, req.broker.web)
     out, seen = [], set()
-    for url, label in mailer.extract_links(ev.html or "", mailer.latest_reply_text(text)):
+    for url, label in mailer.extract_links(ev.html or "", rules.latest_reply_text(text)):
         host = (urlsplit(url).hostname or "").lower()
         key = (host, urlsplit(url).path.rstrip("/"))
         if not host or key in seen or _USELESS.search(url) or not (_USEFUL.search(url) or _USEFUL.search(label or "")):
@@ -91,7 +88,8 @@ def device_ids_close(request: HttpRequest, ids: list[int] = Form(default=[]), db
         r = allowed.get(rid)
         if r is None:
             continue  # demande déjà traitée ou qui ne relève plus de ce cas
-        set_status(db, r, COMPLETED, f"Statut changé manuellement : {STATUS_LABELS[COMPLETED]} — {NOTE}")
+        set_status(db, r, COMPLETED, f"Statut changé manuellement : {STATUS_LABELS[COMPLETED]} — {NOTE}",
+                   actor=history.MANUAL, category=COMPLETED)
         done += 1
     db.commit()
     request.session.setdefault("flash", []).append(

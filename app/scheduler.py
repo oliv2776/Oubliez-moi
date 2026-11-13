@@ -56,6 +56,7 @@ def daily():
     return {
         "renvois": service.schedule_resends(),
         "nouveaux_courtiers": service.enroll_new_brokers() if settings.auto_enroll_new_brokers else 0,
+        "messages_effaces": service.purge_old_messages(),
     }
 
 
