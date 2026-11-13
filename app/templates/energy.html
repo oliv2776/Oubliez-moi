@@ -30,7 +30,7 @@
     </details>
     {% endif %}
     {% if c.extra.test %}
-    <form method="post" action="/settings/energy/test-llm" class="inline" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Chargement du modèle… (jusqu\'à une minute)';">
+    <form method="post" action="/settings/energy/test-llm" class="inline" data-busy="Chargement du modèle… (jusqu'à une minute)">
       <button class="btn sm">Tester maintenant ({{ settings.llm_model }})</button>
     </form>
     {% endif %}
@@ -38,7 +38,7 @@
 {% endfor %}
 </div>
 <p class="small muted">Les réglages du serveur sont lus en lecture seule depuis le conteneur (/sys). Une ligne « Non vérifiable » signifie que l'information n'y est pas visible, pas qu'il y a un problème.</p>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener("click", async (ev) => {
   const btn = ev.target.closest("[data-copy]"); if (!btn) return;
   try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = "Copié"; } catch (e) { btn.textContent = "Copie impossible"; }

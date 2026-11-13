@@ -43,5 +43,6 @@ def render(request, name: str, db: Session | None = None, **ctx):
         flashes=request.session.pop("flash", []),
         nav_todo=todo_count(db) if db is not None else 0,
         version=__version__,
+        csp_nonce=getattr(request.state, "csp_nonce", ""),
     )
     return templates.TemplateResponse(request, name, ctx)

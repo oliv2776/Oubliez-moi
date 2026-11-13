@@ -274,3 +274,19 @@ def test_public_paths_require_exact_match_or_path_boundary():
 def test_oauth_poll_rejects_get_method(client):
     response = client.get("/mailboxes/1/oauth/poll", follow_redirects=False)
     assert response.status_code == 405
+
+
+def test_content_security_policy_and_no_inline_handlers(client):
+    """Scripts limités à ceux de l'appli (jeton par page) ; aucun gestionnaire dans le HTML, qui serait bloqué."""
+    import re
+    from pathlib import Path
+    r = client.get("/tasks")
+    csp = r.headers["content-security-policy"]
+    nonce = re.search(r"script-src 'self' 'nonce-([\w-]+)'", csp).group(1)
+    assert "object-src 'none'" in csp and "frame-ancestors 'none'" in csp and "unsafe-inline' 'nonce" not in csp
+    assert f'<script nonce="{nonce}">' in r.text and "<script>" not in r.text
+    assert nonce != re.search(r"nonce-([\w-]+)", client.get("/tasks").headers["content-security-policy"]).group(1)
+    for tpl in (Path(__file__).resolve().parents[1] / "app" / "templates").glob("*.html"):
+        text = tpl.read_text(encoding="utf-8")
+        assert not re.search(r"<script(?![^>]*(nonce|src)=)[^>]*>", text), tpl.name
+        assert not re.search(r"\son(click|submit|change|input|load|error)\s*=", text), tpl.name

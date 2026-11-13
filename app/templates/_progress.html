@@ -10,7 +10,7 @@
   <p class="rp-step" id="rp-step"></p>
   <p class="rp-model small muted" id="rp-model"></p>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   const box = document.getElementById("rp");
   const $ = (id) => document.getElementById(id);

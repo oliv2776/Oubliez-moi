@@ -153,7 +153,7 @@
       {% endif %}
       {% if ins.kind == 'device_id' %}<p class="small" style="margin:.4rem 0 0"><a href="/tasks/device-ids">Marche à suivre commune et clôture groupée →</a></p>{% endif %}
       {% if can_summarize %}
-      <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Le modèle lit le message… (jusqu\'à une minute)';">
+      <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" data-busy="Le modèle lit le message… (jusqu'à une minute)">
         <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
         <button class="btn sm {{ 'link' if ins.ai_summary }}">{{ "Redemander un résumé et un conseil à l'IA" if ins.ai_summary else "Résumer et conseiller avec l'IA" }} ({{ settings.llm_model }})</button>
       </form>
@@ -252,7 +252,7 @@
 {% endif %}
 
 {{ mail_script() }}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   // Raccourcis clavier (hors saisie de texte)
   document.addEventListener("keydown", e => {

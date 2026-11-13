@@ -163,14 +163,14 @@
       {{ simplelogin_form() }}
     </div>
   </div>
-  <form method="post" action="/migration/reset" style="margin-top:1rem" onsubmit="return confirm('Effacer l\'inventaire et vos choix ? Vos alias ne seront pas touchés.')">
+  <form method="post" action="/migration/reset" style="margin-top:1rem" data-confirm="Effacer l'inventaire et vos choix ? Vos alias ne seront pas touchés.">
     <button class="btn sm danger">Recommencer l'inventaire</button>
     <span class="small muted">Efface la liste et vos choix dans Oubliez-moi ; rien n'est modifié dans vos boîtes ni dans Proton Pass.</span>
   </form>
 </details>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   // Copier un alias : presse-papiers si disponible (HTTPS), sinon méthode classique, sinon sélection du texte.
   function fallback(text) {

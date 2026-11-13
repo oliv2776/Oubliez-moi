@@ -43,7 +43,7 @@
   </ol>
 </details>
 {% endif %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function copyText(text) {
   if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
   return legacyCopy(text);

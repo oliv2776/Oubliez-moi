@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import re
+import secrets
 import time
 from urllib.parse import urlsplit
 from contextlib import asynccontextmanager
@@ -141,10 +142,18 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+CSP = ("default-src 'self'; script-src 'self' 'nonce-{nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+       "frame-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'")
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Applique des en-têtes défensifs et interdit la mise en cache des pages privées."""
     async def dispatch(self, request, call_next):
+        # Scripts : uniquement ceux de l'appli, marqués d'un jeton renouvelé à chaque page. Un script injecté
+        # (dans un nom de courtier, un objet d'e-mail…) ne s'exécute pas, même si un échappement manquait.
+        request.state.csp_nonce = secrets.token_urlsafe(16)
         response = await call_next(request)
+        response.headers.setdefault("Content-Security-Policy", CSP.format(nonce=request.state.csp_nonce))
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         # « same-origin » et surtout pas « no-referrer » : avec no-referrer, les navigateurs

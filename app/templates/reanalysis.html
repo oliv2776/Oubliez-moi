@@ -45,7 +45,7 @@
 </div>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   const all = document.getElementById("re-all");
   if (all) all.addEventListener("change", () => document.querySelectorAll('input[name="ids"]').forEach((c) => { c.checked = all.checked; }));

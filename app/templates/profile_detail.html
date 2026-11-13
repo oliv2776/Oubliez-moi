@@ -82,8 +82,8 @@
 <div class="card">
   {{ stack(st) }}
   <div class="filters" style="margin:1rem 0 .5rem">
-    <input type="search" id="flt" placeholder="Filtrer les courtiers…" oninput="filt()">
-    <select id="fst" onchange="filt()"><option value="">Tous les statuts</option>{% for k, v in STATUS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
+    <input type="search" id="flt" placeholder="Filtrer les courtiers…">
+    <select id="fst"><option value="">Tous les statuts</option>{% for k, v in STATUS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select>
   </div>
   <div class="table-wrap"><table id="tbl">
     <tr><th>Courtier</th><th>Statut</th><th class="hide-sm">Envoyée</th><th class="hide-sm">Échéance</th><th class="num">Cycle</th></tr>
@@ -98,9 +98,11 @@
     {% endfor %}
   </table></div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 function filt(){const q=document.getElementById('flt').value.toLowerCase(),s=document.getElementById('fst').value;
 document.querySelectorAll('#tbl tr[data-s]').forEach(tr=>{tr.style.display=(!s||tr.dataset.s===s)&&tr.dataset.n.includes(q)?'':'none'})}
+document.getElementById("flt").addEventListener("input", filt);
+document.getElementById("fst").addEventListener("change", filt);
 </script>
 {% endif %}
 {% endblock %}

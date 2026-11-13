@@ -390,12 +390,12 @@ docker compose start oubliez-moi</pre>
 </form>
 
 {% if overridden %}
-<form method="post" action="/settings/reset" class="small" onsubmit="return confirm('Effacer les réglages saisis ici et revenir aux valeurs du fichier .env ?')">
+<form method="post" action="/settings/reset" class="small" data-confirm="Effacer les réglages saisis ici et revenir aux valeurs du fichier .env ?">
   <button class="btn sm link">Revenir aux valeurs du fichier .env</button>
 </form>
 {% endif %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 (function () {
   const $ = (id) => document.getElementById(id);
   // --- Onglets ---
