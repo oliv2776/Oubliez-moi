@@ -162,6 +162,10 @@ class Event(Base):
     body: Mapped[str | None] = mapped_column(Text, nullable=True)
     html: Mapped[str | None] = mapped_column(Text, nullable=True)  # partie HTML brute d'une réponse reçue
     message_id: Mapped[str | None] = mapped_column(String(500), nullable=True, index=True)  # Message-ID d'une réponse reçue
+    # Qui a décidé (rules, ai, reanalysis, reanalysis-ai, manual, system) et quoi (catégorie de réponse,
+    # statut choisi à la main, summary/advice pour l'IA…) : voir history.py. Le code lit ces colonnes, pas le texte.
+    actor: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     request: Mapped[Request] = relationship(back_populates="events")
 
@@ -359,6 +363,8 @@ MIGRATIONS = [
     ("privacy_cases", "overdue_notified_at", "DATETIME"),
     ("mailboxes", "linked_settings", "BOOLEAN NOT NULL DEFAULT 0"),
     ("mailboxes", "migration_role", "VARCHAR(10)"),
+    ("events", "actor", "VARCHAR(20)"),
+    ("events", "category", "VARCHAR(40)"),
 ]
 
 
@@ -371,6 +377,28 @@ def init_db() -> None:
             if cols and column not in cols:  # table absente : create_all vient de la créer complète
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
         conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_events_message_id ON events (message_id)")
+        _backfill_event_columns(conn)
+
+
+def _backfill_event_columns(conn) -> None:
+    """Remplit actor/category des événements créés avant ces colonnes (une seule fois par événement)."""
+    from . import history
+    rows = conn.exec_driver_sql(
+        "SELECT id, kind, summary FROM events WHERE actor IS NULL AND kind IN ('status', 'info', 'warning')").fetchall()
+    for ev_id, kind, summary in rows:
+        actor, category = history.infer(kind, summary)
+        conn.exec_driver_sql("UPDATE events SET actor = ?, category = ? WHERE id = ?", (actor or history.SYSTEM, category, ev_id))
+
+
+@event.listens_for(Event, "init")
+def _event_defaults(target, args, kwargs) -> None:
+    """Filet : un événement créé sans auteur ni catégorie les reçoit d'après son texte."""
+    if kwargs.get("actor") is None and kwargs.get("kind") in ("status", "info", "warning"):
+        from . import history
+        actor, category = history.infer(kwargs.get("kind"), kwargs.get("summary"))
+        kwargs["actor"] = actor
+        if kwargs.get("category") is None:
+            kwargs["category"] = category
 
 
 def kv_get(db, key: str, default: str | None = None) -> str | None:
@@ -396,7 +424,8 @@ def new_reference(db) -> str:
             return ref
 
 
-def add_event(db, req: Request, kind: str, summary: str, body: str | None = None) -> Event:
-    ev = Event(request=req, kind=kind, summary=summary[:500], body=body)
+def add_event(db, req: Request, kind: str, summary: str, body: str | None = None,
+              actor: str | None = None, category: str | None = None) -> Event:
+    ev = Event(request=req, kind=kind, summary=summary[:500], body=body, actor=actor, category=category)
     db.add(ev)
     return ev

@@ -10,7 +10,7 @@ from sqlalchemy import String, cast, func, or_, select, true
 from sqlalchemy.orm import Session, selectinload
 
 from . import brokers as broker_catalog
-from . import case_management, confirm, letters, llm, mailer, mailview, notify, phones
+from . import case_management, confirm, history, letters, llm, mailer, mailview, notify, phones
 from .config import settings
 from .db import (
     COMPLETED,
@@ -508,6 +508,7 @@ def _match_request(db: Session, m: mailer.ParsedMail) -> Request | None:
 MAX_AUTO_REPLIES = 3
 BOUNCE_ERROR = "Adresse e-mail du courtier invalide (message de non-distribution)"
 LLM_MIN_CONFIDENCE = 0.7
+AI_NEVER_ALONE = ("completed_no_data", "completed_deleted")  # clôtures : jamais sur la seule foi de l'IA
 _NOREPLY_RE = re.compile(r"^(no-?reply|do-?not-?reply|ne-?pas-?repondre|mailer-daemon|postmaster|bounce)", re.I)
 
 
@@ -565,16 +566,21 @@ def classify_reply(m: mailer.ParsedMail) -> tuple[mailer.Classification, str | N
             note = note[:500]
             advice = res.get("action")
             if res["confidence"] >= LLM_MIN_CONFIDENCE:
-                return mailer.Classification(res["category"], f"IA, probabilité {round(res['confidence'] * 100)} %"), note, advice
+                proba = f"probabilité {round(res['confidence'] * 100)} %"
+                if res["category"] in AI_NEVER_ALONE:
+                    # L'IA n'est consultée que lorsque les règles n'ont rien reconnu : sa seule lecture, que le
+                    # texte du courtier peut orienter, ne suffit pas à clore une demande. Vous tranchez.
+                    return mailer.Classification("reply", f"IA, {proba} : « {label} » à confirmer"), note, advice
+                return mailer.Classification(res["category"], f"IA, {proba}"), note, advice
     return c, note, advice
 
 
 def _classify(db: Session, req: Request, m: mailer.ParsedMail) -> mailer.Classification:
     c, note, advice = classify_reply(m)
     if note:
-        add_event(db, req, "info", note)
+        add_event(db, req, "info", note, actor=history.AI, category=history.SUMMARY)
     if advice:
-        add_event(db, req, "info", f"Conseil IA : {advice}"[:500])
+        add_event(db, req, "info", f"Conseil IA : {advice}"[:500], actor=history.AI, category=history.ADVICE)
     return c
 
 
@@ -602,10 +608,11 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
             c = mailer.Classification("reply", "expéditeur non vérifié")
     label = mailer.KIND_LABELS.get(c.kind, c.kind)
     why = f"Classement automatique : {label}" + (f" (« {c.reason} »)" if c.reason else "")
+    who = {"actor": history.classifier(c.reason.startswith("IA")), "category": c.kind}
 
     if c.kind == "bounce":
         req.last_error = BOUNCE_ERROR
-        set_status(db, req, FAILED, why)
+        set_status(db, req, FAILED, why, **who)
         return
     if c.kind == "delivery_issue":
         add_event(db, req, "info", f"Incident de distribution sans conséquence (« {c.reason} ») : rien à faire")
@@ -617,26 +624,26 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
         req.last_error = None
         add_event(db, req, "info", "Le courtier a répondu après un message de non-distribution : son adresse fonctionne")
         if c.kind == "ack":
-            set_status(db, req, SENT, why)
+            set_status(db, req, SENT, why, **who)
     if c.kind in ("completed_no_data", "completed_deleted"):
-        set_status(db, req, COMPLETED, why)
+        set_status(db, req, COMPLETED, why, **who)
     elif c.kind == "ack":
-        add_event(db, req, "info", f"Accusé de réception détecté (« {c.reason} »)")
+        add_event(db, req, "info", f"Accusé de réception détecté (« {c.reason} »)", actor=history.RULES, category="ack")
     elif c.kind == "extension":
         base = req.sent_at or utcnow()
         new_due = max(req.due_at or utcnow(), base + timedelta(days=settings.response_days + 60))
         req.due_at = new_due
         if req.status != SENT:
-            set_status(db, req, SENT, why)
+            set_status(db, req, SENT, why, **who)
         add_event(db, req, "info", f"Prolongation annoncée (RGPD art. 12.3 : deux mois de plus au maximum) : nouvelle échéance le {new_due:%d/%m/%Y}")
     elif c.kind in ("id_request", "legit_refusal", "residence_question", "clarification"):
         if settings.auto_replies and _can_auto_reply(req, c.kind) and _send_auto_reply(db, req, c.kind, m):
             if c.kind == "legit_refusal":
                 req.due_at = utcnow() + timedelta(days=settings.response_days)
             if req.status != SENT:
-                set_status(db, req, SENT, why + " — réponse automatique envoyée")
+                set_status(db, req, SENT, why + " — réponse automatique envoyée", **who)
         else:
-            set_status(db, req, NEEDS_ACTION if c.kind in ("id_request", "clarification") else REPLIED, why)
+            set_status(db, req, NEEDS_ACTION if c.kind in ("id_request", "clarification") else REPLIED, why, **who)
     elif c.kind == "confirm_link":
         links = confirm.candidate_links(m.links, req.broker.email, req.broker.web)
         if not links:  # « suivez le lien de l'e-mail que vous avez reçu » : il est dans une réponse précédente
@@ -649,22 +656,22 @@ def _handle_reply(db: Session, req: Request, m: mailer.ParsedMail) -> None:
                 now = utcnow()
                 req.due_at = now + timedelta(days=settings.response_days)
                 req.reminder_count = 0
-                set_status(db, req, SENT, why + " — confirmé automatiquement")
+                set_status(db, req, SENT, why + " — confirmé automatiquement", **who)
                 return
         elif links:
             add_event(db, req, "info", "Lien de confirmation à ouvrir", links[0])
-        set_status(db, req, NEEDS_ACTION, why)
+        set_status(db, req, NEEDS_ACTION, why, **who)
     elif c.kind == "confirm_from_address":
         plan = confirm_from_plan(db, req, m.subject, m.text, m.message_id)
         if (plan and plan["mailbox"] is not None and settings.auto_replies and _can_auto_reply(req, c.kind)
                 and send_confirm_from(db, req, plan)[0]):
-            set_status(db, req, SENT, why + f" — confirmation envoyée depuis {plan['address']}")
+            set_status(db, req, SENT, why + f" — confirmation envoyée depuis {plan['address']}", **who)
         else:
-            set_status(db, req, NEEDS_ACTION, why)
+            set_status(db, req, NEEDS_ACTION, why, **who)
     elif c.kind in ("needs_action", "webform", "device_id"):
-        set_status(db, req, NEEDS_ACTION, why)
+        set_status(db, req, NEEDS_ACTION, why, **who)
     else:  # refus probable, réponse non reconnue
-        set_status(db, req, REPLIED, why)
+        set_status(db, req, REPLIED, why, **who)
 
 
 def confirm_from_plan(db: Session, req: Request, subject: str, text: str, message_id: str | None = None) -> dict | None:
@@ -909,7 +916,8 @@ def poll_imap() -> int:
 
 # --------------------------------------------------------------- Divers ----
 
-def set_status(db: Session, req: Request, status: str, note: str | None = None) -> None:
+def set_status(db: Session, req: Request, status: str, note: str | None = None,
+               actor: str | None = None, category: str | None = None) -> None:
     old = req.status
     req.status = status
     now = utcnow()
@@ -928,7 +936,8 @@ def set_status(db: Session, req: Request, status: str, note: str | None = None) 
     if status == QUEUED:
         req.attempts = 0
         req.last_error = None
-    add_event(db, req, "status", note or f"Statut : {STATUS_LABELS.get(old, old)} → {STATUS_LABELS.get(status, status)}")
+    add_event(db, req, "status", note or f"Statut : {STATUS_LABELS.get(old, old)} → {STATUS_LABELS.get(status, status)}",
+              actor=actor, category=category)
 
 
 def stats(db: Session, profile_id: int | None = None) -> dict:

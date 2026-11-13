@@ -16,14 +16,12 @@ from urllib.parse import urlsplit
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from . import __version__, insight, mailer, mailview
+from . import __version__, history, insight, mailer, mailview
 from .config import settings
 from .db import COMPLETED, SENT, STATUS_LABELS, TODO_STATUSES, AccountMigration, Mailbox, Profile, Request
 
 MAX_TEXT = 6000
 MAX_EXAMPLES = 300
-MANUAL = "Statut changé manuellement : "
-_LABEL_TO_STATUS = {label: code for code, label in STATUS_LABELS.items()}
 _EMAIL_RE = re.compile(r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+", re.U)
 _URL_RE = re.compile(r"https?://[^\s<>\"')\]]+", re.I)
 _TOKENISH = re.compile(r"^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_\-=%.]{16,}$|^[A-Fa-f0-9\-]{20,}$")
@@ -179,16 +177,8 @@ def _status_change(r: Request, red) -> dict | None:
     if e is None:
         return None
     s = e.summary or ""
-    if s.startswith(MANUAL):
-        by = "manuel"
-    elif "IA, probabilité" in s:
-        by = "ia"
-    elif s.startswith("Réanalyse"):
-        by = "reanalyse"
-    elif s.startswith("Classement automatique"):
-        by = "regles"
-    else:
-        by = "autre"
+    by = {history.MANUAL: "manuel", history.AI: "ia", history.REANALYSIS_AI: "ia", history.REANALYSIS: "reanalyse",
+          history.RULES: "regles"}.get(e.actor, "autre")
     return {"date": _iso(e.at), "par": by, "resume": red.text(s)}
 
 
@@ -245,11 +235,8 @@ def _manual_decision(r: Request) -> tuple[str, str] | None:
     if last is None:
         return None
     for e in reversed(events[last + 1:]):
-        if e.kind == "status" and (e.summary or "").startswith(MANUAL):
-            label, _, note = e.summary[len(MANUAL):].partition(" — ")
-            code = _LABEL_TO_STATUS.get(label.strip())
-            if code:
-                return code, note
+        if e.kind == "status" and e.actor == history.MANUAL and e.category in STATUS_LABELS:
+            return e.category, (e.summary or "").partition(" — ")[2]
     return None
 
 

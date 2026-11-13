@@ -24,7 +24,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import backup, brokers as broker_catalog, crypto, letters, llm, mailboxes, oauth_ms, mailer, mailview, notify, phones, scheduler, service, settings_store, web
-from . import actions, case_assistant, case_management, device_ids, energy, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
+from . import actions, case_assistant, case_management, device_ids, energy, history, exposures, insight, migration_routes, reanalysis, search as search_routes, task_export
 from .config import settings
 from .login_security import login_attempt_limiter
 from .db import (
@@ -528,7 +528,8 @@ def request_status(request: HttpRequest, rid: int, status: str = Form(...), note
     r = _get(db, Request, rid)
     if status not in STATUS_LABELS:
         raise HTTPException(400)
-    service.set_status(db, r, status, f"Statut changé manuellement : {STATUS_LABELS[status]}" + (f" — {note}" if note.strip() else ""))
+    service.set_status(db, r, status, f"Statut changé manuellement : {STATUS_LABELS[status]}" + (f" — {note}" if note.strip() else ""),
+                       actor=history.MANUAL, category=status)
     db.commit()
     flash(request, f"{r.broker.name} : {STATUS_LABELS[status]}.")
     return back(_safe_next(next) or request.headers.get("referer") or f"/requests/{rid}")
@@ -634,7 +635,7 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
         ctx["latest_sent"] = sends[-1] if sends else None
         ctx["form_help"] = _form_help(r)
         infos = [e for e in r.events if e.kind in ("info", "confirm")]
-        ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.summary.startswith("Analyse IA")), None)
+        ctx["ai_note"] = next((e.summary for e in reversed(infos) if e.actor == history.AI and e.category == history.SUMMARY), None)
         ctx["why"] = next((e.summary for e in reversed(r.events) if e.kind == "status"), None)
         ctx["confirm_link"] = next((e for e in reversed(infos) if e.body and e.body.startswith("http")), None)
         ctx["earlier_link"] = service.earlier_confirm_link(r) if r.status == NEEDS_ACTION and not ctx["confirm_link"] else None

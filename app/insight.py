@@ -8,9 +8,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from . import mailer, mailview
+from . import history, mailer, mailview
 from .config import settings
-from .db import Request
+from .db import STATUS_LABELS, Request
 
 # Que faire, selon ce que dit la réponse (utilisé quand l'IA n'a pas donné de conseil).
 ACTIONS = {
@@ -56,8 +56,6 @@ ACTIONS = {
                        "suit son cours.", ""),
     "reply": ("Lisez la réponse ci-dessous et indiquez ce qu'elle dit avec les boutons.", ""),
 }
-_LABEL_TO_KIND = {label: kind for kind, label in mailer.KIND_LABELS.items()}
-_CLASSIFIED = re.compile(r"^(?:Classement automatique|Réanalyse) : (.+?)(?: \(« (.*) »\))?(?: — .*)?$")
 _PROBA = re.compile(r"IA, probabilité (\d+) %")
 _QUOTE_INTRO = re.compile(r"^\s*(on|le|am)\b.{0,120}\b(wrote|a écrit|schrieb)\s*:\s*$", re.I)
 
@@ -98,17 +96,17 @@ def for_request(r: Request) -> Insight | None:
     reply, after = events[idx], events[idx + 1:]
     ins = Insight()
     for e in after:
-        if e.kind == "status":
-            hit = _CLASSIFIED.match(e.summary or "")
-            if hit:
-                ins.label = hit.group(1)
-                ins.kind = _LABEL_TO_KIND.get(hit.group(1), ins.kind)
-                proba = _PROBA.search(hit.group(2) or "")
-                if proba:
-                    ins.by_ai, ins.confidence = True, int(proba.group(1))
-        elif e.kind == "info" and (e.summary or "").startswith("Analyse IA : "):
-            text = e.summary[len("Analyse IA : "):]
-            ins.by_ai = ins.by_ai or True
+        if e.kind == "status" and e.actor in history.AUTOMATIC:
+            if e.category and not e.category.startswith(history.STATUS_PREFIX):
+                ins.kind, ins.label = e.category, mailer.KIND_LABELS.get(e.category, e.category)
+            elif e.category:  # anciens historiques : seul le statut obtenu était noté
+                ins.label = STATUS_LABELS.get(e.category[len(history.STATUS_PREFIX):], ins.label)
+            if e.actor in history.BY_AI:
+                proba = _PROBA.search(e.summary or "")
+                ins.by_ai, ins.confidence = True, (int(proba.group(1)) if proba else ins.confidence)
+        elif e.kind == "info" and e.actor == history.AI and e.category == history.SUMMARY:
+            text = (e.summary or "").partition(" : ")[2]
+            ins.by_ai = True
             # Modèle de décision : « catégorie (probabilité 88 %) », pas un résumé
             # Notre propre référence a parfois été prise pour un numéro de dossier : on l'enlève.
             text = re.sub(r"\s*\(dossier n° " + re.escape(settings.reference_prefix) + r"-[^)]*\)", "", text, flags=re.I)
@@ -120,11 +118,11 @@ def for_request(r: Request) -> Insight | None:
             ticket = re.search(r"\(dossier n° ([^)]+)\)", text)
             if ticket:
                 ins.ticket = ticket.group(1)
-        elif e.kind == "info" and (e.summary or "").startswith("Conseil IA : "):
-            ins.action, ins.ai_action = e.summary[len("Conseil IA : "):], True
-        elif e.kind == "info" and (e.summary or "").startswith("Accusé de réception détecté"):
+        elif e.kind == "info" and e.actor == history.AI and e.category == history.ADVICE:
+            ins.action, ins.ai_action = (e.summary or "").partition(" : ")[2], True
+        elif e.kind == "info" and e.category == "ack":
             ins.kind = "ack"
-        elif e.kind == "warning" and (e.summary or "").startswith("Réponse non vérifiée"):
+        elif e.kind == "warning" and e.category == history.UNVERIFIED:
             ins.unverified = True
     if not ins.label:
         ins.label = mailer.KIND_LABELS.get(ins.kind, ins.kind)
