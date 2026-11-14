@@ -9,6 +9,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Correctifs de sécurité du système (Debian) et de pip publiés depuis la construction de l'image de base.
+# La CI reconstruit l'image chaque semaine sans cache : ces correctifs arrivent sans changement de code.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade pip
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
