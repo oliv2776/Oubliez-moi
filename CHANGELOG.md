@@ -5,6 +5,14 @@ Pour revenir à une version : `git checkout v1.23.0 && docker compose up -d --bu
 sauvegarde antérieure (Réglages › Sécurité et sauvegardes) : une base ouverte par une version récente reste
 lisible par une plus ancienne, les colonnes ajoutées étant simplement ignorées.
 
+## 1.25.1 — 14 novembre 2026
+- **Mises à jour de sécurité automatiques** : l'image est reconstruite chaque semaine avec les correctifs de
+  Debian, Python et pip, puis analysée (Trivy) ; une faille grave corrigeable vous est signalée par e-mail.
+  Sur le serveur, `sudo deploy/install-auto-update.sh` installe une mise à jour nocturne qui remet l'image
+  précédente en service si la nouvelle ne démarre pas.
+- `docker-compose.yml` utilise désormais l'image publiée (mise à jour : `docker compose pull && docker compose up -d`).
+- Tests aussi sous Python 3.15, la version de l'image ; actions de la CI épinglées par empreinte.
+
 ## 1.25.0 — 14 novembre 2026
 - **Brouillons de réponse par l'IA** (À traiter) : pour une réponse qu'aucune réponse type ne couvre, un modèle
   conversationnel rédige un brouillon. Vous le relisez, le corrigez et l'envoyez ; rien ne part sans vous.
