@@ -37,6 +37,19 @@
     </form>
   </section>
 </div>
+<section class="card">
+  <h2>Un centre d’appels vous a démarché ?</h2>
+  <p class="small muted">Notez le nom de l’entreprise donné par l’interlocuteur. Le dossier prépare le courrier (opposition, effacement, origine de votre numéro, preuve du consentement) et le texte du signalement SignalConso. Rien n’est envoyé.</p>
+  <form method="post" action="/privacy-cases/telemarketing" class="grid c2">
+    <div><label>Entreprise qui appelle (ou pour laquelle on appelle) *</label><input type="text" name="company" required maxlength="300"></div>
+    <div><label>Adresse de contact <span class="hint">— si vous la connaissez</span></label><input type="email" name="contact_email" maxlength="300"></div>
+    <div><label>Date de l’appel</label><input type="date" name="call_date"></div>
+    <div><label>Numéro qui a appelé</label><input type="text" name="caller_number" maxlength="30" placeholder="01 23 45 67 89"></div>
+    <div><label>Profil concerné</label><select name="profile_id">{% for p in profiles %}<option value="{{ p.id }}">{{ p.full_name }}</option>{% endfor %}</select></div>
+    <div><label>Note <span class="hint">— ce qui était proposé, ce que vous avez répondu</span></label><input type="text" name="note" maxlength="500"></div>
+    <p><button class="btn primary">Préparer le dossier</button></p>
+  </form>
+</section>
 <div class="page-head"><div><h2>Suivi des dossiers</h2><p class="muted">{{ cases|length }} dossier(s)</p></div></div>
 <form class="filters" method="get">
   <input type="search" name="q" value="{{ q }}" placeholder="Organisme, objet ou référence">

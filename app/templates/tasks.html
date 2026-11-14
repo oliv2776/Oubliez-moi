@@ -151,6 +151,21 @@
         {% endif %}
       </div>
       {% endif %}
+      {% if draft %}
+      <form method="post" action="/requests/{{ r.id }}/send-draft" class="draft-reply" data-confirm="Envoyer cette réponse au courtier, en votre nom ?">
+        <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
+        <label for="draft-body"><strong>Brouillon de réponse</strong> <span class="hint">— rédigé par l'IA le {{ draft.at|dt }}, non envoyé</span></label>
+        <textarea id="draft-body" name="body" rows="11" translate="no">{{ draft.body }}</textarea>
+        <p class="brief-caution small">Relisez chaque phrase : ce texte part en votre nom et l'IA peut se tromper. Vérifiez qu'il ne promet rien et ne donne aucune information que vous ne voulez pas donner.</p>
+        <button class="btn primary sm">Envoyer cette réponse</button>
+      </form>
+      {% endif %}
+      {% if can_draft %}
+      <form method="post" action="/requests/{{ r.id }}/draft" class="brief-ask" data-busy="Le modèle rédige… (jusqu'à une minute)">
+        <input type="hidden" name="next" value="/tasks?{{ 'cat=' ~ cat ~ '&' if cat }}id={{ r.id }}">
+        <button class="btn sm {{ 'link' if draft }}">{{ "Faire rédiger un autre brouillon" if draft else "Rédiger un brouillon de réponse avec l'IA" }} ({{ settings.llm_model }})</button>
+      </form>
+      {% endif %}
       {% if ins.kind == 'device_id' %}<p class="small" style="margin:.4rem 0 0"><a href="/tasks/device-ids">Marche à suivre commune et clôture groupée →</a></p>{% endif %}
       {% if can_summarize %}
       <form method="post" action="/requests/{{ r.id }}/summarize" class="brief-ask" data-busy="Le modèle lit le message… (jusqu'à une minute)">

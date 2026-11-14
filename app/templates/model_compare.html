@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Comparer les modèles{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small muted" style="margin:0"><a href="/settings#automatismes">Réglages › Automatismes</a></p>
+    <h1>Comparer les modèles</h1>
+    <p class="muted" style="margin:0">Fait classer vos propres réponses de courtiers par plusieurs modèles, sur ce serveur, et mesure leur accord avec les règles, le temps par réponse et la mémoire utilisée. Rien n'est modifié ni envoyé.</p>
+  </div>
+</div>
+
+{% if state.running %}
+<div class="card" id="compare-progress">
+  <h2 style="margin-top:0">Comparaison en cours</h2>
+  <p><strong translate="no" id="cmp-model">{{ state.model }}</strong> — <span id="cmp-done">{{ state.done }}</span> / {{ state.total }} réponses</p>
+  <progress id="cmp-bar" max="{{ state.total }}" value="{{ state.done }}" style="width:100%"></progress>
+  <p class="small muted">Les modèles passent l'un après l'autre ; sur processeur, comptez plusieurs minutes par modèle. Vous pouvez quitter cette page.</p>
+  <form method="post" action="/settings/models/compare/cancel"><button class="btn sm">Arrêter</button></form>
+</div>
+<script nonce="{{ csp_nonce }}">
+  setInterval(async () => {
+    try {
+      const s = await (await fetch("/settings/models/compare/status")).json();
+      if (!s.running) { location.reload(); return; }
+      document.getElementById("cmp-model").textContent = s.model;
+      document.getElementById("cmp-done").textContent = s.done;
+      document.getElementById("cmp-bar").value = s.done;
+    } catch (e) { /* le serveur redémarre : on réessaiera */ }
+  }, 2500);
+</script>
+{% elif installed is none %}
+<div class="banner warn">Ollama ne répond pas : vérifiez l'adresse dans <a href="/settings#automatismes">Réglages › Automatismes</a>.</div>
+{% elif not installed %}
+<div class="card empty"><h2>Aucun modèle installé</h2><p>Téléchargez-en au moins deux dans <a href="/settings#automatismes">Réglages › Automatismes</a>.</p></div>
+{% else %}
+<form method="post" action="/settings/models/compare" class="card">
+  <h2 style="margin-top:0">Modèles à comparer <span class="hint">— {{ max_models }} au plus</span></h2>
+  {% for name in installed %}
+  {% set info = catalog.get(name) or catalog.get(name.replace(':latest', '')) %}
+  <label class="check"><input type="checkbox" name="models" value="{{ name }}" {{ 'checked' if normalize(name) == current or loop.index <= 2 }}>
+    <span translate="no">{{ name.replace(':latest', '') }}</span>{% if info %} <span class="muted small">— {{ info.label }}, {{ info.memory }}</span>{% endif %}{% if normalize(name) == current %} <span class="tag">modèle actuel</span>{% endif %}</label>
+  {% endfor %}
+  <label for="size" style="margin-top:.8rem">Nombre de réponses testées par modèle</label>
+  <select id="size" name="size" style="max-width:220px">{% for n in sizes %}<option value="{{ n }}" {{ 'selected' if n == 20 }}>{{ n }} réponses</option>{% endfor %}</select>
+  <p class="small muted">Seules les réponses que les règles reconnaissent servent de référence, une par courtier, réparties entre les familles (clôture, accusé de réception, action demandée…).</p>
+  <button class="btn primary">Lancer la comparaison</button>
+</form>
+{% endif %}
+
+{% if last %}
+<div class="card">
+  <h2 style="margin-top:0">Dernière comparaison <span class="hint">— {{ last.at[:16].replace('T', ' à ') }} UTC, {{ last.size }} réponses par modèle</span></h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Modèle</th><th>D'accord avec les règles</th><th>Ne se prononce pas</th><th>Classe autrement</th><th>Temps par réponse</th><th>Mémoire</th></tr></thead>
+    <tbody>
+    {% for r in last.results %}
+    <tr>
+      <td><strong translate="no">{{ r.model.replace(':latest', '') }}</strong><div class="small muted">{{ 'décision' if r.mode == 'decision' else 'conversationnel' }}</div></td>
+      <td>{% if r.percent is not none %}<strong>{{ r.percent }} %</strong> <span class="small muted">({{ r.agree }} / {{ r.answered }})</span>{% else %}—{% endif %}</td>
+      <td>{{ r.abstain }}</td>
+      <td>{{ r.wrong }}</td>
+      <td>{% if r.seconds is not none %}{{ r.seconds }} s <span class="small muted">(chargement {{ r.load_seconds }} s)</span>{% else %}—{% endif %}</td>
+      <td>{% if r.memory_gb %}{{ r.memory_gb }} Go <span class="small muted">· {{ 'carte graphique' if r.gpu_share >= 90 else ('processeur' if r.gpu_share == 0 else r.gpu_share ~ ' % sur la carte graphique') }}</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% if r.errors or r.mistakes %}
+    <tr><td colspan="6" class="small muted">
+      {% if r.errors %}{{ r.errors }} réponse(s) sans résultat{% if r.last_error %} (<span translate="no">{{ r.last_error }}</span>){% endif %}. {% endif %}
+      {% for m in r.mistakes %}{{ m.broker }} : « {{ m.got }} » au lieu de « {{ m.expected }} »{{ ' ; ' if not loop.last }}{% endfor %}
+    </td></tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <p class="small muted"><strong>Comment lire ce tableau.</strong> L'accord est mesuré sur des réponses que les règles savent déjà classer : il indique si un modèle comprend ce type de courrier, pas ce qu'il vaudra sur les réponses que les règles ne reconnaissent pas, où il est réellement consulté. « Ne se prononce pas » est prudent, « classe autrement » est le défaut à éviter. À précision voisine, préférez le modèle le plus rapide et le plus léger. Changez de modèle dans <a href="/settings#automatismes">Réglages › Automatismes</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

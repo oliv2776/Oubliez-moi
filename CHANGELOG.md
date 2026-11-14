@@ -5,6 +5,14 @@ Pour revenir à une version : `git checkout v1.23.0 && docker compose up -d --bu
 sauvegarde antérieure (Réglages › Sécurité et sauvegardes) : une base ouverte par une version récente reste
 lisible par une plus ancienne, les colonnes ajoutées étant simplement ignorées.
 
+## 1.25.0 — 14 novembre 2026
+- **Brouillons de réponse par l'IA** (À traiter) : pour une réponse qu'aucune réponse type ne couvre, un modèle
+  conversationnel rédige un brouillon. Vous le relisez, le corrigez et l'envoyez ; rien ne part sans vous.
+- **Comparateur de modèles** (Réglages › Automatismes) : fait classer vos propres réponses par plusieurs modèles
+  et mesure l'accord avec les règles, le temps par réponse et la mémoire. LFM3 ajouté aux modèles proposés.
+- **Démarchage téléphonique** (Dossiers RGPD) : dossier prêt après un appel, avec le courrier (opposition,
+  effacement, origine du numéro, preuve du consentement) et le texte du signalement SignalConso.
+
 ## 1.24.0 — 13 novembre 2026
 
 Sécurité et vie privée

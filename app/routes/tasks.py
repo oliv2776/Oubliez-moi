@@ -105,6 +105,11 @@ def tasks(request: HttpRequest, cat: str = "", id: int | None = None, db: Sessio
     ctx["device_count"] = len(device_ids.candidates(db))
     ctx["confirm_from"] = service.confirm_from_plan_for(db, r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
     ctx["proposed"] = service.proposed_reply(r) if r and r.status in (NEEDS_ACTION, REPLIED) else None
+    # Brouillon par l'IA : pour les réponses qu'aucune réponse type ne couvre, avec un modèle qui sait rédiger
+    can_reply = bool(r and r.status in (NEEDS_ACTION, REPLIED) and r.broker.email and ctx.get("latest_reply")
+                     and not ctx.get("proposed") and not ctx.get("confirm_from"))
+    ctx["draft"] = service.current_draft(r) if can_reply else None
+    ctx["can_draft"] = can_reply and settings.llm_enabled and settings.llm_mode == "chat"
     ctx["reanalysis_count"] = len(reanalysis.load(db))
     ctx["reanalysis_suggest"] = reanalysis.model_changed(db) and bool(items)
     ctx["reanalysis_running"] = reanalysis.state["running"]
@@ -135,6 +140,34 @@ def request_send_proposed(request: HttpRequest, rid: int, next: str = Form(""), 
         flash(request, f"Réponse envoyée à {p['to']}.")
     else:
         flash(request, f"Échec de l'envoi : {r.events[-1].summary if r.events else ''}", "error")
+    db.commit()
+    return back(_safe_next(next) or f"/requests/{rid}")
+
+
+@router.post("/requests/{rid}/draft")
+def request_draft(request: HttpRequest, rid: int, next: str = Form(""), db: Session = Depends(get_db)):
+    """Fait rédiger par l'IA un brouillon de réponse, à relire. Rien n'est envoyé."""
+    r = _get(db, Request, rid)
+    try:
+        service.make_draft(db, r)
+        db.commit()
+        flash(request, "Brouillon prêt : relisez-le, corrigez-le, puis envoyez-le si vous êtes d'accord.")
+    except ValueError as e:
+        flash(request, f"Brouillon impossible : {e}", "error")
+    return back(_safe_next(next) or f"/requests/{rid}")
+
+
+@router.post("/requests/{rid}/send-draft")
+def request_send_draft(request: HttpRequest, rid: int, body: str = Form(""), next: str = Form(""),
+                       db: Session = Depends(get_db)):
+    """Envoie le texte relu (issu d'un brouillon de l'IA ou écrit à la main) en réponse au courtier."""
+    r = _get(db, Request, rid)
+    ok, info = service.send_manual_reply(db, r, body)
+    if ok:
+        service.set_status(db, r, SENT, "Réponse envoyée : en attente de leur retour")
+        flash(request, f"Réponse envoyée à {info}.")
+    else:
+        flash(request, f"Envoi impossible : {info}", "error")
     db.commit()
     return back(_safe_next(next) or f"/requests/{rid}")
 

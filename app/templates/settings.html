@@ -208,6 +208,7 @@
         {{ m.label }} · {{ m.memory }}{{ ' · ✓ installé' if short in inst }}
       </option>
     {%- endmacro %}
+    <p class="small" style="margin:.2rem 0 .6rem"><a href="/settings/models/compare">Comparer les modèles installés sur vos propres réponses →</a></p>
     <label for="llm_model">Modèle</label>
     <select id="llm_model" name="llm_model">
       <optgroup label="Modèles de décision (recommandés : choisissent une catégorie, rapides)">

@@ -17,7 +17,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import brokers as broker_catalog, crypto, mailboxes, scheduler, service, settings_store
-from . import case_assistant, case_management, device_ids, exposures, migration_routes, search as search_routes
+from . import case_assistant, case_management, device_ids, model_compare, exposures, migration_routes, search as search_routes
 from .config import settings
 from .routes import brokers as _r_brokers, mailboxes as _r_mailboxes, profiles as _r_profiles, requests as _r_requests, settings as _r_settings, tasks as _r_tasks
 from .web import BASE, SEED, back, flash, get_db, log, render
@@ -63,7 +63,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Oubliez-moi", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
-for _module in (search_routes, case_management, case_assistant, exposures, migration_routes, device_ids,
+for _module in (search_routes, case_management, case_assistant, exposures, migration_routes, device_ids, model_compare,
                 _r_profiles, _r_requests, _r_tasks, _r_mailboxes, _r_brokers, _r_settings):
     app.include_router(_module.router)
 
