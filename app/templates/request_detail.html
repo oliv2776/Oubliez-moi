@@ -45,7 +45,7 @@
           <div>{{ e.summary }}</div>
           {% if e.kind == 'reply' and e.id == latest_reply %}
             {{ mail_view(e) }}
-          {% elif e.kind in ('reply', 'sent', 'reminder', 'supplement', 'auto_reply', 'formal_notice') and e.body %}
+          {% elif e.kind in ('reply', 'sent', 'reminder', 'supplement', 'auto_reply', 'manual_reply', 'formal_notice') and e.body %}
             <details><summary>{{ 'Afficher le message' if e.kind == 'reply' else 'Afficher le courrier envoyé' }}</summary>{{ mail_view(e) }}</details>
           {% elif e.kind in ('confirm', 'info') and e.body and e.body.startswith('http') %}
             <div class="small"><a href="{{ e.body|url }}" target="_blank" rel="noopener noreferrer nofollow">{{ e.body[:120] }}</a></div>

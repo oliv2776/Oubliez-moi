@@ -455,3 +455,8 @@ form.is-loading input[type="search"] { background-image: linear-gradient(90deg, 
 .e-warn .energy-icon { background: var(--warn, #b7791f); color: #fff; }
 .e-info .energy-icon { background: var(--accent); color: #fff; }
 .energy-check pre { white-space: pre-wrap; font-size: .82rem; }
+
+/* Brouillon de réponse (À traiter) */
+.draft-reply { display: grid; gap: .4rem; margin-top: .7rem; }
+.draft-reply textarea { width: 100%; font: inherit; font-size: .9rem; line-height: 1.45; }
+.draft-reply button { justify-self: start; }

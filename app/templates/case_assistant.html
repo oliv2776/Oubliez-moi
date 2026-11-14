@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Assistant RGPD — {{ case.organization.name }}{% endblock %}
+{% block title %}Assistant RGPD — {{ case.organization.name }}<script nonce="{{ csp_nonce }}">
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-copy]"); if (!btn) return;
+  try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = "Copié"; } catch (e) { btn.textContent = "Copie impossible"; }
+});
+</script>
+{% endblock %}
 {% block content %}
 <div class="page-head">
   <div><p class="small muted"><a href="/privacy-cases/{{ case.id }}">Dossier RGPD #{{ case.id }}</a></p>
@@ -52,9 +58,25 @@
     <p class="small muted">Le brouillon est conservé dans le dossier. Aucun e-mail n’est envoyé et aucune adresse n’est contactée.</p>
   </section>
 </div>
+{% if signalconso %}
+<section class="card">
+  <h2>Signaler l’appel</h2>
+  <p class="small muted">Le signalement se fait sur le site officiel SignalConso (signal.conso.gouv.fr), rubrique démarchage téléphonique. Voici un texte à y coller ; gardez une preuve de l’appel (capture du journal d’appels).</p>
+  <pre id="signalconso-text" style="white-space:pre-wrap">{{ signalconso }}</pre>
+  <p><button type="button" class="btn sm" data-copy="{{ signalconso }}">Copier le texte</button>
+    <a class="btn sm" href="https://signal.conso.gouv.fr/" target="_blank" rel="noopener noreferrer">Ouvrir SignalConso ↗</a></p>
+  <p class="small muted">Message vocal ou SMS indésirable : transférez-le au 33 700 (« spam vocal » suivi du numéro, pour un appel).</p>
+</section>
+{% endif %}
 <section class="card">
   <h2>Éléments conservés</h2>
   <p class="small muted">Les événements, références de pièces, analyses et brouillons sont inclus dans l’export ZIP, avec leurs dates. Les fichiers externes référencés par lien ou chemin ne sont pas téléchargés ni intégrés automatiquement.</p>
   <a href="/privacy-cases/{{ case.id }}">Revenir à la chronologie du dossier</a>
 </section>
+<script nonce="{{ csp_nonce }}">
+document.addEventListener("click", async (ev) => {
+  const btn = ev.target.closest("[data-copy]"); if (!btn) return;
+  try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = "Copié"; } catch (e) { btn.textContent = "Copie impossible"; }
+});
+</script>
 {% endblock %}

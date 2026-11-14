@@ -1,6 +1,8 @@
 """Suivi des demandes RGPD générales, distinct des campagnes d'effacement des courtiers."""
 from __future__ import annotations
 
+import re
+
 import calendar
 from datetime import datetime, time, timedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -19,7 +21,9 @@ CASE_TYPES = {
     "rectification": "Droit de rectification",
     "restriction": "Limitation du traitement",
     "portability": "Droit à la portabilité",
+    "telemarketing": "Démarchage téléphonique",
 }
+TELEMARKETING = "telemarketing"
 CASE_STATUSES = {
     "draft": "Brouillon",
     "sent": "Envoyée",
@@ -217,6 +221,37 @@ def case_create(request: Request, organization_id: int = Form(...), request_type
     db.commit()
     request.session.setdefault("flash", []).append(["ok", "Dossier RGPD créé. Aucun courrier n’a été envoyé."])
     return RedirectResponse(f"/privacy-cases/{case.id}", status_code=303)
+
+
+@router.post("/privacy-cases/telemarketing")
+def telemarketing_create(request: Request, company: str = Form(...), call_date: str = Form(""), caller_number: str = Form(""),
+                         contact_email: str = Form(""), profile_id: int = Form(0), note: str = Form(""),
+                         db: Session = Depends(get_db)):
+    """Dossier prêt à l'emploi après un appel de démarchage : opposition, effacement, source du numéro, preuve du consentement."""
+    company = company.strip()[:300]
+    if not company:
+        raise HTTPException(400, "Le nom de l’entreprise est obligatoire.")
+    try:
+        day = datetime.strptime(call_date.strip(), "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        day = ""
+    number = re.sub(r"[^\d+ .()-]", "", caller_number).strip()[:30]
+    org = db.scalar(select(Organization).where(Organization.name.ilike(company)))
+    if org is None:
+        org = Organization(name=company)
+        db.add(org)
+    if contact_email.strip():
+        org.contact_email = contact_email.strip()[:300]
+    profile = _get(db, Profile, profile_id) if profile_id else db.scalar(select(Profile).order_by(Profile.id))
+    subject = "Appel de démarchage" + (f" du {day}" if day else "") + (f" depuis le {number}" if number else "")
+    case = PrivacyCase(organization=org, profile=profile, request_type=TELEMARKETING, subject=subject)
+    db.add(case)
+    db.flush()
+    _event(db, case, "created", "Dossier créé après un appel de démarchage", note.strip() or None)
+    db.commit()
+    request.session.setdefault("flash", []).append(
+        ["ok", "Dossier créé. Le courrier et le texte du signalement sont prêts ci-dessous ; rien n’a été envoyé."])
+    return RedirectResponse(f"/privacy-cases/{case.id}/assistant", status_code=303)
 
 
 @router.get("/privacy-cases/{case_id}", response_class=HTMLResponse)

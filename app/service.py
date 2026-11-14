@@ -808,6 +808,76 @@ def _send_auto_reply(db: Session, req: Request, kind: str, m: mailer.ParsedMail)
     return True
 
 
+# ------------------------------------------------- Brouillons rédigés par l'IA ---
+
+DRAFT = "draft"
+MANUAL_REPLY = "manual_reply"
+MAX_MANUAL_REPLIES = 5      # réponses libres par demande : au-delà, écrivez depuis votre messagerie
+
+
+def draft_facts(req: Request) -> str:
+    """Ce que le modèle a le droit de savoir : rien de plus que ce que contenait déjà la demande."""
+    p = req.profile
+    sent = req.sent_at.strftime("%d/%m/%Y") if req.sent_at else "date inconnue"
+    return "\n".join([
+        f"- Nom de la personne : {p.full_name}",
+        f"- Adresses e-mail concernées par la demande : {', '.join(p.emails or []) or 'non précisé'}",
+        f"- Pays de résidence : {settings.residence_country or 'France'} (Union européenne)",
+        f"- Entreprise : {req.broker.name}",
+        f"- Demande d'effacement envoyée le {sent}, référence {req.reference}",
+        "- La personne n'a, à sa connaissance, ni compte ni relation commerciale avec cette entreprise.",
+    ])
+
+
+def current_draft(req: Request):
+    """Brouillon en attente pour la dernière réponse reçue (None s'il n'y en a pas ou s'il est déjà parti)."""
+    for e in reversed(req.events):
+        if e.kind in ("reply", MANUAL_REPLY):
+            return None
+        if e.kind == DRAFT and e.body:
+            return e
+    return None
+
+
+def make_draft(db: Session, req: Request):
+    """Fait rédiger un brouillon par l'IA pour la dernière réponse. Rien n'est envoyé. Lève ValueError."""
+    from .reanalysis import _from_event
+    replies = [e for e in req.events if e.kind == "reply"]
+    if not replies:
+        raise ValueError("Aucune réponse à laquelle répondre")
+    m = _from_event(replies[-1])
+    text = llm.draft_reply(draft_facts(req), m.subject, rules.latest_reply_text(m.text))
+    return add_event(db, req, DRAFT, f"Brouillon de réponse rédigé par l'IA ({settings.llm_model}), non envoyé", text,
+                     actor=history.AI, category=DRAFT)
+
+
+def send_manual_reply(db: Session, req: Request, body: str) -> tuple[bool, str]:
+    """Envoie au courtier le texte que vous avez relu. Renvoie (réussi, destinataire ou erreur)."""
+    from .reanalysis import _from_event
+    body = (body or "").strip()
+    replies = [e for e in req.events if e.kind == "reply"]
+    if len(body) < 20 or not replies:
+        return False, "Le message est vide"
+    if sum(1 for e in req.events if e.kind == MANUAL_REPLY) >= MAX_MANUAL_REPLIES:
+        return False, f"Déjà {MAX_MANUAL_REPLIES} réponses envoyées pour cette demande : poursuivez depuis votre messagerie"
+    m = _from_event(replies[-1])
+    to = _auto_reply_recipient(req, m)
+    if not to:
+        return False, "Ce courtier n'a pas d'adresse e-mail"
+    subject = letters._re_subject(m.subject, f"Demande d'effacement – Réf. {req.reference}")
+    msg = mailer.build_message(to, subject, body, from_name=req.profile.full_name, in_reply_to=m.message_id or None)
+    try:
+        mailer.send_message(msg)
+    except mailer.SendError as e:
+        add_event(db, req, "error", f"Réponse non envoyée : {e}")
+        return False, str(e)
+    req.message_ids = [*(req.message_ids or []), msg["Message-ID"]]
+    prefix = "[SIMULATION] " if settings.dry_run else ""
+    add_event(db, req, MANUAL_REPLY, f"{prefix}Réponse envoyée à {to} (texte relu par vous)", f"Objet : {subject}\n\n{body}",
+              actor=history.MANUAL, category=MANUAL_REPLY)
+    return True, to
+
+
 def _todo_ids(db: Session) -> set[int]:
     return set(db.scalars(select(Request.id).where(Request.status.in_(TODO_STATUSES))))
 
