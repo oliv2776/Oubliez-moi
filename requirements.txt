@@ -1,12 +1,12 @@
-fastapi==0.162.0
+fastapi==0.162.4
 uvicorn[standard]==0.54.0
 Jinja2==3.1.6
-SQLAlchemy==2.1.6
+SQLAlchemy==2.1.8
 APScheduler==3.11.3
-python-multipart==0.0.32
+python-multipart==0.0.33
 itsdangerous==2.2.0
 tzdata==2026.6
-phonenumbers==9.0.42
+phonenumbers==9.0.43
 nh3==0.3.7
 cryptography==50.0.2
 tldextract==5.4.0
