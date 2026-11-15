@@ -5,6 +5,11 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  # Reconstruction hebdomadaire (lundi 3 h 17 UTC) : l'image publiée reçoit les correctifs de sécurité de
+  # Debian, de Python et de pip même sans nouvelle version de l'appli. Lancement manuel possible (onglet Actions).
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,13 +20,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3.13 = version de l'image Docker ; 3.12 = installation hors Docker la plus courante
-        python-version: ["3.12", "3.13"]
+        # 3.15 = version de l'image Docker ; 3.12 et 3.13 = installations hors Docker courantes
+        python-version: ["3.12", "3.13", "3.15"]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -38,24 +44,29 @@ jobs:
 
   docker:
     needs: tests
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      # Image exacte qui vient d'être publiée (nom en minuscules, empreinte), pour l'analyse
+      image: ${{ steps.name.outputs.image }}@${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-qemu-action@v4
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1  # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550  # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - id: version
         run: echo "version=$(sed -n 's/__version__ = "\(.*\)"/\1/p' app/__init__.py)" >> "$GITHUB_OUTPUT"
       - id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -64,15 +75,44 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
-      - uses: docker/build-push-action@v7
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Reconstruction planifiée : sans cache et en retéléchargeant l'image de base, sinon les
+          # correctifs ne seraient pas repris.
+          pull: true
+          no-cache: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Analyse de l'image publiée. Échoue s'il reste une faille grave ou critique pour laquelle un correctif
+  # existe : GitHub vous prévient alors par e-mail. Les failles sans correctif publié sont ignorées
+  # (rien à faire de notre côté) et réapparaîtront dès qu'un correctif sortira.
+  scan:
+    needs: docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Failles connues dans l'image (système, Python, dépendances)
+        # Épinglé par empreinte : en mars 2026, les étiquettes de cette action ont été détournées.
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with:
+          image-ref: ${{ needs.docker.outputs.image }}
+          version: v0.69.3
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
   # Pose l'étiquette vX.Y.Z de la version en cours sur main : chaque version reste retrouvable
   # (git checkout v1.24.0, ou image ghcr.io/…:1.24.0) pour revenir en arrière.
@@ -83,7 +123,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Étiquette de version
         run: |
           version="v$(sed -n 's/__version__ = "\(.*\)"/\1/p' app/__init__.py)"

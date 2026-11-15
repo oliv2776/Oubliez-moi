@@ -47,8 +47,9 @@ git clone https://github.com/oliv2776/Oubliez-moi.git
 cd Oubliez-moi
 cp .env.example .env
 nano .env            # au minimum : ADMIN_PASSWORD
-docker compose up -d --build
+docker compose pull && docker compose up -d
 docker compose logs -f
+sudo deploy/install-auto-update.sh   # recommandé : mises à jour de sécurité automatiques (voir plus bas)
 ```
 
 Par défaut, l'interface écoute sur `http://127.0.0.1:27480`, accessible uniquement depuis le serveur lui-même.
@@ -63,7 +64,7 @@ ssh -L 27480:127.0.0.1:27480 utilisateur@mon-serveur   # puis ouvrez http://loca
 
 ### Image prête à l'emploi
 
-Le workflow GitHub Actions construit et publie l'image (amd64 et arm64) sur `ghcr.io/oliv2776/oubliez-moi` à chaque push sur `main`. Pour l'utiliser sans compiler sur le serveur, remplacez `build: .` par `image: ghcr.io/oliv2776/oubliez-moi:latest` dans `docker-compose.yml`. Si le dépôt est privé, rendez le paquet public dans les réglages GitHub ou faites un `docker login ghcr.io`.
+`docker-compose.yml` utilise l'image publiée sur `ghcr.io/oliv2776/oubliez-moi` (amd64 et arm64) par GitHub Actions, à chaque nouvelle version et chaque semaine (voir « Mises à jour de sécurité »). Pour construire depuis les sources à la place : `docker compose build --pull && docker compose up -d`.
 
 ## Configuration de la messagerie
 
@@ -253,9 +254,20 @@ Toutes les données sont dans le volume Docker `oubliez-moi_oubliez-moi-data` (b
 docker run --rm -v oubliez-moi_oubliez-moi-data:/data -v "$PWD":/backup alpine \
   tar czf /backup/oubliez-moi-$(date +%F).tar.gz -C /data .
 
-# Mise à jour
-git pull && docker compose up -d --build
+# Mise à jour manuelle
+docker compose pull && docker compose up -d
 ```
+
+### Mises à jour de sécurité
+
+Une image n'est sûre qu'au moment de sa construction : de nouvelles failles sont publiées chaque semaine dans Debian, Python ou les dépendances. Deux mécanismes s'en chargent, sans intervention :
+
+1. **Côté GitHub**, l'image est reconstruite chaque lundi (et à chaque nouvelle version), sans cache, à partir de la dernière image de base, avec les correctifs Debian et pip. Elle est ensuite analysée (Trivy) : s'il reste une faille grave ou critique corrigeable, le workflow échoue et GitHub vous envoie un e-mail. Dependabot propose chaque semaine les mises à jour des dépendances Python, de l'image de base et des actions.
+2. **Côté serveur**, `sudo deploy/install-auto-update.sh` installe un minuteur systemd qui, chaque nuit vers 5 h, télécharge les nouvelles images (y compris Ollama ou Proton Bridge s'ils figurent dans `COMPOSE_PROFILES`), redémarre ce qui a changé et vérifie que l'appli répond. Sinon, l'image précédente est remise en service. Journal : `journalctl -u oubliez-moi-update` ; désinstallation : `sudo deploy/install-auto-update.sh --remove`.
+
+`docker-compose.yml` n'est pas mis à jour automatiquement : après un changement annoncé dans le [journal des versions](CHANGELOG.md), faites `git pull && docker compose up -d`. Le système du serveur lui-même (Ubuntu, Docker, Ollama installé hors conteneur) se met à jour à part, par exemple avec `unattended-upgrades`.
+
+GitHub suspend les tâches planifiées d'un dépôt public resté 60 jours sans activité ; fusionner les propositions de Dependabot suffit à l'éviter.
 
 ## Limites, à lire
 
