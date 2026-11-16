@@ -47,3 +47,10 @@ def test_update_scripts_are_valid_shell():
         subprocess.run(["sh", "-n", str(path)], check=True)
     update = (ROOT / "deploy/update.sh").read_text()
     assert "docker tag \"$before\" \"$image\"" in update   # retour à l'image précédente si la nouvelle échoue
+
+
+def test_pip_is_removed_from_the_image():
+    """pip n'est utile qu'à la construction ; sa copie de setuptools était signalée (CVE-2025-47273)."""
+    docker = (ROOT / "Dockerfile").read_text()
+    assert "pip uninstall -y pip" in docker
+    assert docker.index("pip install -r requirements.txt") < docker.index("pip uninstall -y pip")

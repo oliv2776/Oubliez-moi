@@ -5,6 +5,10 @@ Pour revenir à une version : `git checkout v1.23.0 && docker compose up -d --bu
 sauvegarde antérieure (Réglages › Sécurité et sauvegardes) : une base ouverte par une version récente reste
 lisible par une plus ancienne, les colonnes ajoutées étant simplement ignorées.
 
+## 1.25.2 — 16 novembre 2026
+- Image : pip est retiré après l'installation des dépendances. Il n'est pas utilisé par l'appli, et l'analyse
+  de sécurité signalait la copie de setuptools 70.3.0 qu'il embarque (CVE-2025-47273, code vulnérable absent).
+
 ## 1.25.1 — 14 novembre 2026
 - **Mises à jour de sécurité automatiques** : l'image est reconstruite chaque semaine avec les correctifs de
   Debian, Python et pip, puis analysée (Trivy) ; une faille grave corrigeable vous est signalée par e-mail.
